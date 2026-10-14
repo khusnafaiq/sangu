@@ -2,12 +2,12 @@
 // - The page (navigations, ./ and ./index.html) is network-first and revalidated with the server on every
 //   load (cache: 'no-cache', so a stale HTTP-cached copy is never used); the cache is only the offline fallback.
 // - Icons and the manifest are cache-first.
-// - A new build (new ed20932b40, so a new worker) installs, takes over at once (skipWaiting + clients.claim)
+// - A new build (new d75c33b9d7, so a new worker) installs, takes over at once (skipWaiting + clients.claim)
 //   and the open page reloads onto it or offers to (see the controllerchange handler in the page).
 // - The page itself must be cached before a new worker may take over: if the connection drops while it downloads,
 //   the install fails, the old worker and its cache (the offline copy) stay, and the browser tries again later.
 // Cross-origin requests (the OCR engine) are left to the browser.
-const CACHE = 'sangu-ed20932b40';
+const CACHE = 'sangu-d75c33b9d7';
 const PAGE = './index.html';
 // './' is the same page: the fetch handler answers it from './index.html', so it is not downloaded twice
 const EXTRAS = ['./manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
