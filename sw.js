@@ -1,14 +1,28 @@
 // Offline cache for the app shell. Only used when the app is served over https or localhost.
-// The page itself is network-first (so updates arrive immediately) with the cache as offline fallback;
-// icons and the manifest are cache-first. Cross-origin requests (the OCR engine) are left to the browser.
-const CACHE = 'sangu-4c95442840';
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+// - The page (navigations, ./ and ./index.html) is network-first and revalidated with the server on every
+//   load (cache: 'no-cache', so a stale HTTP-cached copy is never used); the cache is only the offline fallback.
+// - Icons and the manifest are cache-first.
+// - A new build (new ed20932b40, so a new worker) installs, takes over at once (skipWaiting + clients.claim)
+//   and the open page reloads onto it or offers to (see the controllerchange handler in the page).
+// - The page itself must be cached before a new worker may take over: if the connection drops while it downloads,
+//   the install fails, the old worker and its cache (the offline copy) stay, and the browser tries again later.
+// Cross-origin requests (the OCR engine) are left to the browser.
+const CACHE = 'sangu-ed20932b40';
+const PAGE = './index.html';
+// './' is the same page: the fetch handler answers it from './index.html', so it is not downloaded twice
+const EXTRAS = ['./manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const SHELL = [PAGE].concat(EXTRAS);
 
 self.addEventListener('install', (event) => {
+  // cache: 'reload' skips the HTTP cache, so the new build's files are cached, not an older copy
+  const fresh = (url) => new Request(url, { cache: 'reload' });
   event.waitUntil(
     caches.open(CACHE)
-      .then((cache) => Promise.all(SHELL.map((url) => cache.add(url).catch(() => {}))))
+      .then((cache) => cache.add(fresh(PAGE))
+        // icons and the manifest are nice to have; the page is not optional
+        .then(() => Promise.all(EXTRAS.map((url) => cache.add(fresh(url)).catch(() => {})))))
       .then(() => self.skipWaiting())
+      .catch((err) => caches.delete(CACHE).then(() => { throw err; }))
   );
 });
 
@@ -20,6 +34,10 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Always ask the server (a cheap 304 when nothing changed); fall back to a plain fetch if the browser
+// refuses to rebuild a navigation request with options.
+const fromNetwork = (req) => fetch(req, { cache: 'no-cache' }).catch(() => fetch(req));
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
@@ -29,15 +47,15 @@ self.addEventListener('fetch', (event) => {
   const isPage = req.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('/index.html');
   if (isPage) {
     event.respondWith(
-      fetch(req)
+      fromNetwork(req)
         .then((res) => {
-          if (res && res.ok) {
+          if (res && res.ok && res.type === 'basic') {
             const copy = res.clone();
-            caches.open(CACHE).then((cache) => cache.put('./index.html', copy)).catch(() => {});
+            caches.open(CACHE).then((cache) => cache.put(PAGE, copy)).catch(() => {});
           }
           return res;
         })
-        .catch(() => caches.match('./index.html').then((hit) => hit || caches.match('./')))
+        .catch(() => caches.match(PAGE).then((hit) => hit || caches.match('./')))
     );
     return;
   }

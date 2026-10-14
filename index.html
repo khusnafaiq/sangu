@@ -45,6 +45,9 @@
       --safe-bottom: env(safe-area-inset-bottom, 0px);
       --safe-left: env(safe-area-inset-left, 0px);
       --safe-right: env(safe-area-inset-right, 0px);
+      --gutter: 22px;               /* side padding of the top bar and the views */
+      --kb: 0px;                    /* keyboard height (set by the viewport guard while typing) */
+      --vv-top: 0px;                /* visible area offset while the keyboard is up */
       color-scheme: dark;
     }
 
@@ -57,14 +60,19 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    html, body { height: 100%; }
+    /* The document never scrolls (iOS scrolls it while the keyboard is up; the viewport guard undoes
+       that). All scrolling happens in the views, sheets and onboarding inside the fixed shell. */
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      overflow-x: hidden;
+      overscroll-behavior: none;
+    }
 
     body {
       background-color: var(--bg-canvas);
       background-image: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 60%);
       color: var(--text-primary);
-      min-height: 100vh;
-      min-height: 100dvh;
       overflow: hidden;
       overscroll-behavior: none;
       -webkit-text-size-adjust: 100%;
@@ -91,12 +99,17 @@
     }
     input:focus-visible, textarea:focus-visible, select:focus-visible { outline-offset: 0; }
 
-    /* APP SHELL: full screen on phones, device-like frame on wider screens */
+    /* APP SHELL: full screen on phones, device-like frame on wider screens.
+       Phones: pinned to the screen edges (position:fixed, no 100dvh). On iOS Home Screen apps 100dvh can be
+       shorter than the screen and a scrolled document used to drag the shell up under the status bar;
+       a fixed shell covers the whole screen whatever the document does. Safe areas are padding inside. */
     .app {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-      height: 100dvh;
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      touch-action: manipulation;
       background: var(--bg-app);
       background-image: radial-gradient(circle at 50% 6%, rgba(52, 211, 153, 0.045) 0%, transparent 45%);
       display: flex;
@@ -112,6 +125,11 @@
         padding: 20px;
       }
       .app {
+        position: relative;
+        top: auto;
+        right: auto;
+        bottom: auto;
+        left: auto;
         width: 400px;
         height: min(880px, calc(100vh - 40px));
         height: min(880px, calc(100dvh - 40px));
@@ -144,7 +162,8 @@
       font-weight: 600;
       line-height: 1.4;
     }
-    .storage-banner + .app-main .top-bar { padding-top: 10px; }
+    /* only while the banner shows (it then clears the status bar); the banner element is always in the DOM */
+    .storage-banner:not([hidden]) + .app-main .top-bar { padding-top: 10px; }
 
     /* MICRO-ANIMATIONS: Staggered Entrance & Tactile Press Physics */
     @keyframes fadeSlideUp {
@@ -272,22 +291,31 @@
       background: var(--bg-app);
       background-image: radial-gradient(circle at 50% 0%, rgba(52, 211, 153, 0.06) 0%, transparent 50%);
       z-index: 85;
-      padding: calc(18px + var(--safe-top)) 22px calc(22px + var(--safe-bottom));
+      padding: calc(18px + var(--safe-top)) calc(22px + var(--safe-right)) calc(22px + var(--safe-bottom)) calc(22px + var(--safe-left));
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       gap: 14px;
+      overflow: hidden;
+      touch-action: pan-y pinch-zoom; /* no sideways drag, zoom stays available */
+      overscroll-behavior: none;
       animation: fadeSlideUp 0.28s var(--spring);
     }
 
+    /* Vertical-only scroller. The side padding (4px) holds the focus rings and the enlarged hit area
+       of "Lewati" (::after, 4px wider); with 2px it stuck out and the whole setup could be dragged sideways. */
     .ob-top {
       display: flex;
       flex-direction: column;
       gap: 18px;
+      overflow-x: hidden;
       overflow-y: auto;
-      padding: 2px 2px 12px;
-      margin: -2px;
+      overscroll-behavior: none;
+      touch-action: pan-y pinch-zoom; /* no sideways drag, zoom stays available */
+      padding: 2px 4px 12px;
+      margin: -2px -4px;
       min-height: 0;
+      min-width: 0;
       flex: 1;
     }
     .ob-top::-webkit-scrollbar { display: none; }
@@ -574,7 +602,7 @@
 
     /* Clean Top Bar */
     .top-bar {
-      padding: calc(10px + var(--safe-top)) calc(22px + var(--safe-right)) 10px calc(22px + var(--safe-left));
+      padding: calc(10px + var(--safe-top)) calc(var(--gutter) + var(--safe-right)) 10px calc(var(--gutter) + var(--safe-left));
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -626,15 +654,26 @@
     }
     .icon-btn svg { width: 17px; height: 17px; stroke-width: 1.8; }
     .icon-btn.sm { width: 36px; height: 36px; border-radius: 10px; }
+    .icon-btn.head-paste {
+      width: auto;
+      gap: 6px;
+      padding: 0 13px 0 11px;
+      color: var(--positive);
+      border-color: rgba(52, 211, 153, 0.28);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .icon-btn.head-paste svg { width: 16px; height: 16px; }
 
     /* Views Container */
     .view-pane {
       flex: 1;
       min-height: 0;
+      overflow-x: hidden;
       overflow-y: auto;
       overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
-      padding: 4px calc(22px + var(--safe-right)) 24px calc(22px + var(--safe-left));
+      padding: 4px calc(var(--gutter) + var(--safe-right)) 24px calc(var(--gutter) + var(--safe-left));
       display: none;
       flex-direction: column;
       gap: 15px;
@@ -702,8 +741,8 @@
       overflow-x: auto;
       scroll-snap-type: x proximity;
       padding: 2px;
-      margin: -2px -22px -2px -2px;
-      padding-right: 22px;
+      margin: -2px calc(-1 * var(--gutter)) -2px -2px;
+      padding-right: var(--gutter);
       scrollbar-width: none;
     }
     .wallet-strip::-webkit-scrollbar { display: none; }
@@ -1843,6 +1882,7 @@
     .sheet-body {
       flex: 1;
       min-height: 0;
+      overflow-x: hidden;
       overflow-y: auto;
       overscroll-behavior: contain;
       padding: 8px 20px 18px;
@@ -1862,6 +1902,8 @@
     }
     .sheet-foot .btn-primary { flex: 1; }
     .sheet-foot:empty { display: none; }
+    /* sheets without buttons scroll to the screen edge: their last row ends above the home indicator */
+    .sheet-body:has(+ .sheet-foot:empty) { padding-bottom: calc(18px + var(--safe-bottom)); }
     .sheet-text { font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
     .sheet-text strong { color: var(--text-primary); font-variant-numeric: tabular-nums; }
     .sheet-text p + p { margin-top: 8px; }
@@ -2125,7 +2167,8 @@
     button.inline-metric-tag::after { content: ''; position: absolute; inset: -6px -3px; }
 
     /* wallet tiles: a part of the next tile always shows, edges line up with the content */
-    .wallet-strip { padding: 4px; margin: -4px -22px -4px -4px; padding-right: 22px; scroll-padding-inline: 4px; }
+    /* bleeds to the right screen edge: exactly the view's gutter, never more (it overflowed at <=360px) */
+    .wallet-strip { padding: 4px; margin: -4px calc(-1 * var(--gutter)) -4px -4px; padding-right: var(--gutter); scroll-padding-inline: 4px; }
     .wallet-card { flex: 0 0 calc((100% - 16px) / 3.3); min-width: 92px; max-width: 160px; }
     .wallet-strip {
       -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
@@ -2226,15 +2269,29 @@
     .fine-pointer-only { display: none; }
     @media (hover: hover) and (pointer: fine) { .fine-pointer-only { display: block; } }
 
-    .review-meta select {
-      flex: 1 0 100%; max-width: none; order: 3; height: 36px;
-      -webkit-appearance: none; appearance: none; padding-right: 30px;
+    /* Category of a statement row: a small chip showing the choice, with the native select laid over it.
+       The select itself stays 16px (iOS zooms into a focused field under 16px and the page then pans
+       sideways) but is invisible, so the row keeps its hierarchy: title and amount first, category small. */
+    .review-meta .cat-chip {
+      position: relative; flex: 1 0 100%; order: 3; height: 36px; min-width: 0;
+      display: flex; align-items: center; padding: 0 30px 0 9px;
+      border-radius: 8px; background: var(--surface-1); border: 1px solid var(--border);
+      color: var(--text-primary); font-size: 12px; font-weight: 600;
       background-image: linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%), linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%);
       background-position: calc(100% - 16px) 15px, calc(100% - 11px) 15px;
       background-size: 5px 5px, 5px 5px;
       background-repeat: no-repeat;
     }
+    .review-meta .cat-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
+    .review-meta .cat-chip select {
+      position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; margin: 0; padding: 0;
+      opacity: 0; font-size: 16px; border: 0; -webkit-appearance: none; appearance: none; cursor: pointer;
+    }
+    .review-meta .cat-chip:focus-within { outline: 2px solid var(--positive); outline-offset: 2px; }
     .review-meta .dup-tag { order: 4; }
+    .about-version { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+    .diag-pre { margin: 0; padding: 12px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); color: var(--text-secondary);
+      font: 500 11.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-word; -webkit-user-select: text; user-select: text; }
     #stText { font-weight: 500; line-height: 1.5; }
 
     .ob-restore { align-self: flex-start; display: inline-flex; align-items: center; min-height: 40px; font-size: 12.5px; font-weight: 700; color: var(--positive); }
@@ -2243,12 +2300,223 @@
     .receipt-preview img { width: auto; height: auto; }
     @media (min-width: 520px) and (max-height: 600px) {
       body { padding: 0; }
-      .app { height: 100vh; height: 100dvh; border-radius: 0; border-width: 0 1px; }
+      /* a phone on its side: the frame reaches the bottom edge, so the tab bar stays above the home indicator */
+      .app { height: 100vh; height: 100dvh; border-radius: 0; border-width: 0 1px; --safe-bottom: env(safe-area-inset-bottom, 0px); }
     }
+    /* CATAT: "Dari screenshot" (photo picker) with Tempel (clipboard) as one full-width card above the two tools */
+    .dock-card.shot-card {
+      grid-column: 1 / -1;
+      padding: 0;
+      align-items: center;
+      gap: 0;
+      cursor: default;
+      border-color: rgba(52, 211, 153, 0.26);
+      background: linear-gradient(180deg, rgba(52, 211, 153, 0.06) 0%, var(--surface-1) 100%);
+    }
+    .dock-card.shot-card:active { transform: none; }
+    .shot-main {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      cursor: pointer;
+      border-radius: var(--radius-lg);
+      transition: transform 0.18s var(--spring);
+    }
+    .shot-main:active { transform: scale(0.97); }
+    .shot-main:focus-within { outline: 2px solid var(--positive); outline-offset: -2px; }
+    .shot-main .dock-text strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .shot-main .dock-text small { line-height: 1.35; }
+    .dock-icon.accent { background: rgba(52, 211, 153, 0.12); border-color: rgba(52, 211, 153, 0.32); color: var(--positive); }
+    .dock-icon.accent svg { width: 17px; height: 17px; }
+    .paste-pill {
+      flex-shrink: 0;
+      margin-right: 10px;
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-hover);
+      color: var(--text-primary);
+      font-size: 12.5px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      position: relative;
+    }
+    .paste-pill::after { content: ''; position: absolute; inset: -6px -4px; }
+    .paste-pill svg { width: 15px; height: 15px; stroke-width: 1.9; }
+    .shot-card.pulse { animation: shotPulse 1.4s var(--spring) 2; }
+    @keyframes shotPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+      30% { box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.35); }
+    }
+    .parsed-tag.shot-tag { border-color: rgba(56, 189, 248, 0.4); padding-right: 11px; }
+    .parsed-tag .pt-icon { display: inline-flex; color: var(--rollover); flex-shrink: 0; }
+    .parsed-tag .pt-icon svg { width: 14px; height: 14px; stroke-width: 2; }
+
+    /* Transaction sheet: what was read (picture + note), possible duplicate, fields not found */
+    .read-card {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px;
+    }
+    .read-thumb {
+      width: 52px;
+      height: 92px;
+      padding: 0;
+      flex-shrink: 0;
+      border-radius: 9px;
+      overflow: hidden;
+      border: 1px solid var(--border-hover);
+      background: var(--surface-3);
+      cursor: zoom-in;
+    }
+    .read-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+    .read-card.expanded .read-thumb { order: 2; width: 100%; height: auto; cursor: zoom-out; background: var(--bg-app); }
+    .read-card.expanded .read-thumb:active { transform: none; }
+    .read-card.expanded .read-thumb img { height: auto; max-height: 70vh; object-fit: contain; }
+    .read-icon {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border-radius: 11px;
+      background: var(--surface-3);
+      color: var(--rollover);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .read-icon svg { width: 18px; height: 18px; stroke-width: 1.8; }
+    .read-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .read-meta strong { font-size: 12.5px; font-weight: 700; line-height: 1.4; color: var(--rollover); }
+    .read-card.failed .read-meta strong { color: var(--warning); }
+    .read-meta small { font-size: 11.5px; line-height: 1.4; color: var(--text-muted); overflow-wrap: anywhere; }
+    .read-meta .read-warn { color: var(--warning); }
+    .dup-note { display: flex; flex-direction: column; gap: 2px; }
+    .dup-note strong { font-weight: 700; }
+    .dup-note span { color: var(--text-secondary); overflow-wrap: anywhere; }
+    .field.unsure .field-label { color: var(--warning); }
+    .field.unsure .ob-input { border-color: rgba(251, 191, 36, 0.55); }
+    .field.unsure .ob-input:focus { border-color: var(--warning); }
+    .unsure-tag {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 7px;
+      border-radius: 8px;
+      background: rgba(251, 191, 36, 0.12);
+      color: var(--warning);
+      font-size: 10.5px;
+      font-weight: 700;
+      vertical-align: 1px;
+    }
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 8px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .check-row input { width: 20px; height: 20px; flex-shrink: 0; accent-color: var(--positive); cursor: pointer; }
+    .field-label-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+    /* Settings link row + screenshot tips sheet */
+    .settings-link {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 0;
+      text-align: left;
+      color: inherit;
+      cursor: pointer;
+      justify-content: flex-start;
+    }
+    .settings-link .sr-text { flex: 1; }
+    .settings-link > svg { width: 16px; height: 16px; stroke-width: 2; color: var(--text-muted); flex-shrink: 0; }
+    .settings-link .sr-icon {
+      width: 34px; height: 34px; flex-shrink: 0;
+      border-radius: 10px;
+      background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: var(--positive);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .settings-link .sr-icon svg { width: 16px; height: 16px; stroke-width: 1.8; }
+    .settings-link:active { transform: scale(0.98); }
+    .tip-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
+    .tip { display: flex; gap: 12px; align-items: flex-start; }
+    .tip-num {
+      width: 26px; height: 26px; flex-shrink: 0;
+      border-radius: 50%;
+      background: var(--surface-3);
+      color: var(--text-primary);
+      font-size: 12.5px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .tip-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.55; color: var(--text-secondary); }
+    .tip-body strong { font-size: 13.5px; color: var(--text-primary); }
+    .tip-steps { margin: 4px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+    .tip-steps li { padding-left: 2px; }
+    .tip-steps li::marker { color: var(--text-muted); font-weight: 700; }
+
+    /* KEYBOARD (phones). While a field is edited the viewport guard (JS) sets --kb (keyboard height over the
+       shell) and --vv-top (how far iOS panned the visible area). Sheets and the setup screen then fill just
+       the visible area: the field, the sheet's buttons and toasts stay above the keyboard. */
+    .app.kb-open .sheet-layer,
+    .app.kb-open .onboarding-screen { top: var(--vv-top); bottom: var(--kb); }
+    .app.kb-open .sheet-foot { padding-bottom: 12px; }
+    .app.kb-open .sheet-body:has(+ .sheet-foot:empty) { padding-bottom: 18px; }
+    .app.kb-open .onboarding-screen { padding-bottom: 12px; }
+    .app.kb-open .toast-host { bottom: auto; top: calc(var(--vv-top) + 14px + var(--safe-top)); }
+    /* a phone on its side leaves under 200px above the keyboard: the sheet takes all of it, with slimmer chrome */
+    @media (max-height: 500px) {
+      .app.kb-open .sheet { max-height: 100%; border-radius: 16px 16px 0 0; }
+      .app.kb-open .sheet-grab { display: none; }
+      .app.kb-open .sheet-head { padding-top: 4px; padding-bottom: 2px; }
+      .app.kb-open .sheet-close { width: 36px; height: 36px; }
+      .app.kb-open .sheet-body { padding-top: 6px; padding-bottom: 8px; }
+      .app.kb-open .sheet-foot { padding-top: 6px; padding-bottom: 6px; }
+      .app.kb-open .sheet-foot .btn-primary, .app.kb-open .sheet-foot .btn-danger, .app.kb-open .sheet-foot .btn-secondary { min-height: 40px; }
+    }
+
     @media (max-width: 360px) {
+      :root { --gutter: 16px; }
       .hero-amount { font-size: 31px; }
-      .view-pane { padding-left: 16px; padding-right: 16px; }
-      .top-bar { padding-left: 16px; padding-right: 16px; }
+    }
+
+    /* SHORT SCREENS (iPhone SE / 8, a phone on its side): the whole Catat tab fits above the tab bar.
+       Tighter voice stage and orb, compact dock cards without their sub-lines. */
+    @media (max-height: 700px) {
+      #viewCatat { padding-bottom: 12px; }
+      .catat-studio { gap: 10px; }
+      .voice-stage { padding: 12px 14px 10px; gap: 8px; }
+      .caption-box { min-height: 52px; }
+      .live-parsed-preview { min-height: 22px; }
+      .orb-center-wrap { margin: 0; }
+      .voice-orb { width: 56px; height: 56px; box-shadow: 0 0 0 5px rgba(255,255,255,0.05); }
+      .voice-orb.recording { box-shadow: 0 0 0 8px rgba(244, 63, 94, 0.16); }
+      .stage-bottom-slot { min-height: 46px; padding-top: 8px; }
+      .bottom-dock-section, .dock-buttons { gap: 8px; }
+      .dock-card { min-height: 48px; padding: 9px 10px; }
+      .dock-card:not(.shot-card) .dock-text small { display: none; }
+      .dock-card:not(.shot-card) { align-items: center; }
+      .dock-icon { width: 30px; height: 30px; border-radius: 9px; }
+      .shot-main { padding: 9px 10px; }
+      .paste-pill { min-height: 38px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -2278,6 +2546,12 @@
         <span class="brand-text" id="headerGreeting"></span>
       </div>
       <div class="top-actions">
+        <button type="button" class="icon-btn head-paste" data-action="clip-paste" data-i18n-aria="catat.pasteAria">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 13h6"/><path d="M9 17h4"/>
+          </svg>
+          <span data-i18n="catat.paste"></span>
+        </button>
         <button type="button" class="icon-btn" data-action="open-settings" data-i18n-aria="a11y.settings" data-i18n-title="a11y.settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
@@ -2409,6 +2683,27 @@
 
         <div class="bottom-dock-section stagger-2">
           <div class="dock-buttons">
+            <div class="dock-card shot-card">
+              <label class="shot-main" data-action="shot-pick">
+                <span class="dock-icon accent">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="5.5" y="2" width="13" height="20" rx="2.6"/><path d="M10.5 18.5h3"/><path d="m9.2 10.6 1.9 1.9 3.7-3.7"/>
+                  </svg>
+                </span>
+                <span class="dock-text">
+                  <strong data-i18n="catat.shot"></strong>
+                  <small data-i18n="catat.shotSub"></small>
+                </span>
+                <input type="file" accept="image/*" id="shotFile" class="visually-hidden">
+              </label>
+              <button type="button" class="paste-pill" data-action="clip-paste" data-i18n-aria="catat.pasteAria">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 13h6"/><path d="M9 17h4"/>
+                </svg>
+                <span data-i18n="catat.paste"></span>
+              </button>
+            </div>
+
             <button type="button" class="dock-card" data-action="open-manual">
               <span class="dock-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -2632,7 +2927,8 @@ const Core = (() => {
   // ---------- constants ----------
   const VERSION = '1.0.0';
   const TX_TYPES = ['EXPENSE', 'INCOME', 'TRANSFER', 'GOAL_IN', 'GOAL_OUT'];
-  const SOURCES = ['VOICE', 'MANUAL', 'RECEIPT', 'STATEMENT'];
+  // SCREENSHOT: read from a payment screenshot (or its pasted text) in the Catat tab.
+  const SOURCES = ['VOICE', 'MANUAL', 'RECEIPT', 'STATEMENT', 'SCREENSHOT'];
   const WALLET_COLORS = ['#38BDF8', '#34D399', '#FBBF24', '#A78BFA', '#F43F5E', '#F472B6'];
   const DAY_MS = 86400000;
   // Largest amount accepted anywhere (beyond this, digits are typos and float precision suffers).
@@ -2835,7 +3131,7 @@ const Core = (() => {
   const C = (id, color, idLabel, enLabel, keywords) => ({ id, color, label: { id: idLabel, en: enLabel }, keywords });
   const CATEGORIES = {
     expense: [
-      C('food', '#34D399', 'Makan & Minum', 'Food & Drinks', ['makan', 'makanan', 'minum', 'minuman', 'kopi', 'ngopi', 'nasi', 'ayam', 'bakso', 'mie', 'mi ayam', 'mie ayam', 'sate', 'soto', 'warteg', 'warung', 'warmindo', 'resto', 'restoran', 'rumah makan', 'cafe', 'kafe', 'coffee', 'jajan', 'jajanan', 'snack', 'cemilan', 'camilan', 'roti', 'sarapan', 'makan siang', 'makan malam', 'gofood', 'go food', 'grabfood', 'grab food', 'shopeefood', 'shopee food', 'starbucks', 'kenangan', 'kopi kenangan', 'janji jiwa', 'fore coffee', 'point coffee', 'mcd', 'mcdonald', 'mcdonalds', 'kfc', 'burger', 'pizza', 'hokben', 'richeese', 'boba', 'chatime', 'mixue', 'es teh', 'es kopi', 'es jeruk', 'es krim', 'es campur', 'es buah', 'es cendol', 'teh', 'martabak', 'gorengan', 'seblak', 'nasi goreng', 'nasi padang', 'pecel', 'gado gado', 'bubur', 'lunch', 'dinner', 'breakfast', 'meal', 'food', 'drink', 'drinks', 'tea', 'juice', 'jus', 'cake', 'kue', 'donat', 'bakery', 'toko roti', 'gacoan', 'mie gacoan', 'geprek', 'ayam geprek', 'cilok', 'cireng', 'batagor', 'siomay', 'takjil', 'bukber', 'buka puasa', 'sahur', 'indomie goreng', 'kopi susu', 'nasi uduk', 'lontong', 'ketoprak', 'pempek', 'dimsum', 'sushi', 'ramen', 'kebab', 'dessert', 'snacks']),
+      C('food', '#34D399', 'Makan & Minum', 'Food & Drinks', ['makan', 'makanan', 'minum', 'minuman', 'kopi', 'ngopi', 'nasi', 'ayam', 'bakso', 'mie', 'mi ayam', 'mie ayam', 'sate', 'soto', 'warteg', 'warung', 'warmindo', 'resto', 'restoran', 'rumah makan', 'cafe', 'kafe', 'coffee', 'jajan', 'jajanan', 'snack', 'cemilan', 'camilan', 'roti', 'sarapan', 'makan siang', 'makan malam', 'gofood', 'go food', 'grabfood', 'grab food', 'shopeefood', 'shopee food', 'starbucks', 'kenangan', 'kopi kenangan', 'janji jiwa', 'fore coffee', 'point coffee', 'mcd', 'mcdonald', 'mcdonalds', 'kfc', 'burger', 'pizza', 'hokben', 'richeese', 'boba', 'chatime', 'mixue', 'es teh', 'es kopi', 'es jeruk', 'es krim', 'es campur', 'es buah', 'es cendol', 'teh', 'martabak', 'gorengan', 'seblak', 'nasi goreng', 'nasi padang', 'pecel', 'gado gado', 'bubur', 'lunch', 'dinner', 'breakfast', 'meal', 'food', 'drink', 'drinks', 'tea', 'juice', 'jus', 'cake', 'kue', 'donat', 'bakery', 'toko roti', 'gacoan', 'mie gacoan', 'bakmi', 'bakmie', 'geprek', 'ayam geprek', 'cilok', 'cireng', 'batagor', 'siomay', 'takjil', 'bukber', 'buka puasa', 'sahur', 'indomie goreng', 'kopi susu', 'nasi uduk', 'lontong', 'ketoprak', 'pempek', 'dimsum', 'sushi', 'ramen', 'kebab', 'dessert', 'snacks']),
       C('groceries', '#FBBF24', 'Kebutuhan Harian', 'Daily Needs', ['indomaret', 'alfamart', 'alfamidi', 'lawson', 'supermarket', 'minimarket', 'hypermart', 'superindo', 'transmart', 'lotte mart', 'sabun', 'sampo', 'shampoo', 'odol', 'pasta gigi', 'sikat gigi', 'detergen', 'deterjen', 'tisu', 'tissue', 'beras', 'sayur', 'sayuran', 'buah', 'galon', 'air galon', 'air mineral', 'gas', 'elpiji', 'lpg', 'pasar', 'telur', 'telor', 'minyak', 'minyak goreng', 'gula', 'garam', 'bumbu', 'susu', 'kebutuhan', 'kebutuhan harian', 'belanja bulanan', 'belanja dapur', 'groceries', 'grocery', 'popok', 'pampers', 'indomie', 'aqua', 'le minerale', 'laundry', 'londri', 'potong rambut', 'cukur', 'cukur rambut', 'barbershop', 'pangkas rambut', 'salon', 'diapers', 'popok bayi', 'tisu basah', 'sembako', 'sayur mayur', 'daging', 'ikan', 'buah buahan']),
       C('transport', '#38BDF8', 'Transportasi', 'Transport', ['bensin', 'pertamax', 'pertalite', 'solar', 'bbm', 'spbu', 'parkir', 'parkiran', 'tol', 'e toll', 'etoll', 'grab', 'gojek', 'goride', 'gocar', 'go ride', 'go car', 'grabcar', 'grabbike', 'ojek', 'ojol', 'maxim', 'indrive', 'taksi', 'taxi', 'bluebird', 'krl', 'commuter', 'mrt', 'lrt', 'kereta', 'busway', 'transjakarta', 'bus', 'angkot', 'damri', 'pesawat', 'tiket pesawat', 'tiket kereta', 'servis motor', 'servis mobil', 'service motor', 'service mobil', 'ganti oli', 'oli', 'tambal ban', 'cuci motor', 'cuci mobil', 'uber', 'fuel', 'parking', 'toll', 'train', 'flight', 'transport', 'transportasi', 'ongkos', 'angkutan', 'ojek online', 'kereta api', 'whoosh', 'tiket bus', 'travel', 'bensin motor']),
       C('shopping', '#A78BFA', 'Belanja', 'Shopping', ['shopee', 'tokopedia', 'tokped', 'lazada', 'tiktok shop', 'blibli', 'zalora', 'baju', 'kaos', 'kemeja', 'celana', 'sepatu', 'sandal', 'tas', 'jaket', 'hijab', 'kerudung', 'aksesoris', 'skincare', 'kosmetik', 'makeup', 'parfum', 'belanja online', 'gadget', 'headset', 'earphone', 'charger', 'elektronik', 'uniqlo', 'ikea', 'informa', 'clothes', 'shoes', 'shopping', 'ongkir', 'ongkos kirim', 'kirim paket', 'jne', 'j&t', 'jnt', 'sicepat', 'anteraja', 'ninja xpress', 'lion parcel', 'paxel', 'servis hp', 'service hp', 'casing hp', 'case hp', 'aksesoris hp', 'alfagift', 'hp', 'handphone', 'laptop', 'tablet', 'smartwatch']),
@@ -4007,6 +4303,852 @@ const Core = (() => {
     return { title, amount, dayKey: dk, category: categorize(parsed.map(p => p.line).join('\n'), 'EXPENSE') };
   }
 
+  // ---------- payment screenshots (e-wallet / m-banking success screens) ----------
+  // Brands as screens show them, as compact keys (lowercase, no spaces or punctuation).
+  // prod: account-product names ("Tahapan", "Kantong Utama") that point to a bank only inside a labelled source/destination row.
+  const PAY_BRANDS = {
+    gopay: { name: 'GoPay', ewallet: true, keys: ['gopay', 'gopaysaldo', 'gopaycoins', 'gopaywallet'] },
+    gopaylater: { name: 'GoPayLater', keys: ['gopaylater'] },
+    ovo: { name: 'OVO', ewallet: true, keys: ['ovo', 'ovocash'] },
+    dana: { name: 'DANA', ewallet: true, keys: ['dana', 'saldodana'] },
+    shopeepay: { name: 'ShopeePay', ewallet: true, keys: ['shopeepay', 'shopepay'] },
+    spaylater: { name: 'SPayLater', keys: ['spaylater', 'shopeepaylater'] },
+    linkaja: { name: 'LinkAja', ewallet: true, keys: ['linkaja'] },
+    isaku: { name: 'i.saku', ewallet: true, keys: ['isaku'] },
+    astrapay: { name: 'AstraPay', ewallet: true, keys: ['astrapay'] },
+    flip: { name: 'Flip', keys: ['flip', 'flipid'] },
+    bca: { name: 'BCA', keys: ['bca', 'mbca', 'mybca', 'klikbca', 'bcamobile', 'bankbca', 'mtransfer', 'mpayment', 'mcommerce'], prod: ['tahapan', 'tahapanxpresi', 'xpresi'] },
+    blu: { name: 'blu', keys: ['blu', 'blubybca', 'blubybcadigital', 'bcadigital'], prod: ['bluaccount', 'blusaving'] },
+    mandiri: { name: 'Mandiri', keys: ['mandiri', 'livin', 'livinbymandiri', 'bankmandiri'] },
+    bri: { name: 'BRI', keys: ['bri', 'brimo', 'brlmo', 'bankbri'], prod: ['britama', 'simpedes'] },
+    bni: { name: 'BNI', keys: ['bni', 'wondr', 'wondrbybni', 'bnimobile', 'bankbni'], prod: ['taplus', 'taplusmuda'] },
+    bsi: { name: 'BSI', keys: ['bsi', 'bsimobile', 'byond', 'byondbybsi'] },
+    ocbc: { name: 'OCBC', keys: ['ocbc', 'ocbcnisp', 'ocbcmobile', 'nyala', 'ocbcnyala', 'onemobile'] },
+    jago: { name: 'Jago', keys: ['jago', 'bankjago'], prod: ['kantong', 'kantongutama'] },
+    seabank: { name: 'SeaBank', keys: ['seabank', 'seabankid'] },
+    jenius: { name: 'Jenius', keys: ['jenius'], prod: ['activesaving', 'flexisaver', 'maxisaver', 'dreamsaver'] },
+    cimb: { name: 'CIMB Niaga', keys: ['cimb', 'cimbniaga', 'octo', 'octomobile'] },
+    permata: { name: 'PermataBank', keys: ['permatabank', 'permatame', 'permatamobile'], prod: ['permata'] },
+    btn: { name: 'BTN', keys: ['btn', 'bankbtn'] },
+    danamon: { name: 'Danamon', keys: ['danamon', 'dbank'] },
+    superbank: { name: 'Superbank', keys: ['superbank'] },
+    allo: { name: 'Allo Bank', keys: ['allobank'] }
+  };
+  const PAY_KEY = {}, PAY_PROD = {};
+  Object.keys(PAY_BRANDS).forEach(b => {
+    PAY_BRANDS[b].keys.forEach(k => { PAY_KEY[k] = b; });
+    (PAY_BRANDS[b].prod || []).forEach(k => { PAY_PROD[k] = b; });
+  });
+  // "Sumber Dana", "Dana Masuk", "dana darurat": the word, not the e-wallet
+  const DANA_WORD_PREV = new Set(['sumber', 'transfer', 'penerimaan', 'pencairan', 'alokasi', 'total', 'pengiriman', 'penarikan', 'penyaluran', 'bantuan', 'kirim', 'terima', 'menerima', 'tarik', 'source']);
+  const DANA_WORD_NEXT = new Set(['masuk', 'keluar', 'diterima', 'darurat', 'tunai', 'pinjaman', 'talangan', 'bantuan', 'pensiun', 'pendidikan', 'cadangan', 'tersedia', 'sudah', 'telah', 'berhasil', 'kamu', 'anda', 'dikirim', 'ditransfer']);
+  // Wallet names too generic to be matched literally on a screen
+  const GENERIC_WALLET_WORDS = new Set(['tabungan', 'utama', 'rekening', 'dompet', 'tunai', 'cash', 'kas', 'saldo', 'bank', 'ewallet', 'wallet', 'emoney', 'gaji', 'darurat', 'investasi', 'kantong', 'pribadi', 'bisnis', 'harian', 'belanja', 'jajan', 'kartu', 'debit', 'kredit', 'credit', 'main', 'savings', 'saving']);
+
+  // Row labels on success screens, by kind. Matched word by word at the start of a line.
+  const PAY_LABEL_LIST = [
+    ['total', 'total', 'total bayar', 'total pembayaran', 'total transaksi', 'total transfer', 'total tagihan', 'total belanja', 'total debit',
+      'total didebit', 'total dibayar', 'total yang dibayar', 'total payment', 'total amount', 'total paid', 'total top up', 'total topup', 'grand total',
+      'jumlah dibayar', 'jumlah yang dibayar', 'jumlah pembayaran', 'jumlah bayar', 'amount paid', 'you paid', 'kamu bayar', 'anda bayar', 'total charged',
+      'total debited', 'nominal dibayar', 'total penarikan', 'total isi saldo'],
+    ['nominal', 'nominal', 'nominal transaksi', 'nominal transfer', 'nominal pembayaran', 'nominal top up', 'nominal topup', 'nominal tagihan', 'nominal isi saldo',
+      'nominal penarikan', 'jumlah', 'jumlah transfer', 'jumlah uang', 'jumlah kirim', 'jumlah top up', 'jumlah topup', 'jumlah transaksi', 'jumlah tagihan',
+      'jumlah penarikan', 'amount', 'transfer amount', 'transaction amount', 'payment amount', 'top up amount', 'harga', 'nilai', 'nilai transaksi', 'tagihan', 'price',
+      // marketplace prices before discounts and shipping ("Total Harga (3 Barang)")
+      'total harga', 'total harga barang', 'total harga produk', 'total pesanan', 'total produk', 'harga barang', 'total price', 'items total'],
+    ['sub', 'subtotal', 'sub total'],
+    ['fee', 'biaya', 'biaya admin', 'biaya administrasi', 'biaya layanan', 'biaya transaksi', 'biaya transfer', 'biaya penanganan', 'biaya top up', 'biaya topup',
+      'biaya admin bank', 'total biaya', 'admin', 'admin fee', 'fee', 'transfer fee', 'service fee', 'transaction fee', 'handling fee', 'kode unik', 'unique code',
+      'biaya platform', 'biaya penarikan', 'ongkos kirim', 'ongkir', 'total ongkos kirim', 'total ongkir', 'shipping fee', 'delivery fee', 'shipping'],
+    ['tip', 'tip', 'tips', 'tip driver', 'tip untuk driver', 'tip for driver'],
+    ['skip', 'saldo', 'sisa saldo', 'saldo akhir', 'saldo awal', 'saldo tersedia', 'saldo kamu', 'saldo anda', 'saldo terkini', 'saldo efektif', 'balance',
+      'available balance', 'remaining balance', 'cashback', 'poin', 'points', 'koin', 'coins', 'diskon', 'discount', 'potongan', 'voucher', 'diskon voucher',
+      'promo', 'hemat', 'limit', 'sisa limit', 'total diskon', 'total cashback', 'total potongan', 'total hemat', 'total poin', 'kamu hemat', 'you saved',
+      'ovo points', 'gopay coins', 'bonus'],
+    ['merchant', 'nama merchant', 'merchant', 'merchant name', 'nama toko', 'toko', 'nama outlet', 'outlet', 'nama usaha', 'store', 'store name'],
+    ['payee', 'penerima', 'nama penerima', 'recipient', 'recipient name', 'payee', 'bayar ke', 'dibayar ke', 'pembayaran ke', 'paid to', 'pay to', 'transfer ke',
+      'kirim ke', 'dikirim ke', 'sent to', 'transfer to', 'beneficiary', 'tujuan', 'nama tujuan', 'kepada', 'ke', 'to'],
+    ['toAcct', 'bank tujuan', 'rekening tujuan', 'no rekening tujuan', 'nomor rekening tujuan', 'nomor tujuan', 'no tujuan', 'bank penerima', 'rekening penerima',
+      'akun tujuan', 'ke rekening', 'no rekening', 'nomor rekening', 'no rek', 'bank', 'account number', 'destination account', 'nomor hp tujuan',
+      'nomor ponsel tujuan', 'akun penerima', 'diterima di', 'masuk ke', 'received in', 'credited to', 'dikreditkan ke', 'ke akun'],
+    ['from', 'dari', 'from', 'pengirim', 'nama pengirim', 'diterima dari', 'received from', 'sender', 'sender name', 'dikirim oleh', 'sent by', 'dari akun'],
+    ['fromAcct', 'bank pengirim', 'rekening pengirim', 'rekening asal', 'dari rekening', 'sender bank', 'sender account', 'akun pengirim'],
+    ['src', 'metode pembayaran', 'metode bayar', 'metode', 'payment method', 'pay with', 'paid with', 'paid using', 'paid by', 'sumber dana', 'sumber',
+      'source of funds', 'source of fund', 'source', 'rekening sumber', 'sumber rekening', 'akun sumber', 'debit dari', 'didebit dari', 'dibayar dengan',
+      'dibayar pakai', 'dibayar menggunakan', 'pembayaran dengan', 'pembayaran via', 'bayar pakai', 'bayar dengan', 'bayar via', 'kartu', 'card', 'rekening debet', 'rekening debit'],
+    ['ref', 'no ref', 'no referensi', 'nomor referensi', 'no reference', 'reference', 'reference no', 'reference number', 'ref', 'ref no', 'id referensi',
+      'kode referensi', 'id transaksi', 'transaction id', 'no transaksi', 'nomor transaksi', 'kode transaksi', 'id transfer', 'rrn', 'order id', 'id order',
+      'id pesanan', 'no pesanan', 'nomor pesanan', 'trx id', 'id trx', 'no invoice', 'invoice', 'id pembayaran', 'kode pembayaran', 'kode bayar', 'no resi',
+      'transaction no', 'transaction number', 'no ref transaksi', 'nomor ref'],
+    ['date', 'tanggal', 'tgl', 'tanggal transaksi', 'tanggal waktu', 'tanggal dan waktu', 'tanggal jam', 'waktu', 'waktu transaksi', 'waktu pembayaran',
+      'waktu transfer', 'tanggal pembayaran', 'tanggal transfer', 'jam', 'date', 'time', 'date time', 'transaction date', 'transaction time', 'payment date',
+      'payment time', 'dibayar pada', 'paid on', 'pukul'],
+    ['product', 'jenis transaksi', 'jenis pembayaran', 'tipe transaksi', 'produk', 'product', 'layanan', 'kategori', 'transaction type',
+      'nama produk', 'jenis', 'tipe'],
+    ['note', 'catatan', 'berita', 'keterangan', 'pesan', 'message', 'note', 'notes', 'deskripsi', 'description', 'remark', 'remarks', 'tujuan transaksi',
+      'tujuan transfer', 'memo'],
+    ['name', 'nama', 'name', 'account name', 'nama rekening', 'atas nama', 'nama pemilik'],
+    ['other', 'lokasi', 'lokasi merchant', 'kota', 'alamat', 'location', 'city', 'nmid', 'mid', 'tid', 'terminal id', 'terminal', 'merchant pan', 'customer pan',
+      'acquirer', 'penerbit', 'issuer', 'status', 'nama pelanggan', 'id pelanggan', 'no pelanggan', 'nomor pelanggan', 'no meter', 'nomor meter', 'tarif daya',
+      'tarif', 'daya', 'token', 'stroom', 'kwh', 'nomor hp', 'no hp', 'nomor ponsel', 'no ponsel', 'phone number', 'nomor telepon', 'transfer method',
+      'jenis transfer', 'metode transfer', 'layanan transfer', 'nomor kartu', 'no kartu', 'periode', 'jatuh tempo', 'berlaku hingga', 'masa berlaku',
+      'kode voucher', 'customer name', 'nomor va', 'no va', 'virtual account']
+  ];
+  const PAY_LABELS = new Map(); // first word -> [{ words, kind, phrase }], longest first
+  PAY_LABEL_LIST.forEach(row => {
+    row.slice(1).forEach(phrase => {
+      const words = phrase.split(' ');
+      if (!PAY_LABELS.has(words[0])) PAY_LABELS.set(words[0], []);
+      PAY_LABELS.get(words[0]).push({ words, kind: row[0], phrase });
+    });
+  });
+  PAY_LABELS.forEach(list => list.sort((a, b) => b.words.length - a.words.length));
+  const AMOUNT_KINDS = new Set(['total', 'nominal', 'sub', 'fee', 'tip', 'skip']);
+  // Totals that name what was actually paid beat plain or shopping totals ("Total Belanja" before a voucher,
+  // a bill's "Total Tagihan" before a partial "Jumlah Bayar").
+  const PAID_TOTALS = new Set(['total bayar', 'total pembayaran', 'total dibayar', 'total yang dibayar', 'total payment', 'total paid', 'grand total',
+    'jumlah dibayar', 'jumlah yang dibayar', 'jumlah pembayaran', 'jumlah bayar', 'amount paid', 'you paid', 'kamu bayar', 'anda bayar', 'total charged',
+    'total debited', 'total debit', 'total didebit', 'nominal dibayar']);
+  // a total that is the amount topped up, not what was paid for it (the admin fee comes on top)
+  const TOPUP_TOTALS = new Set(['total top up', 'total topup', 'total isi saldo']);
+  // discount rows taken off the price; savings summaries ("Total hemat", "Kamu hemat") only repeat them
+  const DISCOUNT_PHRASES = new Set(['diskon', 'discount', 'potongan', 'voucher', 'diskon voucher', 'promo']);
+  // coins or cashback spent on the order count only when shown as a deduction ("Koin Shopee Digunakan -Rp3.000")
+  const DEDUCT_IF_MINUS = new Set(['koin', 'coins', 'gopay coins', 'poin', 'points', 'ovo points', 'cashback', 'bonus']);
+  const DISCOUNT_SUMMARY = new Set(['total diskon', 'total potongan']);
+  // "(3 Barang)", "(incl. PPN)": words in brackets on a label, never money
+  const PAREN_WORDS_RE = /\((?![^()]*(?:rp|idr|usd|sgd))(?=[^()]*[A-Za-z]{3,})[^()]*\)/gi;
+  // an amount row that says "free" carries a zero, it is not a label waiting for its value
+  const ZERO_VALUE_RE = /^(gratis|free|bebas biaya|tidak ada|none|nihil)\b/i;
+  const KIND_ROLE = { merchant: 'to', payee: 'to', toAcct: 'to', from: 'from', fromAcct: 'from', src: 'src', product: 'product' };
+  // rows whose value may wrap onto a second line ("SITI AMINAH" under "Ke 0987654321", "OCBC - 6938..." under "Nyala Tabungan")
+  const CONT_KINDS = new Set(['merchant', 'payee', 'toAcct', 'from', 'fromAcct', 'src', 'name']);
+  // labels whose value can be any text (a name, a note): a line under them is their value even when it starts like a label
+  const WRAP_KINDS = new Set(['merchant', 'payee', 'name']);
+  const TEXT_VALUE_KINDS = new Set(['merchant', 'payee', 'name', 'note', 'product', 'other', 'from', 'src', 'toAcct', 'fromAcct']);
+  const GENERIC_PAYEE = new Set(['ke', 'to', 'kepada', 'tujuan', 'nama tujuan', 'transfer ke', 'kirim ke', 'transfer to', 'sent to', 'dikirim ke']);
+
+  const PAY_SUCCESS_RE = /\b(berhasil|sukses|successful|successfully|success|succeeded|completed|approved)\b|\b(transfer|transaksi|pembayaran|payment|top up|topup|isi saldo|penarikan|tarik tunai|kirim uang)\s+(selesai|done|complete)\b/;
+  const PAY_INCOME_RE = /\b(dana masuk|uang masuk|transfer masuk|saldo masuk|uang diterima|dana diterima|transfer diterima|kamu terima|kamu menerima|anda menerima|kamu dapat|kamu dapet|anda mendapat|terima uang|menerima uang|menerima dana|menerima transfer|money received|payment received|you received|you ve received|incoming transfer|incoming payment|transfer received|funds received|sudah bertambah|telah bertambah|saldo bertambah|diterima dari|received from|kiriman uang)\b/;
+  const PAY_OUT_HEAD_RE = /\b(pembayaran|payment|pembelian|purchase|kirim uang|transfer keluar|transfer)\s+(\w+\s+)?(berhasil|sukses|successful|success|succeeded)\b|\bberhasil dibayar\b|\bpayment complete/;
+  const PAY_REWARD_RE = /\b(coins?|koin|poin|points?|reward|stamp|xp)\b/;
+  // "Kamu dapat cashback Rp2.300", "You received 120 points": a reward note, not money received
+  const PAY_REWARD_LINE_RE = /\b(coins?|koin|poin|points?|rewards?|stamp|xp|cashback|voucher|bonus)\b/;
+  const PAY_NOT_INCOME_RE = /\b(oleh penerima|by recipient|by the recipient|ke penerima|diterima oleh)\b/;
+  const PAY_TOPUP_RE = /\b(top up|topup|isi saldo|isi ulang saldo|tambah saldo|add money|add balance)\b/;
+  const PAY_WITHDRAW_RE = /\b(tarik tunai|penarikan tunai|cash withdrawal|tarik uang tunai)\b/;
+  const PAY_TOPUP_NOT_TRANSFER = /\b(pulsa|paket data|kuota|data|game|games|diamond|diamonds|voucher|token|pln|listrik|e money|emoney|flazz|brizzi|tapcash|e toll|etoll|bpjs|pdam|mobile legends|free fire|steam|google play|app store)\b/;
+  const PAY_PROMO_RE = /\b(cashback|hingga|up to|dapatkan|dapetin|promo|gratis ongkir|setiap hari|syarat|ketentuan|klik|download|unduh|ajak|undang|invite|yuk|ayo|nikmati|kumpulkan|tukarkan|berlaku|min transaksi|minimal transaksi|s k|s d|cuma|mulai dari|beli sekarang|deals|pakai buat|gimana|rating|beri nilai)\b/;
+  const PAY_SYSTEM_RE = /\b(qris|bi fast|virtual account|berhasil|sukses|success|successful|saldo|balance|kamu|anda|sudah|telah|uang|diterima|transaksi|transaction|detail|details|rincian|bagikan|share|selesai|done|kembali|beranda|home|bukti|receipt|struk|status|cek|lihat|view|unduh|download|simpan|save|wib|wita|wit|pembayaran|payment|transfer|bayar|ok|tutup|close)\b/;
+  const PAY_SKIP_DATE_RE = /\b(berlaku|expired|kadaluarsa|kedaluwarsa|jatuh tempo|valid|periode|exp|sampai)\b/;
+  const PAY_SKIP_LINE_RE = /\b(saldo|balance|cashback|poin|points|koin|coins|diskon|discount|potongan|voucher|limit|hemat)\b/;
+
+  // OCR repairs for money on phone screenshots: "RP", "Rp.", "Bp" -> "Rp"; "RpO" -> "Rp0"; "Rp 25 000" -> "Rp 25.000"; "200.000, 00" -> "200.000,00"
+  function fixPayMoney(line) {
+    let s = line.replace(/(^|[^A-Za-z0-9])[1Il]DR(?=\s?\d)/g, '$1IDR').replace(/(^|\s)[¥£€₹¢₱](?=\s?\d)/g, '$1Rp ');
+    s = s.replace(/(^|[^A-Za-z0-9])(?:[Rr]\s?[pP]|Bp)[.,:]?\s?(?=[-+]?\s?(?:\d|[Oo](?![A-Za-z])))/g, '$1Rp ');
+    s = s.replace(/(Rp |IDR ?)([-+]?\s?)([\dOoIl|][\dOoIl|.,]*)/g, (m, c, sg, n) =>
+      (/\d/.test(n) || /^[Oo]$/.test(n) ? c + sg.trim() + n.replace(/[Oo]/g, '0').replace(/[Il|]/g, '1') : m));
+    s = s.replace(/(Rp |IDR ?)(-?\d{1,3})((?:(?: ?[.,] ?| )\d{3})+)(?!\d)/g, (m, c, a, rest) => c + a + rest.replace(/ ?([.,]) ?/g, '$1').replace(/ /g, '.'));
+    s = s.replace(/(\d{1,3}(?:[.,]\d{3})+)([.,]) (\d{2})(?!\d)/g, '$1$2$3').replace(/(\d{1,3}(?:\.\d{3})+) (00)(?![\d.,])/g, '$1,$2');
+    // "0VO", "0CBC", "0kt": a leading zero glued to letters is an O
+    s = s.replace(/(^|[^A-Za-z0-9])0(?=[A-Za-z]{2,})/g, '$1O');
+    // "Tota1", "Sa1do": a 1 inside or ending a lower-case word is an l
+    s = s.replace(/([a-z])1(?=[a-z])/g, '$1l').replace(/(^|[^A-Za-z0-9])([A-Za-z]{3,})1(?![A-Za-z0-9])/g, (m, p, w) => p + w + (/[a-z]$/.test(w) ? 'l' : 'L'));
+    return s;
+  }
+
+  // Words of a line with their end offsets, so a label can be cut off the original text.
+  function wordRuns(s) {
+    const out = [];
+    const re = /[A-Za-z0-9\u00C0-\u024F]+/g;
+    let m;
+    while ((m = re.exec(s))) {
+      const w = normalizeText(m[0]);
+      if (w) out.push({ w, end: m.index + m[0].length });
+    }
+    return out;
+  }
+  function payLabelOf(s) {
+    const runs = wordRuns(s);
+    if (!runs.length) return null;
+    const list = PAY_LABELS.get(runs[0].w);
+    if (!list) return null;
+    for (const L of list) {
+      if (L.words.length > runs.length) continue;
+      let ok = true;
+      for (let i = 0; i < L.words.length; i++) if (runs[i].w !== L.words[i]) { ok = false; break; }
+      if (!ok) continue;
+      const value = s.slice(runs[L.words.length - 1].end).replace(/^(?:[\s:;.=|>»~_*•·,'’"]|-(?=\s))+/, '').trim();
+      return { kind: L.kind, phrase: L.phrase, value };
+    }
+    return null;
+  }
+  // "Total" + "Pembayaran Rp25.000", "Nama" + "Merchant KOPI": labels split over two lines
+  function mergeBrokenLabels(lines) {
+    const out = [];
+    for (let i = 0; i < lines.length; i++) {
+      const a = lines[i], b = lines[i + 1];
+      if (b && !/\d/.test(a)) {
+        const wa = wordRuns(a).map(r => r.w), wb = wordRuns(b).map(r => r.w);
+        const list = wa.length && wa.length <= 3 ? PAY_LABELS.get(wa[0]) : null;
+        const hit = list && list.some(L => L.words.length > wa.length && L.words.length - wa.length <= wb.length &&
+          wa.every((w, k) => L.words[k] === w) && L.words.slice(wa.length).every((w, k) => wb[k] === w));
+        if (hit) { out.push(a + ' ' + b); i++; continue; }
+      }
+      out.push(a);
+    }
+    return out;
+  }
+
+  // Brand / wallet mentions in a piece of text: [{ key: 'b:gopay' | 'w:<walletId>', at }]
+  function payMentions(s, env, allowProd) {
+    const words = [];
+    String(s).replace(/[A-Za-z0-9\u00C0-\u024F]+/g, m => { words.push({ w: normalizeText(m), orig: m }); return m; });
+    const out = [];
+    for (let i = 0; i < words.length; i++) {
+      let hit = null;
+      for (let len = Math.min(4, words.length - i); len >= 1 && !hit; len--) {
+        const key = words.slice(i, i + len).map(x => x.w).join('');
+        if (env.nameWallet.has(key)) hit = { key: 'w:' + env.nameWallet.get(key), len };
+        else if (hasOwn(PAY_KEY, key)) hit = { key: 'b:' + PAY_KEY[key], len };
+        else if (allowProd && hasOwn(PAY_PROD, key)) hit = { key: 'b:' + PAY_PROD[key], len };
+      }
+      if (!hit) continue;
+      if (hit.key === 'b:dana' && hit.len === 1) {
+        const prev = i > 0 ? words[i - 1].w : '', next = words[i + 1] ? words[i + 1].w : '';
+        if (DANA_WORD_PREV.has(prev) || DANA_WORD_NEXT.has(next) || (words[i].orig !== 'DANA' && prev !== 'saldo')) continue;
+      }
+      out.push({ key: hit.key, at: i });
+      i += hit.len - 1;
+    }
+    return out;
+  }
+
+  function makePayEnv(ctx) {
+    const env = makeEnv(ctx);
+    const brandWallet = new Map(), nameWallet = new Map();
+    const rank = new Map();
+    env.wallets.forEach(w => {
+      const words = normalizeText(w.name).split(' ').filter(Boolean);
+      const full = words.join('');
+      let best = null;
+      for (let i = 0; i < words.length; i++) {
+        for (let len = Math.min(4, words.length - i); len >= 1; len--) {
+          const key = words.slice(i, i + len).join('');
+          const b = hasOwn(PAY_KEY, key) ? PAY_KEY[key] : hasOwn(PAY_PROD, key) ? PAY_PROD[key] : null;
+          if (b && (!best || key.length > best.len)) best = { b, len: key.length };
+        }
+      }
+      if (best) {
+        // several wallets of one brand: the plain one ("BCA") beats "Kartu Kredit BCA"
+        const r = (PAY_BRANDS[best.b].keys.indexOf(full) >= 0 ? 0 : 1) * 1000 + (/kredit|credit|paylater|cc\b/.test(normalizeText(w.name)) ? 500 : 0) + full.length;
+        if (!brandWallet.has(best.b) || r < rank.get(best.b)) { brandWallet.set(best.b, w.id); rank.set(best.b, r); }
+      }
+      if (full.length >= 4 && !hasOwn(PAY_KEY, full) && !(words.length === 1 && GENERIC_WALLET_WORDS.has(full)) && !words.every(x => GENERIC_WALLET_WORDS.has(x))) {
+        if (!nameWallet.has(full)) nameWallet.set(full, w.id);
+      }
+    });
+    env.brandWallet = brandWallet;
+    env.nameWallet = nameWallet;
+    return env;
+  }
+  const payKeyWallet = (key, env) => (!key ? null : key.slice(0, 2) === 'w:' ? key.slice(2) : (env.brandWallet.get(key.slice(2)) || null));
+  const payKeyBrand = key => (key && key.slice(0, 2) === 'b:' ? key.slice(2) : null);
+
+  const REL_DAY_RE = /^(?:\W*(?:waktu|tanggal|date|time|tgl)\s+)?\W*(hari ini|today|kemarin lusa|kemarin|kemaren|yesterday)\b/;
+  const PAY_TIME_RE = /(^|[^\d:.,])([01]?\d|2[0-3])([:.])([0-5]\d)(?:[:.][0-5]\d)?(?![\d,]|\.\d)/;
+  function payTimeIn(s, allowDot) {
+    const m = PAY_TIME_RE.exec(s);
+    if (!m || (m[3] === '.' && !allowDot)) return null;
+    let h = +m[2];
+    // "05:04 PM", "1:22pm", "12.05 a.m."
+    const ap = /^\s?([ap])\.?\s?m\b\.?/i.exec(s.slice(m.index + m[0].length));
+    if (ap && h >= 1 && h <= 12) h = (h % 12) + (/p/i.test(ap[1]) ? 12 : 0);
+    return pad2(h) + ':' + m[4];
+  }
+
+  // Lines of a payment screen with labels, values, money and roles resolved.
+  function payReadLines(text, env) {
+    let raw = String(text == null ? '' : text).replace(/\r/g, '').split('\n')
+      .map(l => l.replace(/[−–—]/g, '-').replace(/[\t\u00A0]/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean);
+    // iOS status bar: "20:41 .ull 5G 87", or a few unreadable icon glyphs
+    let statusTime = null;
+    for (let k = 0; k < 3 && raw.length; k++) {
+      const l = raw[0];
+      const tm = /^([01]?\d|2[0-3])[:.]([0-5]\d)(?![\d.,])(.*)$/.exec(l);
+      const rest = tm ? tm[3] : l;
+      const nl = normalizeText(l);
+      const meaningful = wordRuns(l).some(r => hasOwn(PAY_KEY, r.w)) || /rp|idr/i.test(l) || !!payLabelOf(l) ||
+        PAY_TOPUP_RE.test(nl) || PAY_SUCCESS_RE.test(nl) || PAY_INCOME_RE.test(nl);
+      const junk = !meaningful && wordRuns(rest).every(r => r.w.length <= 3);
+      if (!(tm && !/[A-Za-z]{4,}/.test(rest)) && !junk) break;
+      if (tm && !statusTime) statusTime = pad2(+tm[1]) + ':' + tm[2];
+      raw.shift();
+    }
+    raw = raw.map(l => fixOcrLetters(fixOcrDigits(fixPayMoney(l))))
+      .filter(l => (l.match(/[A-Za-z0-9]/g) || []).length >= 2 || /^(ke|to)$/i.test(l));
+    // "Rp" in a small font on its own line above "25.000"
+    for (let k = 0; k < raw.length - 1; k++) {
+      if (/^(Rp|IDR)\.?$/i.test(raw[k]) && /^[-+]?\d/.test(raw[k + 1])) { raw.splice(k, 2, 'Rp ' + raw[k + 1]); }
+    }
+    raw = mergeBrokenLabels(raw);
+    const lines = raw.map((text, i) => {
+      const norm = normalizeText(text);
+      const income = PAY_INCOME_RE.test(norm) && !PAY_NOT_INCOME_RE.test(norm);
+      const success = PAY_SUCCESS_RE.test(norm);
+      // "Promo -Rp5.000", "Potongan Promo -Rp10.000": a discount row of the bill, not a promo banner
+      const discountRow = /^\W*(promo|potongan|diskon|discount|voucher|cashback|koin|coins?)\b.*(-\s?(rp|idr)?\s?\d|\(\s?(rp|idr)?\s?\d)/i.test(text);
+      const promo = PAY_PROMO_RE.test(norm) && !income && !success && !discountRow;
+      let lab = promo ? null : payLabelOf(text);
+      const value = lab ? lab.value : text;
+      let work = blankTimes(value).replace(PAREN_WORDS_RE, m => ' '.repeat(m.length));
+      const ds = findDates(work, env.today);
+      work = stripRanges(work, ds);
+      // a labelled row may carry a plain number ("Total Bayar 15000"), but not one inside words ("3 Barang")
+      const bareOk = !!lab && AMOUNT_KINDS.has(lab.kind) && (work.replace(/\b(rp|idr|usd|sgd)\b/gi, ' ').match(/[A-Za-z]/g) || []).length <= 2;
+      let money = findMoney(work).filter(t => t.rp || t.formatted || (bareOk && t.raw.length <= 9));
+      // "14/10/2026 16.32", "Waktu 08.10": a clock with a dot (iOS in Indonesian) is not money
+      const timeOnly = /^\W*([01]?\d|2[0-3])[.:][0-5]\d(?::[0-5]\d)?\s*(wib|wita|wit|am|pm)?\W*$/i.test(value);
+      if (ds.length || timeOnly || (lab && lab.kind === 'date')) money = money.filter(t => t.rp || !/^([01]?\d|2[0-3])\.[0-5]\d$/.test(t.raw));
+      // "0r36.500,00": a small "IDR"/"Rp" read as junk glued to the big amount
+      if (!money.length && !lab && (work.match(/[A-Za-z]/g) || []).length <= 2) {
+        const g = /(\d{1,3}(?:[.,]\d{3})+)(?:,\d{2})?(?![\d.,])/.exec(work);
+        if (g) money = findMoney(work.slice(0, g.index).replace(/./g, ' ') + ' ' + work.slice(g.index)).filter(t => t.formatted);
+      }
+      // a small "IDR" is also read as "ior", "i0r", "1dr", "ldr" (seen in real tesseract output of an OCBC screen)
+      const rest = stripRanges(work, money).replace(/\b(rp|idr|usd|sgd)\b/gi, ' ').replace(/(^|\s)[il1|][do0][r](?=\s|$)/gi, ' ');
+      // one or two stray letters ("ir 36.500,00" from a small "IDR") still leave a bare amount
+      const moneyOnly = money.length > 0 && (rest.match(/[A-Za-z]/g) || []).length <= 2;
+      // "Tagihan berhasil dibayar" is a status line, not a "Tagihan" row
+      if (lab && AMOUNT_KINDS.has(lab.kind) && !money.length && lab.value && (success || income)) lab = null;
+      // "Total Harga (3 Barang)", "Koin Shopee Digunakan", "Saldo OVO Cash": an amount label whose own words run on;
+      // its figure is on a later line (stacked rows, or Live Text's label column then value column)
+      const labelOnly = !!lab && AMOUNT_KINDS.has(lab.kind) && !money.length && !ds.length && !!lab.value &&
+        !/\d/.test(lab.value.replace(PAREN_WORDS_RE, ' ')) && !ZERO_VALUE_RE.test(lab.value) && !/[:=]\s*\S/.test(lab.value);
+      return {
+        i, text, norm, promo, income, success, headline: success || income,
+        label: lab ? lab.kind : null, phrase: lab ? lab.phrase : null, value: lab && !labelOnly ? lab.value : '', rawValue: lab ? lab.value : '',
+        labelOnly, money, moneyOnly, hasDate: ds.length > 0, timeOnly, ds, role: null, of: null, cont: false
+      };
+    });
+    // A reward note on a payment screen ("Transaksi Berhasil" ... "Kamu dapat cashback Rp2.300", "Kamu terima voucher")
+    // is not money received. Only a screen that is nothing but the reward ("Kamu dapat cashback / Rp 2.000") is income.
+    const solidStatus = lines.some(L => (L.success && !L.income && !PAY_REWARD_LINE_RE.test(L.norm)) || PAY_OUT_HEAD_RE.test(L.norm));
+    if (solidStatus) {
+      lines.forEach(L => {
+        if (!L.income || !PAY_REWARD_LINE_RE.test(L.norm)) return;
+        L.income = false;
+        L.reward = true;
+        L.headline = L.success;
+        L.promo = !L.success;
+        if (L.promo) { L.label = null; L.phrase = null; L.value = ''; L.labelOnly = false; }
+      });
+    }
+    // pair stacked / column-split labels with the value lines that follow them
+    const pend = [];
+    let prev = null, contLeft = 0, lastDate = null;
+    lines.forEach(L => {
+      // "Tanggal Waktu" (one merged label) then "14 Okt 2026" and "15:10": the clock belongs to the same row
+      if (lastDate && L.timeOnly && !L.label && !(pend.length && pend[0].label === 'date')) {
+        L.of = 'date'; L.ofPhrase = lastDate.ofPhrase; L.value = L.text; L.cont = true; lastDate = null;
+        return;
+      }
+      lastDate = null;
+      // "Berita" then "Fee project motion": a value that merely starts like an amount row (right after a text label;
+      // after an amount label it is the next label of a column: "Subtotal" then "Koin Shopee Digunakan")
+      const lastPend = pend[pend.length - 1];
+      if (L.label && AMOUNT_KINDS.has(L.label) && !L.money.length && lastPend && TEXT_VALUE_KINDS.has(lastPend.label) &&
+          L.rawValue.replace(PAREN_WORDS_RE, ' ').trim() !== '') {
+        L.label = null; L.phrase = null; L.labelOnly = false; L.value = '';
+      }
+      if (L.label && (L.value || L.money.length)) {
+        pend.length = 0;
+        L.of = L.label; L.ofPhrase = L.phrase;
+        prev = CONT_KINDS.has(L.label) ? L : null; contLeft = 2;
+        return;
+      }
+      if (L.label) { pend.push(L); prev = null; return; }
+      if (L.headline || L.promo) { pend.length = 0; prev = null; return; }
+      let took = null;
+      while (pend.length) {
+        const lab = pend.shift();
+        if (L.i - lab.i > 12) continue;
+        const wantsMoney = AMOUNT_KINDS.has(lab.label);
+        if (wantsMoney ? L.money.length > 0 : !L.moneyOnly) { took = lab; break; }
+      }
+      if (took) {
+        L.of = took.label; L.ofPhrase = took.phrase; L.value = L.text; L.paired = true;
+        prev = CONT_KINDS.has(took.label) ? L : null; contLeft = 2;
+        if (took.label === 'date' && L.hasDate && !payTimeIn(stripRanges(L.text, L.ds), true)) lastDate = L;
+        return;
+      }
+      // "BUBUR AYAM CIREBON BANG" + "HASAN": a long name in capitals wrapped onto the next line
+      if (prev && !prev.cont && WRAP_KINDS.has(prev.of) && prev.value.length >= 20 && !/\d/.test(prev.value) && mostlyUpper(prev.value) &&
+          /^[A-Z][A-Z'&.\-]{1,14}$/.test(L.text) && !L.hasDate && !PAY_SYSTEM_RE.test(L.norm) && !payMentions(L.text, env, true).length) {
+        prev.value += ' ' + L.text;
+        L.of = prev.of; L.ofPhrase = prev.ofPhrase; L.value = ''; L.cont = true;
+        prev = null;
+        return;
+      }
+      const subLine = /\d{3,}|[•·*]{2,}|\+-|[*x]{3,}/i.test(L.text) || !cleanPayName(prev ? prev.value : 'x');
+      if (prev && contLeft > 0 && subLine && !L.moneyOnly && !L.hasDate && wordRuns(L.text).length <= 8) {
+        L.of = prev.of; L.ofPhrase = prev.ofPhrase; L.value = L.text; L.cont = true; contLeft--;
+        return;
+      }
+      prev = null;
+    });
+    let firstBody = lines.findIndex(L => L.headline || L.money.length || L.label || L.hasDate);
+    if (firstBody < 0) firstBody = lines.length;
+    lines.forEach(L => {
+      L.role = L.promo ? 'promo' : (L.of && hasOwn(KIND_ROLE, L.of)) ? KIND_ROLE[L.of] : L.i < firstBody ? 'head' : 'any';
+      L.topup = PAY_TOPUP_RE.test(L.norm) && !L.promo;
+    });
+    return { lines, statusTime };
+  }
+
+  const PAY_ROLE_W = { src: 6, from: 5, to: 5, head: 4, product: 3, topup: 3, any: 2 };
+  function payBrandScores(lines, env) {
+    const scores = {}; // key -> { src, from, to, head, product, topup, any }
+    lines.forEach(L => {
+      if (L.role === 'promo') return;
+      const labelled = L.role === 'src' || L.role === 'from' || L.role === 'to';
+      const src = L.of ? L.value : L.text;
+      const topAt = L.topup ? wordRuns(src).findIndex(r => r.w === 'top' || r.w === 'topup' || r.w === 'isi' || r.w === 'tambah' || r.w === 'add') : -1;
+      payMentions(src, env, labelled).forEach(m => {
+        const role = L.topup && topAt >= 0 && m.at > topAt ? 'topup' : L.role;
+        const s = scores[m.key] || (scores[m.key] = { src: 0, from: 0, to: 0, head: 0, product: 0, topup: 0, any: 0 });
+        s[role] += PAY_ROLE_W[role];
+      });
+    });
+    return scores;
+  }
+  function payBest(scores, plus, minus) {
+    let best = null, bestScore = 0;
+    Object.keys(scores).forEach(k => {
+      const s = scores[k];
+      const pos = plus.reduce((a, r) => a + s[r], 0);
+      if (!pos) return;
+      const v = pos - minus.reduce((a, r) => a + s[r], 0) * 0.5 + (k.slice(0, 2) === 'b:' ? 0.1 : 0);
+      if (v > bestScore) { best = k; bestScore = v; }
+    });
+    return best;
+  }
+
+  // Merchant / person names: drop masked or account numbers, bank tags and status words; Title Case shouting.
+  function cleanPayName(s, keepBrandOnly) {
+    let t = ' ' + String(s || '').replace(/[_~«»"“”`©®™<>\[\]{}]/g, ' ').replace(/\s*[•·|]\s*|\s[-–+]\s/g, ' - ') + ' ';
+    const an = /\b(?:a\s*\.?\s*n\s*\.|a\/n|atas nama)\s*(.+)$/i.exec(t);
+    if (an) t = ' ' + an[1] + ' ';
+    t = t.replace(/^\s*(?:ke|to|kepada|dari|from|paid to|bayar ke|dibayar ke|pembayaran ke)\s+/i, ' ');
+    t = t.replace(/\s(?:berhasil|sukses|successful|succeeded|telah|sudah)\b.*$/i, ' ');
+    let words = t.split(/\s+/).filter(Boolean).filter(w => {
+      const d = (w.match(/\d/g) || []).length;
+      if (d >= 4 || /^[*•·x+\-.]{2,}\d*$/i.test(w) || /^[*•·+]+/.test(w)) return false;
+      if (/^\d+$/.test(w) && d >= 3) return false;
+      if (/^(rp|idr|usd|sgd)\.?$/i.test(w)) return false;
+      return /[A-Za-z0-9&]/.test(w) || w === '-';
+    });
+    // "BCA - BUDI", "BUDI • BCA": bank tags around a name
+    const isBrand = w => hasOwn(PAY_KEY, normalizeText(w).replace(/ /g, ''));
+    let out = words.join(' ').replace(/(^|\s)[-+:.,]+(?=\s|$)/g, ' - ').replace(/\s+/g, ' ').replace(/( - )+/g, ' - ').trim();
+    let parts = out.split(' - ').map(p => p.trim()).filter(Boolean);
+    if (parts.length > 1) {
+      const named = parts.filter(p => !p.split(' ').every(w => isBrand(w) || /^(bank|rek|rekening)$/i.test(w)));
+      if (named.length) parts = named;
+    }
+    out = parts.join(' - ').replace(/^[\s\-:,.;]+|[\s\-:,.;]+$/g, '').trim();
+    const letters = (out.match(/[A-Za-z]/g) || []).length;
+    if (letters < 2) return '';
+    if (!keepBrandOnly && out.split(' ').every(w => isBrand(w) || /^(bank|saldo|rekening|rek|tabungan|cash|wallet)$/i.test(w))) return '';
+    if (mostlyUpper(out)) out = titleCase(out);
+    if (out.length > 40) out = out.slice(0, 40).replace(/\s+\S*$/, '').replace(/[\s\-:,.;]+$/, '').trim() || out.slice(0, 40);
+    return out;
+  }
+
+  // The user's own name on a recipient row ("KHUSNA FAIQ", "a.n. Khusna Faiq"): every word of a two-word name, or a
+  // one-word name standing alone (bank tags and account numbers aside).
+  const OWN_SKIP_WORDS = new Set(['customer', 'pelanggan', 'bank', 'rek', 'rekening', 'an', 'a', 'n', 'atas', 'nama', 'sdr', 'sdri', 'bpk', 'ibu']);
+  function ownNameIn(value, ownTokens) {
+    if (!ownTokens.length) return false;
+    const toks = normalizeText(value).split(' ').filter(Boolean);
+    if (ownTokens.length >= 2) return ownTokens.every(t => toks.indexOf(t) >= 0);
+    const rest = toks.filter(t => !/\d/.test(t) && !hasOwn(PAY_KEY, t) && !OWN_SKIP_WORDS.has(t));
+    return rest.length === 1 && rest[0] === ownTokens[0];
+  }
+  const EWALLET_VA_RE = /^(gopay|go pay|ovo|dana|shopeepay|shopee pay|linkaja|link aja)\s*(customer|topup|top up)\b/;
+  // Recipient rows naming the user, or an e-wallet's top-up account: { key, wallet } of the destination when the
+  // rows name a brand or wallet other than the source (wallet: tracked wallet id or null), else null.
+  function payOwnDestination(live, env, ownName, srcWallet, srcKey) {
+    const ownTokens = normalizeText(ownName || '').split(' ').filter(t => t.length >= 2 && !/\d/.test(t));
+    const rowKinds = new Set(['payee', 'name', 'toAcct']);
+    const own = live.filter(L => rowKinds.has(L.of) && L.value && (ownNameIn(L.value, ownTokens) || EWALLET_VA_RE.test(normalizeText(L.value))));
+    if (!own.length) return null;
+    // the destination: brands on those rows, on rows wrapped under them, and on the destination-account rows
+    const rows = live.filter(L => own.indexOf(L) >= 0 || L.of === 'toAcct' || (L.cont && rowKinds.has(L.of)));
+    let best = null;
+    rows.forEach(L => payMentions(L.value, env, true).forEach(m => {
+      if (m.key === srcKey) return;
+      const w = payKeyWallet(m.key, env);
+      if (w && w === srcWallet) return;
+      if (!best || (w && !best.wallet)) best = { key: m.key, wallet: w || null };
+    }));
+    return best;
+  }
+
+  function extractPayment(text, ctx) {
+    ctx = ctx || {};
+    const env = makePayEnv(ctx);
+    const { lines, statusTime } = payReadLines(text, env);
+    const en = env.lang === 'en';
+    const scores = payBrandScores(lines, env);
+    const live = lines.filter(L => !L.promo);
+    const anyRe = re => live.some(L => re.test(L.norm));
+    const qris = anyRe(/\bqris\b/);
+
+    // ---- amounts
+    const lastVal = toks => { const nz = nonZero(toks); return nz.length ? nz[nz.length - 1].value : null; };
+    const byKind = k => live.filter(L => L.of === k && L.money.length && !L.cont);
+    // "Jumlah Poin 48", a "Saldo" value under a "Total" label: not the payment
+    const amountLines = k => byKind(k).filter(L => !PAY_SKIP_LINE_RE.test(normalizeText(L.value)));
+    const maxOf = arr => Math.max.apply(null, arr);
+    const totalLines = amountLines('total').filter(L => lastVal(L.money) > 0);
+    // a total that names what was paid beats "Total" / "Total Belanja"; the biggest of the best kind wins
+    const paidTotals = totalLines.filter(L => PAID_TOTALS.has(L.ofPhrase));
+    const bestTotals = paidTotals.length ? paidTotals : totalLines;
+    const totals = bestTotals.map(L => lastVal(L.money));
+    const totalLine = bestTotals.length ? bestTotals[totals.indexOf(maxOf(totals))] : null;
+    const nominals = amountLines('nominal').map(L => lastVal(L.money)).filter(v => v > 0);
+    const subs = amountLines('sub').map(L => lastVal(L.money)).filter(v => v > 0);
+    const sumRows = k => {
+      const seen = new Set();
+      let sum = 0;
+      amountLines(k).forEach(L => {
+        const v = lastVal(L.money);
+        const key = L.ofPhrase + '|' + v;
+        if (v > 0 && !seen.has(key)) { seen.add(key); sum += v; }
+      });
+      return sum;
+    };
+    const fee = sumRows('fee');
+    const tip = sumRows('tip');
+    // discounts taken off the price (only used when there is no total row to read)
+    let disc = 0, discSummary = 0;
+    const discSeen = new Set();
+    byKind('skip').forEach(L => {
+      const nz = nonZero(L.money);
+      const tok = nz[nz.length - 1];
+      if (!tok) return;
+      const minus = tok.sign === '-' || tok.paren;
+      if (DISCOUNT_SUMMARY.has(L.ofPhrase)) { discSummary = Math.max(discSummary, tok.value); return; }
+      if (!(DISCOUNT_PHRASES.has(L.ofPhrase) || (minus && DEDUCT_IF_MINUS.has(L.ofPhrase)))) return;
+      const key = L.ofPhrase + '|' + tok.value;
+      if (!discSeen.has(key)) { discSeen.add(key); disc += tok.value; }
+    });
+    if (!disc) disc = discSummary;
+    // the big amount: right under the status line (or just above it); a balance card higher up is not the payment
+    const heroes = live.filter(L => !L.of && !L.reward && L.money.length && nonZero(L.money).length &&
+      (L.moneyOnly || (L.headline && nonZero(L.money).length === 1)) && (L.headline || !PAY_SKIP_LINE_RE.test(L.norm)));
+    const heads = live.filter(L => L.headline && !L.reward).map(L => L.i);
+    const nearHead = (L, lo, hi) => heads.some(h => L.i - h >= lo && L.i - h <= hi);
+    const heroLine = heroes.find(L => L.headline || nearHead(L, 1, 3)) || heroes.find(L => nearHead(L, -2, -1)) || heroes[0] || null;
+    const heroTok = heroLine ? nonZero(heroLine.money)[0] : null;
+    const hero = heroTok ? heroTok.value : null;
+    let amount = null, amountFrom = null;
+    if (totals.length) { amount = maxOf(totals); amountFrom = 'total'; }
+    else if (nominals.length) {
+      // price + fees + tip - discounts ("Harga Rp25.000", "Promo -Rp5.000")
+      const gross = maxOf(nominals) + fee + tip;
+      amount = disc > 0 && gross - disc > 0 ? gross - disc : gross;
+      amountFrom = 'nominal';
+    }
+    else if (hero !== null) { amount = hero; amountFrom = 'hero'; }
+    else if (subs.length) { amount = maxOf(subs); amountFrom = 'sub'; }
+    else {
+      const loose = [];
+      live.forEach(L => { if (L.of !== 'skip' && L.of !== 'fee' && L.of !== 'tip' && !PAY_SKIP_LINE_RE.test(L.norm)) nonZero(L.money).forEach(t => { if (t.rp) loose.push(t.value); }); });
+      if (loose.length) { amount = loose[0]; amountFrom = 'loose'; }
+    }
+    const topupTotal = amountFrom === 'total' && TOPUP_TOTALS.has(totalLine.ofPhrase) && !(hero !== null && roundTo(hero, env.dec) === roundTo(amount - fee, env.dec));
+    if (amount !== null) {
+      amount = roundTo(amount, env.dec);
+      if (!(amount > 0) || amount > MAX_AMOUNT) { amount = null; amountFrom = null; }
+    }
+    const agrees = amount !== null && ((hero !== null && amountFrom !== 'hero' && roundTo(hero, env.dec) === amount) ||
+      (amountFrom === 'total' && nominals.some(n => roundTo(n + fee + tip, env.dec) === amount || roundTo(n + fee + tip - disc, env.dec) === amount)));
+
+    // ---- type
+    const sign = heroTok ? heroTok.sign : null;
+    const withdraw = anyRe(PAY_WITHDRAW_RE);
+    const topupLines = live.filter(L => L.topup && !PAY_TOPUP_NOT_TRANSFER.test(L.norm));
+    const outHead = live.some(L => PAY_OUT_HEAD_RE.test(L.norm));
+    const incomeHit = sign === '+' || live.some(L => L.income && !(outHead && PAY_REWARD_RE.test(L.norm)) && !(outHead && sign === '-'));
+    let type = 'EXPENSE';
+    let srcKey = payBest(scores, ['src', 'from', 'head', 'any'], ['to', 'topup', 'product']);
+    let dstKey = null;
+    if (withdraw) {
+      type = 'TRANSFER';
+    } else if (topupLines.length && sign !== '+') {
+      dstKey = payBest(scores, ['topup', 'to', 'product'], ['src', 'from']);
+      if (!dstKey) {
+        const app = payBest(scores, ['head', 'any'], []);
+        if (app && app !== srcKey && PAY_BRANDS[payKeyBrand(app)] && PAY_BRANDS[payKeyBrand(app)].ewallet) dstKey = app;
+      }
+      if (dstKey && dstKey === srcKey) srcKey = payBest(scores, ['src', 'from'], []);
+      if (dstKey && srcKey === dstKey) srcKey = null;
+      if (dstKey) type = 'TRANSFER';
+    }
+    if (type === 'EXPENSE' && incomeHit && sign !== '-') type = 'INCOME';
+    if (type === 'INCOME') srcKey = payBest(scores, ['to', 'head', 'any'], ['from', 'src']);
+    if (type === 'TRANSFER' && !dstKey && withdraw) dstKey = env.cashId ? 'w:' + env.cashId : null;
+    // Money sent to the user's own account ("ke KHUSNA FAIQ · OCBC", "Penerima KHUSNA FAIQ / Bank Tujuan GoPay",
+    // a "GOPAY CUSTOMER" virtual account) lands in another of their wallets: a transfer when that wallet is tracked.
+    let ownTo = false;
+    if (type === 'EXPENSE' && !withdraw && sign !== '+') {
+      const own = payOwnDestination(live, env, ctx.name, payKeyWallet(srcKey, env), srcKey);
+      if (own) {
+        ownTo = true;
+        if (own.wallet) { type = 'TRANSFER'; dstKey = own.key; }
+        else dstKey = own.key;
+      }
+    }
+    // a transfer moves the nominal; the admin fee stays in fields.fee (the UI can log it as its own expense)
+    if (type === 'TRANSFER' && fee > 0 && amount !== null) {
+      // "Total top up Rp100.000" + "Biaya admin Rp1.000": the total is what arrived, the fee came on top
+      const base = nominals.length ? maxOf(nominals) : topupTotal ? amount : amountFrom === 'total' || amountFrom === 'nominal' ? amount - fee : amount;
+      if (base > 0) amount = roundTo(base, env.dec);
+    } else if (type === 'EXPENSE' && topupTotal && fee > 0 && amount !== null) {
+      // a top-up paid here (pulsa, an e-wallet that is not tracked): what left the account is the top-up plus its fee
+      amount = roundTo(amount + fee, env.dec);
+    }
+
+    // ---- counterparty / title
+    const cands = [];
+    const addCand = (val, prio, keepBrand) => { const c = cleanPayName(val, keepBrand); if (c) cands.push({ c, prio }); };
+    live.forEach(L => {
+      if (!L.of) return;
+      const v = L.value;
+      if (type === 'INCOME') {
+        if (L.of === 'from') addCand(v, L.cont ? 3 : 1);
+        else if (L.of === 'name') addCand(v, 7.5);
+      } else {
+        if (L.of === 'merchant') addCand(v, L.cont ? 6 : 1);
+        else if (L.of === 'payee') addCand(v, L.cont ? 4 : GENERIC_PAYEE.has(L.ofPhrase) ? 3 : 2);
+        else if (L.of === 'name') addCand(v, 7.5);
+        else if (L.of === 'product') addCand(v, 8, true);
+      }
+    });
+    // "Pembayaran ke KOPI KENANGAN berhasil", "Kamu dapat Rp50.000 dari Budi"
+    live.forEach(L => {
+      if (L.of || !(L.headline || L === heroLine)) return;
+      const m = (type === 'INCOME' ? /\b(?:dari|from)\s+(.{3,})$/i : /\b(?:ke|to|kepada|di|at)\s+(.{3,})$/i).exec(L.text);
+      // a sentence ("... dari RIZKY ke rekening 0123", "... di WARUNG X berhasil"): keep the name only
+      if (m) addCand(m[1].replace(/\b(rp|idr)\s?[\d.,]+/gi, ' ').replace(/\s(?:ke|to|via|pakai|dengan|melalui|menggunakan|using|dari|from|sebesar|senilai|pada|on|di)\s.*$/i, ''), 3.5);
+    });
+    // a caption next to the big amount: "INDOMARET MARGONDA", "Pulsa Telkomsel 50.000"
+    if (heroLine) {
+      [heroLine.i - 1, heroLine.i + 1].forEach(j => {
+        const L = lines[j];
+        if (!L || L.of || L.label || L.headline || L.promo || L.hasDate || L.moneyOnly || PAY_SYSTEM_RE.test(L.norm)) return;
+        if (payMentions(L.text, env, false).length && wordRuns(L.text).length <= 3) return;
+        addCand(L.text.replace(/\b(rp|idr)\s?[\d.,]+/gi, ' '), 7);
+      });
+    }
+    cands.sort((a, b) => a.prio - b.prio);
+    const counterparty = cands.length ? cands[0].c : null;
+
+    const dstBrand = payKeyBrand(dstKey);
+    const dstName = dstBrand ? PAY_BRANDS[dstBrand].name : (env.wallets.find(w => w.id === payKeyWallet(dstKey, env)) || {}).name || '';
+    // own accounts: "Top up GoPay" into an e-wallet, "Transfer ke OCBC" into a bank account
+    const ownTitle = () => (dstBrand && PAY_BRANDS[dstBrand].ewallet ? 'Top up ' : en ? 'Transfer to ' : 'Transfer ke ') + dstName;
+    let title;
+    if (type === 'TRANSFER') {
+      if (withdraw) title = en ? 'Cash withdrawal' : 'Tarik tunai';
+      else if (ownTo && !topupLines.length) title = ownTitle();
+      else title = 'Top up ' + dstName;
+      title = title.trim();
+    } else if (ownTo && dstName) title = ownTitle().trim();
+    else if (counterparty) title = counterparty;
+    else if (type === 'INCOME') title = en ? 'Money received' : 'Uang masuk';
+    else if (qris) title = en ? 'QRIS payment' : 'Pembayaran QRIS';
+    else if (anyRe(/\b(transfer|kirim uang|sent)\b/)) title = 'Transfer';
+    else title = en ? 'Payment' : 'Pembayaran';
+
+    // ---- date & time
+    let dk = null, time = null, dateLine = null, timeFromStatusBar = false;
+    const maxDay = env.today ? addDays(env.today, 1) : null;
+    // only date rows and free lines: never a note ("arisan 10/10"), a name or an id
+    const dateOrder = live.filter(L => L.hasDate && !PAY_SKIP_DATE_RE.test(L.norm) && (!L.of || L.of === 'date'))
+      .sort((a, b) => (a.of === 'date' ? 0 : 1) - (b.of === 'date' ? 0 : 1) || a.i - b.i);
+    for (const L of dateOrder) {
+      const k = L.ds.map(d => d.key).find(key => key && (!maxDay || key <= maxDay));
+      if (!k) continue;
+      dk = k; dateLine = L;
+      const src = L.of ? L.value : L.text;
+      time = payTimeIn(stripRanges(src, L.ds), !/\b(rp|idr)\b/i.test(src));
+      break;
+    }
+    if (!time) {
+      const near = dateLine ? lines[dateLine.i + 1] : null;
+      if (near && !near.hasDate && (near.of === 'date' || /^\W*([01]?\d|2[0-3])[:.][0-5]\d/.test(near.text))) time = payTimeIn(near.of ? near.value : near.text, true);
+    }
+    if (!time) {
+      const tl = live.find(L => L.of === 'date' && payTimeIn(L.value, true)) || live.find(L => /\b(wib|wita|wit)\b/.test(L.norm) && payTimeIn(L.text, true));
+      if (tl) time = payTimeIn(tl.of === 'date' ? tl.value : tl.text, true);
+    }
+    // "Kemarin, 21:39", "Hari ini 07:39", "Yesterday 9:15 PM"
+    if (!dk && env.today) {
+      const rel = live.find(L => (!L.of || L.of === 'date') && !L.promo && REL_DAY_RE.test(L.of ? normalizeText(L.value) : L.norm));
+      if (rel) {
+        const src = rel.of ? rel.value : rel.text;
+        const w = REL_DAY_RE.exec(normalizeText(src))[1];
+        dk = addDays(env.today, w === 'kemarin lusa' ? -2 : (w === 'kemarin' || w === 'kemaren' || w === 'yesterday') ? -1 : 0);
+        const tm = payTimeIn(src.replace(/^[^\d]*?(hari ini|today|kemarin lusa|kemarin|kemaren|yesterday)/i, ' '), true);
+        if (tm) time = tm;
+        dateLine = rel;
+      }
+    }
+    if (!time && statusTime && (!dk || dk === env.today)) { time = statusTime; timeFromStatusBar = true; }
+
+    // ---- extras
+    let ref = null;
+    const refLine = live.find(L => L.of === 'ref' && /\d/.test(L.value));
+    if (refLine) {
+      const v = refLine.value.replace(/^[^A-Za-z0-9]+/, '');
+      const compact = /^[\dA-Z\s\-]+$/i.test(v) && /\d{3,}\s\d{3,}/.test(v) ? v.replace(/\s+/g, '') : v.split(/\s+/)[0];
+      ref = compact.replace(/[^A-Za-z0-9\-/]/g, '').slice(0, 40) || null;
+    }
+    let method = null;
+    if (qris) method = 'QRIS';
+    else if (anyRe(/\bbi ?fast\b/)) method = 'BI-FAST';
+    else if (anyRe(/\bvirtual account\b/)) method = 'Virtual Account';
+    else if (withdraw) method = en ? 'Cash withdrawal' : 'Tarik Tunai';
+    else if (type === 'TRANSFER') method = ownTo && !topupLines.length && !(dstBrand && PAY_BRANDS[dstBrand].ewallet) ? 'Transfer' : 'Top Up';
+    else if (type !== 'INCOME') {
+      // on an incoming screen the "Sumber" row is the sender's bank, not how this account paid
+      const ml = live.find(L => L.of === 'src' && !L.cont && L.value);
+      if (ml) method = ml.value.replace(/[^A-Za-z0-9 .'’\-]/g, ' ').split(' ').filter(w => (w.match(/\d/g) || []).length < 4 && !/^\d+$/.test(w)).join(' ')
+        .replace(/\s+/g, ' ').replace(/^[\s\-.]+|[\s\-.]+$/g, '').slice(0, 30) || null;
+    }
+    const notes = live.filter(L => L.of === 'note' && L.value).map(L => L.value);
+    const products = live.filter(L => L.of === 'product' && L.value).map(L => L.value);
+
+    // ---- category: counterparty and product first; other free text only when that says nothing
+    let category;
+    if (type === 'TRANSFER') category = 'transfer';
+    else {
+      const primary = [counterparty || ''].concat(products, notes).join(' \n ');
+      category = categorize(primary, type);
+      if (category === 'other' || category === 'other_income') {
+        const extra = live.filter(L => !L.of && !L.label && !L.moneyOnly && !L.hasDate).map(L => L.text);
+        category = categorize(primary + ' \n ' + extra.join(' \n '), type);
+      }
+    }
+
+    const walletHint = payKeyWallet(srcKey, env);
+    const toWalletHint = type === 'TRANSFER' ? payKeyWallet(dstKey, env) : null;
+    const appBrand = payKeyBrand(srcKey);
+    const statusFound = live.some(L => L.headline);
+    let conf = 0;
+    conf += amountFrom === 'total' ? 0.3 : amountFrom === 'nominal' ? 0.28 : amountFrom === 'hero' ? 0.25 : amountFrom ? 0.1 : 0;
+    if (agrees) conf += 0.1;
+    if (statusFound) conf += 0.2;
+    if (counterparty || type === 'TRANSFER') conf += cands.length && cands[0].prio <= 4 ? 0.15 : 0.08;
+    if (dk) conf += 0.1;
+    if (time) conf += 0.03;
+    if (walletHint) conf += 0.05;
+    if (ref || qris) conf += 0.05;
+    if (amount === null) conf = Math.min(conf, 0.3);
+    conf = Math.round(Math.min(1, conf) * 100) / 100;
+    const looksPayment = statusFound || qris || !!ref || live.some(L => L.of === 'src' || L.of === 'merchant' || L.of === 'payee' || L.of === 'from');
+    return {
+      kind: looksPayment && (amount !== null || statusFound) ? 'payment' : 'unknown',
+      type, title, amount, dayKey: dk, time, category, walletHint, toWalletHint, confidence: conf,
+      fields: {
+        merchant: type === 'TRANSFER' || ownTo ? null : counterparty, ref, method, fee: fee > 0 ? roundTo(fee, env.dec) : null, tip: tip > 0 ? roundTo(tip, env.dec) : null,
+        note: notes.length ? notes[0].slice(0, 80) : null,
+        app: appBrand, appName: appBrand ? PAY_BRANDS[appBrand].name : null,
+        toApp: payKeyBrand(dstKey), timeFromStatusBar,
+        // where the amount came from ('total' | 'nominal' (price + fees - discounts) | 'hero' | 'sub' | 'loose' | null) and the
+        // big amount on the screen (null when none): the UI asks for a check when they disagree
+        amountFrom, heroAmount: hero !== null && hero > 0 ? roundTo(hero, env.dec) : null
+      }
+    };
+  }
+
+  // Paper receipt vs payment-confirmation screen. Positive = screen.
+  function paymentSignals(text) {
+    const lines = String(text == null ? '' : text).replace(/\r/g, '').split('\n').map(l => normalizeText(l)).filter(Boolean);
+    let pay = 0, rc = 0, itemLines = 0;
+    const all = ' ' + lines.join(' | ') + ' ';
+    if (lines.some(l => PAY_SUCCESS_RE.test(l) || (PAY_INCOME_RE.test(l) && !PAY_NOT_INCOME_RE.test(l)))) pay += 3;
+    if (/\bqris\b/.test(all)) pay += 1;
+    [/\b(id transaksi|transaction id|no ref|no referensi|nomor referensi|reference|rrn|no transaksi)\b/, /\b(sumber dana|metode pembayaran|payment method|source of funds|rekening sumber)\b/,
+      /\b(penerima|recipient|rekening tujuan|bank tujuan|nama merchant|paid to|pengirim)\b/, /\b(nmid|merchant pan|bi fast|virtual account)\b/,
+      /\b(bagikan|share|detail transaksi|rincian transaksi|transaction details|detail pembayaran|rincian pembayaran|kembali ke beranda|bukti transfer)\b/]
+      .forEach(re => { if (re.test(all)) pay += 1; });
+    const words = all.split(/[^a-z0-9]+/);
+    if (words.some((w, i) => (w.length >= 3 && w !== 'dana' && hasOwn(PAY_KEY, w)) || (words[i + 1] && hasOwn(PAY_KEY, w + words[i + 1])))) pay += 1;
+    lines.forEach(l => {
+      if (/\b(kembali|kembalian|change|tunai|cash)\b/.test(l) && /\d/.test(l) && !/\b(tarik tunai|kembali ke)\b/.test(l)) rc += 1;
+      if (/\b(kasir|cashier|npwp|ppn|pb1|pbjt|struk|nota|terima kasih|thank you|qty|jl|jln|jalan|telp|tlp|item|items)\b/.test(l)) rc += 1;
+      if (/[a-z]{3,}.*\s\d{1,3}(?:[.,]\d{3})+$/.test(l) && !/\b(total|nominal|biaya|saldo|jumlah|harga|bayar|subtotal|rp)\b/.test(l)) itemLines++;
+      if (/\b\d+\s?[x@]\s?\d/.test(l)) rc += 1;
+    });
+    if (itemLines >= 3) rc += 2;
+    return { pay, receipt: rc };
+  }
+
+  // Router for text read from a picture: success screens go to extractPayment, paper receipts to extractReceipt.
+  function extractFromImageText(text, ctx) {
+    ctx = ctx || {};
+    const sig = paymentSignals(text);
+    const pay = extractPayment(text, ctx);
+    if ((sig.pay >= 3 && sig.pay > sig.receipt) || (pay.kind === 'payment' && sig.pay >= 2 && sig.receipt <= 1)) {
+      pay.kind = 'payment';
+      return pay;
+    }
+    const env = makePayEnv(ctx);
+    const r = extractReceipt(text, ctx);
+    if (r.amount === null && pay.amount !== null && sig.pay >= 2) { pay.kind = 'payment'; return pay; }
+    if (r.amount === null && !String(text == null ? '' : text).trim()) {
+      return { kind: 'unknown', type: 'EXPENSE', title: '', amount: null, dayKey: null, time: null, category: 'other', walletHint: null, toWalletHint: null, confidence: 0,
+        fields: { merchant: null, ref: null, method: null, fee: null, tip: null, note: null, app: null, appName: null, toApp: null, timeFromStatusBar: false, amountFrom: null, heroAmount: null } };
+    }
+    // paid how? "DEBIT BCA 50.000", "GOPAY 25.000", "QRIS", "TUNAI 100.000"
+    let hint = null, method = null;
+    String(text).split('\n').forEach(line => {
+      const up = line.toUpperCase();
+      if (!/(DEBIT|DEBET|KREDIT|CREDIT|KARTU|CARD|EDC|QRIS|OVO|GOPAY|DANA|SHOPEEPAY|LINKAJA|NON TUNAI|E-?WALLET|TUNAI|CASH)/.test(up)) return;
+      if (!method && /QRIS/.test(up)) method = 'QRIS';
+      if (!hint) {
+        const m = payMentions(line, env, false).find(x => payKeyWallet(x.key, env));
+        if (m) hint = payKeyWallet(m.key, env);
+      }
+      if (!method && /(^|[^A-Z])(DEBIT|DEBET)([^A-Z]|$)/.test(up)) method = 'Debit';
+      if (!method && /(^|[^A-Z])(KREDIT|CREDIT)([^A-Z]|$)/.test(up)) method = 'Credit';
+    });
+    if (!hint && /(^|\n)\s*(TUNAI|CASH)\b[^\n]*\d/i.test(String(text))) { hint = env.cashId; if (!method) method = env.lang === 'en' ? 'Cash' : 'Tunai'; }
+    let rtime = null;
+    String(text).split('\n').some(line => {
+      const b = blankTimes(line);
+      rtime = payTimeIn(stripRanges(line, findDates(b, env.today)), false);
+      return !!rtime;
+    });
+    const fallbackTitle = r.title === 'Nota' || r.title === 'Receipt';
+    let conf = r.amount !== null ? 0.45 : 0.1;
+    if (r.dayKey) conf += 0.1;
+    if (!fallbackTitle) conf += 0.1;
+    if (sig.receipt >= 2) conf += 0.1;
+    return {
+      kind: r.amount === null && sig.receipt < 2 ? 'unknown' : 'receipt',
+      type: 'EXPENSE', title: r.title, amount: r.amount, dayKey: r.dayKey, time: rtime, category: r.category,
+      walletHint: hint, toWalletHint: null, confidence: Math.round(Math.min(conf, 0.85) * 100) / 100,
+      fields: { merchant: fallbackTitle ? null : r.title, ref: null, method, fee: null, tip: null, note: null, app: null, appName: null, toApp: null, timeFromStatusBar: false,
+        amountFrom: r.amount !== null ? 'receipt' : null, heroAmount: null }
+    };
+  }
+
   // ---------- state ----------
   function defaultState() {
     return {
@@ -4468,7 +5610,7 @@ const Core = (() => {
     uid, pad2, dayKey, addDays, diffDays, daysInMonth, isDayKey,
     formatMoney, formatCompact, parseAmountInput, roundMoney, normalizeText,
     categoryById, categorize,
-    parseEntry, parseStatement, extractReceipt,
+    parseEntry, parseStatement, extractReceipt, extractPayment, extractFromImageText,
     defaultState, sanitizeState, validateBackup,
     walletBalances, goalBalances, deleteGoal, periodRange, budgetStats, streak, MAX_AMOUNT,
     groupByDay, filterTransactions, toCSV
@@ -4738,7 +5880,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'scan.offline': 'Sedang offline — pembaca nota butuh internet pertama kali. Isi nominalnya manual.',
     'scan.timeout': 'Pembaca nota terlalu lama. Isi nominalnya manual.',
     'scan.notImage': 'File ini bukan gambar.',
-    'scan.checkAmount': 'Hasil baca otomatis — cek lagi nominal dan judulnya sebelum simpan.',
     'scan.noAmount': 'Total belum ketemu. Ketik nominalnya sambil lihat foto nota.',
     'scan.thumbAlt': 'Pratinjau nota',
     'stmt.hint': 'Cara: buka m-banking → Mutasi Rekening → tekan lama teksnya → Pilih semua → Salin. Lalu tempel di bawah.',
@@ -4892,7 +6033,69 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'tx.transferTitlePh': 'mis. Top up GoPay',
     'tx.futureHint': 'Tanggal ke depan: dicatat sebagai transaksi terjadwal. Saldo wallet berubah di tanggal itu, budget sudah disisihkan dari sekarang.',
     'wallet.scheduledHint': 'Setelah transaksi terjadwal: {amount}',
-    'rollover.reserved': '{amount} pengeluaran terjadwal sudah disisihkan dari jatah.'
+    'rollover.reserved': '{amount} pengeluaran terjadwal sudah disisihkan dari jatah.',
+
+    'diag.title': 'Info layar',
+    'diag.hint': 'Kalau tampilan di HP terlihat aneh, salin teks ini dan kirimkan.',
+    'diag.copy': 'Salin',
+    'diag.copied': 'Info layar disalin',
+    'update.ready': 'Versi baru siap',
+    'update.reload': 'Muat ulang',
+    'src.SCREENSHOT': 'Screenshot',
+    'catat.shot': 'Dari screenshot',
+    'catat.shotSub': 'Bukti QRIS, transfer, top up',
+    'catat.paste': 'Tempel',
+    'catat.pasteAria': 'Tempel screenshot atau teks dari clipboard',
+    'catat.shotFound': 'bukti bayar',
+    'catat.shotOpen': 'Cek & simpan · {amount}',
+    'scan.paste': 'Tempel dari clipboard',
+    'shot.title': 'Dari screenshot',
+    'shot.pick': 'Pilih screenshot',
+    'shot.loading': 'Memuat pembaca screenshot…',
+    'shot.preparing': 'Menyiapkan pembaca… {pct}%',
+    'shot.reading': 'Membaca screenshot… {pct}%',
+    'shot.privacy': 'Screenshot dibaca di HP ini (OCR), tidak dikirim ke mana pun. Pertama kali butuh internet untuk mengunduh pembacanya. Gambarnya tidak disimpan.',
+    'shot.thumbAlt': 'Pratinjau screenshot',
+    'shot.thumbAria': 'Screenshot (ketuk untuk perbesar)',
+    'shot.failed': 'Screenshot-nya belum kebaca otomatis. Isi nominalnya manual, ya.',
+    'shot.offline': 'Lagi offline — pembaca screenshot butuh internet pertama kali. Isi nominalnya manual, ya.',
+    'shot.timeout': 'Pembaca screenshot kelamaan. Isi nominalnya manual, ya.',
+    'shot.noAmount': 'Nominalnya belum ketemu. Ketik sambil lihat screenshot-nya, ya.',
+    'shot.fromShot': 'Dibaca dari screenshot · cek lagi ya',
+    'shot.fromPhoto': 'Dibaca dari foto nota · cek lagi ya',
+    'shot.fromText': 'Dibaca dari teks yang ditempel · cek lagi ya',
+    'shot.unsureList': 'Belum kebaca: {fields}. Cek yang bertanda kuning.',
+    'shot.fieldFrom': 'Wallet asal',
+    'shot.fieldTo': 'Wallet tujuan',
+    'shot.unsure': 'belum kebaca',
+    'shot.dup': 'Mungkin sudah tercatat',
+    'shot.feeHint': 'Ada biaya {fee} — cek nominalnya sudah termasuk atau belum.',
+    'shot.feeIncluded': 'Sudah termasuk biaya admin {fee}.',
+    'shot.inclFee': 'Sudah termasuk biaya {fee}.',
+    'shot.inclTip': 'Sudah termasuk tip {tip}.',
+    'shot.inclFeeTip': 'Sudah termasuk biaya {fee} dan tip {tip}.',
+    'shot.onScreen': 'Angka besar di layar: {amount}. Cek nominalnya, ya.',
+    'shot.feeAlso': 'Catat juga biaya admin {fee} dari {wallet}',
+    'shot.feeTitle': 'Biaya admin',
+    'clip.denied': 'Clipboard belum bisa dibaca. Ketuk Tempel lagi, lalu pilih “Tempel” di gelembung yang muncul.',
+    'clip.unsupported': 'Browser ini nggak bisa baca clipboard langsung. Tekan lama kotak teks di atas, lalu pilih Tempel.',
+    'clip.empty': 'Clipboard kosong. Salin dulu screenshot atau teks bukti bayarnya.',
+    'clip.failed': 'Clipboard gagal dibaca. Coba lagi, atau pilih screenshot dari galeri.',
+    'tips.item': 'Tips: catat dari screenshot',
+    'tips.itemSub': 'Cara cepat dari bukti QRIS & transfer',
+    'tips.title': 'Catat dari screenshot',
+    'tips.honest': 'Jujur dulu ya: iPhone tidak mengizinkan app web seperti {app} memantau screenshot atau galeri kamu. Tapi app Pintasan (Shortcuts) bawaan iPhone bisa melakukannya — lihat cara 3. Ini 3 caranya:',
+    'tips.s1Title': 'Pilih screenshot',
+    'tips.s1': 'Habis bayar, screenshot bukti bayarnya. Buka {app} → Catat → Dari screenshot → pilih dari Foto (yang terbaru ada paling atas). Nominal, nama toko, tanggal, jam, dan wallet-nya langsung terisi — tinggal cek, lalu Simpan.',
+    'tips.s2Title': 'Salin & tempel (galeri tetap bersih)',
+    'tips.s2': 'Habis screenshot, ketuk thumbnail di pojok kiri bawah → ketuk Selesai (✓) → pilih Salin dan Hapus. Buka {app} → ketuk Tempel (pojok kanan atas).',
+    'tips.s3Title': 'Otomatis dengan Pintasan (atur sekali)',
+    'tips.s3': 'Setiap kamu menutup app bayar dan ada screenshot baru, iPhone membacanya sendiri lalu menyalin teksnya. Cara membuatnya:',
+    'tips.s3a': 'Buka app Pintasan → tab Otomatisasi → + → App → pilih app bayarmu (mis. GoPay, OCBC, BCA, DANA) → centang “Ditutup” (Is Closed), hapus centang “Dibuka” → pilih “Jalankan Segera” (Run Immediately) → lanjut → Otomatisasi Kosong Baru.',
+    'tips.s3b': 'Tambahkan aksi berurutan: Dapatkan Jepretan Layar Terbaru (Get Latest Screenshots) → Dapatkan Detail Gambar: Tanggal Diambil (Get Details of Images: Date Taken) → Dapatkan Waktu di Antara Tanggal (Get Time Between Dates): dari Tanggal Diambil ke Tanggal Saat Ini, dalam Menit → Jika (If) hasilnya kurang dari 3: Ekstrak Teks dari Gambar (Extract Text from Image) → Salin ke Papan Klip (Copy to Clipboard) → Tampilkan Pemberitahuan (Show Notification) “Bukti bayar terbaca, buka {app} lalu ketuk Tempel”. Izinkan akses Foto saat diminta.',
+    'tips.s3c': 'Pakainya: bayar → screenshot → tutup app bayar → notifikasi muncul → buka {app} → ketuk Tempel → cek → Simpan.',
+    'tips.privacy': 'Gambar dan teksnya dibaca di HP ini — tidak dikirim ke server dan tidak disimpan. Pembaca gambarnya diunduh sekali saat pertama dipakai (butuh internet).',
+    'tips.try': 'Coba sekarang'
   };
 
   I18N.en = {
@@ -5140,7 +6343,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'scan.offline': 'You are offline — the receipt reader needs internet the first time. Please type the amount.',
     'scan.timeout': 'The receipt reader took too long. Please type the amount.',
     'scan.notImage': 'This file is not an image.',
-    'scan.checkAmount': 'Read automatically — double-check the amount and title before saving.',
     'scan.noAmount': 'Total not found. Type the amount while looking at the photo.',
     'scan.thumbAlt': 'Receipt preview',
     'stmt.hint': 'How: open your banking app → Account statement/mutations → long-press the text → Select all → Copy. Then paste below.',
@@ -5296,7 +6498,69 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'tx.transferTitlePh': 'e.g. Top up GoPay',
     'tx.futureHint': 'Future date: recorded as a scheduled transaction. The wallet balance changes on that day; the budget sets it aside from now.',
     'wallet.scheduledHint': 'After scheduled transactions: {amount}',
-    'rollover.reserved': '{amount} of scheduled spending is already set aside.'
+    'rollover.reserved': '{amount} of scheduled spending is already set aside.',
+
+    'diag.title': 'Screen info',
+    'diag.hint': 'If something on screen looks wrong on your phone, copy this text and send it.',
+    'diag.copy': 'Copy',
+    'diag.copied': 'Screen info copied',
+    'update.ready': 'New version ready',
+    'update.reload': 'Reload',
+    'src.SCREENSHOT': 'Screenshot',
+    'catat.shot': 'From screenshot',
+    'catat.shotSub': 'QRIS, transfer, top-up proofs',
+    'catat.paste': 'Paste',
+    'catat.pasteAria': 'Paste a screenshot or text from the clipboard',
+    'catat.shotFound': 'payment proof',
+    'catat.shotOpen': 'Review & save · {amount}',
+    'scan.paste': 'Paste from clipboard',
+    'shot.title': 'From screenshot',
+    'shot.pick': 'Choose a screenshot',
+    'shot.loading': 'Loading the screenshot reader…',
+    'shot.preparing': 'Preparing the reader… {pct}%',
+    'shot.reading': 'Reading screenshot… {pct}%',
+    'shot.privacy': 'Screenshots are read on this phone (OCR) and never sent anywhere. The first time needs internet to download the reader. Images are not stored.',
+    'shot.thumbAlt': 'Screenshot preview',
+    'shot.thumbAria': 'Screenshot (tap to enlarge)',
+    'shot.failed': 'Couldn’t read the screenshot automatically. Please type the amount.',
+    'shot.offline': 'You’re offline — the screenshot reader needs internet the first time. Please type the amount.',
+    'shot.timeout': 'The screenshot reader took too long. Please type the amount.',
+    'shot.noAmount': 'Amount not found. Type it while looking at the screenshot.',
+    'shot.fromShot': 'Read from a screenshot · please double-check',
+    'shot.fromPhoto': 'Read from a receipt photo · please double-check',
+    'shot.fromText': 'Read from pasted text · please double-check',
+    'shot.unsureList': 'Not found: {fields}. Check the fields marked in yellow.',
+    'shot.fieldFrom': 'Source wallet',
+    'shot.fieldTo': 'Destination wallet',
+    'shot.unsure': 'not found',
+    'shot.dup': 'Might already be recorded',
+    'shot.feeHint': 'There’s a {fee} fee — check whether the amount includes it.',
+    'shot.feeIncluded': 'Includes the {fee} admin fee.',
+    'shot.inclFee': 'Includes {fee} in fees.',
+    'shot.inclTip': 'Includes a {tip} tip.',
+    'shot.inclFeeTip': 'Includes {fee} in fees and a {tip} tip.',
+    'shot.onScreen': 'The big amount on screen says {amount}. Please check.',
+    'shot.feeAlso': 'Also record the {fee} admin fee from {wallet}',
+    'shot.feeTitle': 'Admin fee',
+    'clip.denied': 'Couldn’t read the clipboard. Tap Paste again, then choose “Paste” in the bubble that appears.',
+    'clip.unsupported': 'This browser can’t read the clipboard directly. Long-press the text box above and choose Paste.',
+    'clip.empty': 'The clipboard is empty. Copy the screenshot or the payment text first.',
+    'clip.failed': 'Couldn’t read the clipboard. Try again, or choose the screenshot from your photos.',
+    'tips.item': 'Tips: record from screenshots',
+    'tips.itemSub': 'Quick ways from QRIS & transfer proofs',
+    'tips.title': 'Record from screenshots',
+    'tips.honest': 'To be upfront: iPhone doesn’t let web apps like {app} watch your screenshots or photo library. But the built-in Shortcuts app can — see way 3. Here are 3 ways:',
+    'tips.s1Title': 'Choose the screenshot',
+    'tips.s1': 'After paying, take a screenshot of the payment proof. Open {app} → Record → From screenshot → choose it in Photos (the newest is on top). Amount, merchant, date, time and wallet are filled in — just check and Save.',
+    'tips.s2Title': 'Copy & paste (keeps your photos clean)',
+    'tips.s2': 'After the screenshot, tap the thumbnail in the bottom-left corner → tap Done (✓) → choose Copy and Delete. Open {app} → tap Paste (top right).',
+    'tips.s3Title': 'Automatic with Shortcuts (set up once)',
+    'tips.s3': 'Every time you close a payment app and there’s a new screenshot, your iPhone reads it and copies the text. To set it up:',
+    'tips.s3a': 'Open Shortcuts → Automation tab → + → App → choose your payment apps (e.g. GoPay, OCBC, BCA, DANA) → tick “Is Closed”, untick “Is Opened” → choose “Run Immediately” → Next → New Blank Automation.',
+    'tips.s3b': 'Add these actions in order: Get Latest Screenshots → Get Details of Images: Date Taken → Get Time Between Dates: from Date Taken to Current Date, in Minutes → If the result is less than 3: Extract Text from Image → Copy to Clipboard → Show Notification “Payment proof read, open {app} and tap Paste”. Allow Photos access when asked.',
+    'tips.s3c': 'Day to day: pay → screenshot → close the payment app → the notification appears → open {app} → tap Paste → check → Save.',
+    'tips.privacy': 'Images and text are read on this phone — never sent to a server and not stored. The image reader is downloaded once, the first time (needs internet).',
+    'tips.try': 'Try it now'
   };
 
   // ---------- Constants & icons ----------
@@ -5327,9 +6591,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     target: svgIcon('<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>'),
     list: svgIcon('<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>'),
     archive: svgIcon('<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>'),
-    star: svgIcon('<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>')
+    star: svgIcon('<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>'),
+    // a phone showing a paid (checked) screen: payment screenshots
+    shot: svgIcon('<rect x="5.5" y="2" width="13" height="20" rx="2.6"/><path d="M10.5 18.5h3"/><path d="m9.2 10.6 1.9 1.9 3.7-3.7"/>'),
+    paste: svgIcon('<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 13h6"/><path d="M9 17h4"/>')
   };
-  const ICON_BY_SOURCE = { VOICE: ICON.mic, MANUAL: ICON.manual, RECEIPT: ICON.receipt, STATEMENT: ICON.statement };
+  const ICON_BY_SOURCE = { VOICE: ICON.mic, MANUAL: ICON.manual, RECEIPT: ICON.receipt, STATEMENT: ICON.statement, SCREENSHOT: ICON.shot };
 
   // ---------- Small helpers ----------
   const $ = (id) => document.getElementById(id);
@@ -5353,7 +6620,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   let storageAvailable = true;   // can read and write localStorage
   let storageFull = false;       // readable, but the quota is used up
   let corruptCopy = false;       // an unreadable saved state was kept aside
-  const ui = { tab: 'home', homeSeg: 'activity', walletFilter: null, archivedOpen: false, recording: false, parsed: [], dropped: new Set(), ignoreClicksUntil: 0 };
+  const ui = { tab: 'home', homeSeg: 'activity', walletFilter: null, archivedOpen: false, recording: false, parsed: [], dropped: new Set(), shot: null, ignoreClicksUntil: 0, lastInput: 0 };
+
+  // ---------- Short-lived states (a photo picker or the iOS Paste bubble is up, the success check is playing) ----------
+  // Things that must not be cut off by an automatic reload; idle hooks run when one of them ends.
+  const busyUntil = {};
+  const idleHooks = [];
+  function notifyIdle() { idleHooks.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } }); }
+  function setBusy(name, ms) { busyUntil[name] = Date.now() + ms; }
+  function clearBusy(name) { if (busyUntil[name]) { delete busyUntil[name]; notifyIdle(); } }
+  // ms until the last running state ends (0 = none)
+  function busyLeft() {
+    const now = Date.now();
+    let left = 0;
+    Object.keys(busyUntil).forEach((k) => { if (busyUntil[k] > now) left = Math.max(left, busyUntil[k] - now); else delete busyUntil[k]; });
+    return left;
+  }
 
   const S = () => state.settings;
   const lang = () => (state && state.settings && state.settings.lang === 'en') ? 'en' : 'id';
@@ -5381,6 +6663,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   const goalName = (id) => { const g = goalById(id); return g ? (g.deleted ? t('goal.deletedName', { name: g.name }) : g.name) : '—'; };
   const liveGoals = () => state.goals.filter((g) => !g.deleted);
   const nameTaken = (name, exceptId) => state.wallets.some((w) => w.id !== exceptId && normName(w.name) === normName(name));
+  // Context for Core's text readers (payments, receipts): archived wallets are passed and ignored by Core.
+  // name: the user's own name, so a transfer to their own account in another wallet reads as a transfer.
+  const coreCtx = () => ({ currency: cur(), today, lang: lang(), name: clampStr(S().name, 60), wallets: state.wallets.map((w) => ({ id: w.id, name: w.name, archived: !!w.archived })) });
+  const activeWalletId = (id) => { const w = walletById(id); return w && !w.archived ? w.id : null; };
 
   // ---------- i18n ----------
   function dict() { return I18N[lang()] || I18N.id; }
@@ -5637,6 +6923,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     host.textContent = '';
     const el = document.createElement('div');
     el.className = 'toast' + (o.type === 'error' ? ' error' : '') + (o.action ? '' : ' passive');
+    if (o.kind) el.dataset.kind = o.kind;
     const m = document.createElement('span');
     m.textContent = msg;
     el.appendChild(m);
@@ -5651,7 +6938,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     host.appendChild(el);
     toastTimer = setTimeout(hideToast, o.duration || (o.action ? 5000 : 3200));
   }
-  function hideToast() { clearTimeout(toastTimer); $('toastHost').textContent = ''; }
+  function hideToast() {
+    clearTimeout(toastTimer);
+    const host = $('toastHost');
+    const had = !!host.firstChild;
+    host.textContent = '';
+    if (had) notifyIdle();
+  }
+  // a toast that offers an action the user may still need (Urungkan / Undo), other than the update notice itself
+  const actionToastShown = () => !!document.querySelector('#toastHost .toast:not(.passive):not([data-kind="update"])');
   // Storage problems: unavailable (private mode), full (still readable), or an unreadable copy kept aside.
   function renderStorageBanner() {
     const b = $('storageBanner');
@@ -5713,7 +7008,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     void ov.offsetWidth;
     ov.classList.add('show');
     clearTimeout(successTimer);
-    successTimer = setTimeout(() => ov.classList.remove('show'), 1050);
+    setBusy('celebrate', 1100);
+    successTimer = setTimeout(() => { ov.classList.remove('show'); clearBusy('celebrate'); }, 1050);
     // let the hero count-up play when the check mark fades, not underneath it
     heroState.holdUntil = performance.now() + 950;
     guardTaps(400);
@@ -6023,7 +7319,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       '<span class="pt-amt' + cls + '">' + esc(amt) + '</span>' +
       '<button type="button" class="chip-x" data-action="drop-parsed" data-idx="' + i + '" aria-label="' + T('catat.dropAria', { title }) + '">' + ICON.close + '</button></span>';
   }
+  // A payment screen's text (Live Text, a Shortcut, a copied notification) typed or dictated into the box:
+  // one chip for it instead of one guess per line; saving opens the review sheet.
+  function shotChipHtml(r) {
+    const amt = r.type === 'INCOME' ? fmtSigned(r.amount) : fmt(r.amount);
+    const title = clampStr(r.title, 80);
+    return '<span class="parsed-tag shot-tag"><span class="pt-icon" aria-hidden="true">' + ICON.shot + '</span>' +
+      '<span class="pt-text"><span class="pt-title">' + esc(title || t('catat.shotFound')) + '</span><span class="pt-wallet">' + T('catat.shotFound') + '</span></span>' +
+      '<span class="pt-amt' + (r.type === 'INCOME' ? '' : (r.type === 'TRANSFER' ? ' mute' : ' exp')) + '">' + esc(amt) + '</span></span>';
+  }
   function autoGrow(el) {
+    // measured only while visible (a hidden Catat view has no height): switchTab calls this again
+    if (!el.offsetParent) return;
     el.style.height = 'auto';
     // scrollHeight leaves out the border; add it so the last line is never cut off
     el.style.height = Math.min(140, Math.max(el.scrollHeight + el.offsetHeight - el.clientHeight, 48)) + 'px';
@@ -6031,16 +7338,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   function updatePreview() {
     const text = $('captionInput').value;
     autoGrow($('captionInput'));
-    const items = parseCaption(text);
+    const shot = screenFromText(text, false);
+    ui.shot = shot;
+    const items = shot ? [] : parseCaption(text);
     ui.parsed = items;
     const kept = items.filter((_, i) => !ui.dropped.has(i));
     let html = '';
     if (text.trim() && !activeWallets().length) html = '<span class="parsed-tag hint">' + T('catat.needWallet') + '</span>';
+    else if (shot) html = shotChipHtml(shot);
     else if (text.trim() && !items.length) html = '<span class="parsed-tag hint">' + T('catat.hintAmount') + '</span>';
     else html = items.map((p, i) => ui.dropped.has(i) ? '' : parsedChipHtml(p, i)).join('');
     $('parsedPreview').innerHTML = html;
     const commitBtn = $('commitBtn');
-    if (kept.length) {
+    if (shot) {
+      commitBtn.textContent = ui.recording ? t('voice.listening') : t('catat.shotOpen', { amount: shot.type === 'INCOME' ? fmtSigned(shot.amount) : fmt(shot.amount) });
+      commitBtn.disabled = ui.recording;
+      commitBtn.classList.toggle('waiting', ui.recording);
+      commitBtn.title = '';
+      commitBtn.hidden = false;
+      $('examples').hidden = true;
+    } else if (kept.length) {
       // never add income, spending and transfers into one number
       const sum = parsedSummary(kept);
       commitBtn.textContent = ui.recording ? t('voice.listening') : (sum.single ? t('catat.save', { n: kept.length, total: sum.single }) : t('catat.saveMixed', { n: kept.length }));
@@ -6225,6 +7542,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   function openSheet(cfg) {
     const existing = sheets.find((s) => s.id === cfg.id);
     if (existing) closeSheet(existing, true);
+    // the update notice would sit over the sheet's header (toasts move to the top while a sheet is open); it comes
+    // back, or the app reloads, once the sheets are closed
+    if (document.querySelector('#toastHost .toast[data-kind="update"]')) hideToast();
     const n = ++sheetSeq;
     const titleId = 'sheetTitle' + n;
     const layer = document.createElement('div');
@@ -6272,6 +7592,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     const rf = entry.returnFocus;
     if (rf && rf.isConnected && !rf.closest('[inert]') && !rf.closest('[hidden]') && typeof rf.focus === 'function') focusEl(rf);
     else if (topSheet()) focusEl(topSheet().el);
+    if (!sheets.length) notifyIdle();
   }
   function closeAllSheets() { while (sheets.length) closeSheet(topSheet(), true); }
   function revokeUrl(u) { if (u) { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } } }
@@ -6355,6 +7676,38 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     });
   }
 
+  // ---------- Possible duplicates (rows read from a screenshot, receipt or pasted text) ----------
+  const DUP_STOP = new Set(['pembayaran', 'bayar', 'payment', 'transfer', 'transaksi', 'berhasil', 'sukses', 'qris', 'merchant', 'dari', 'untuk', 'via', 'and', 'dan', 'the', 'top']);
+  const normTitle = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const titleWords = (s) => s.split(' ').filter((w) => w.length >= 3 && !DUP_STOP.has(w));
+  // "Kopi" vs "Kopi Kenangan Margonda": similar. A missing or generic title ("Pembayaran") compares as similar.
+  function titlesSimilar(a, b) {
+    const x = normTitle(a), y = normTitle(b);
+    const wx = titleWords(x), wy = titleWords(y);
+    if (!wx.length || !wy.length) return true;
+    if (x === y || x.includes(y) || y.includes(x)) return true;
+    const set = new Set(wx);
+    return wy.some((w) => set.has(w) || wx.some((v) => v.length >= 4 && w.length >= 4 && (v.startsWith(w) || w.startsWith(v))));
+  }
+  // Same type, same amount, same day and a similar title (or the same category when the saved row has no own title).
+  function findDuplicate(c, exceptId) {
+    if (!(num(c.amount) > 0) || !isDayKey(c.day)) return null;
+    const hits = state.transactions.filter((x) => x.id !== exceptId && x.type === c.type && Math.abs(num(x.amount) - c.amount) < 0.005 &&
+      String(x.date).slice(0, 10) === c.day &&
+      (titlesSimilar(x.title, c.title) || (!!c.category && x.category === c.category && (!x.title || x.title === catLabel(x.category)))));
+    hits.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    return hits[0] || null;
+  }
+  function dupLineText(x) {
+    const title = x.title || (x.type === 'TRANSFER' ? t('tx.transferTitle', { from: walletName(x.walletId), to: walletName(x.toWalletId) }) : catLabel(x.category));
+    return [title, fmt(x.amount), String(x.date).slice(11, 16), txWalletText(x)].filter(Boolean).join(' · ');
+  }
+  const UNSURE_SEL = { amount: '#txAmount', title: '#txTitle', wallet: '#txWallets, #txFrom', to: '#txTo', date: '#txDate', time: '#txTime' };
+
+  // opts: txId (edit) | prefill {type, amount, title, category, walletId, toWalletId, day, time, note, source}
+  //   previewUrl: picture shown in the sheet (revoked on close); notice/noticeType: a message line
+  //   read: { head, sub, extra, failed, unsure: [field keys], fee } for rows read from a screenshot/receipt/pasted text
+  //   dupCheck: warn when the same row seems to be recorded already; focus: selector (null = the sheet); onSaved(rec)
   function openTxSheet(opts) {
     opts = opts || {};
     const editing = opts.txId ? state.transactions.find((x) => x.id === opts.txId) : null;
@@ -6396,10 +7749,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     const day = editing ? String(editing.date).slice(0, 10) : (isDayKey(p.day) ? p.day : today);
     const time = editing ? String(editing.date).slice(11, 16) : (isTime(p.time) ? p.time : now.time);
     const previewUrl = opts.previewUrl || null;
+    const rd = !editing && opts.read ? opts.read : null;
+    const fee = rd && num(rd.fee) > 0 ? roundAmt(rd.fee) : 0;
+    const readHtml = !rd ? '' : '<div class="read-card' + (rd.failed ? ' failed' : '') + '">' +
+      (previewUrl
+        ? '<button type="button" class="read-thumb" data-action="toggle-preview" aria-expanded="false" aria-label="' + T(rd.thumbKey || 'shot.thumbAria') + '"><img src="' + esc(previewUrl) + '" alt=""></button>'
+        : '<span class="read-icon" aria-hidden="true">' + ICON.paste + '</span>') +
+      '<div class="read-meta"><strong>' + esc(rd.head || '') + '</strong>' +
+      (rd.sub ? '<small>' + esc(rd.sub) + '</small>' : '') +
+      (rd.unsure && rd.unsure.length ? '<small class="read-warn"></small>' : '') +
+      (rd.onScreen ? '<small class="read-warn read-amt">' + esc(rd.onScreen) + '</small>' : '') +
+      (rd.extra ? '<small>' + esc(rd.extra) + '</small>' : '') + '</div></div>';
 
     const body =
+      readHtml +
+      (opts.dupCheck && !editing ? '<div class="notice warn dup-note" id="txDup" role="status" hidden></div>' : '') +
       '<div class="seg-3" role="radiogroup" aria-label="' + T('tx.typeAria') + '" id="txTypes"></div>' +
-      (previewUrl ? '<button type="button" class="receipt-preview" data-action="toggle-preview" aria-label="' + T('tx.receiptAlt') + '"><img src="' + esc(previewUrl) + '" alt="' + T('tx.receiptAlt') + '"></button>' : '') +
+      (previewUrl && !rd ? '<button type="button" class="receipt-preview" data-action="toggle-preview" aria-label="' + T('tx.receiptAlt') + '"><img src="' + esc(previewUrl) + '" alt="' + T('tx.receiptAlt') + '"></button>' : '') +
       (opts.notice ? '<div class="notice ' + (opts.noticeType === 'warn' ? 'warn' : 'info') + '">' + esc(opts.notice) + '</div>' : '') +
       amountField('txAmount', 'tx.amount', 'data-enter="tx-save"') +
       '<div class="field"><label class="field-label" for="txTitle">' + T('tx.title') + '</label>' +
@@ -6408,6 +7774,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       '<div class="field" data-show="wallet"><span class="field-label" id="txWalletL">' + T('tx.wallet') + '</span><div class="chip-row" id="txWallets" role="radiogroup" aria-labelledby="txWalletL"></div></div>' +
       '<div class="field" data-show="transfer"><span class="field-label" id="txFromL">' + T('tx.from') + '</span><div class="chip-row" id="txFrom" role="radiogroup" aria-labelledby="txFromL"></div></div>' +
       '<div class="field" data-show="transfer"><span class="field-label" id="txToL">' + T('tx.to') + '</span><div class="chip-row" id="txTo" role="radiogroup" aria-labelledby="txToL"></div></div>' +
+      // the fee is pre-checked only when the paying wallet was read from the screen, not guessed
+      (fee ? '<label class="check-row" data-show="transfer"><input type="checkbox" id="txFee"' + (rd.feeOff ? '' : ' checked') + '><span id="txFeeText"></span></label>' : '') +
       '<span class="field-error" id="txWalletErr"></span>' +
       '<div class="field-row">' +
       '<div class="field"><label class="field-label" for="txDate">' + T('tx.date') + '</label><input id="txDate" class="ob-input" type="date"></div>' +
@@ -6423,7 +7791,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     const gone = () => !!editing && !state.transactions.some((x) => x.id === editing.id);
     const entry = openSheet({
       id: 'tx', title: sheetTitle(), body, foot,
-      focus: editing ? null : '#txAmount',
+      focus: editing ? null : (opts.focus !== undefined ? opts.focus : '#txAmount'),
       onClose: () => { clearTimeout(f.armTimer); revokeUrl(previewUrl); },
       // another tab changed the data: keep what is typed, refresh choices
       update: () => {
@@ -6431,6 +7799,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         if (!walletById(f.walletId)) f.walletId = defaultWalletId();
         ensureTransfer();
         draw();
+        checkDup();
       },
       actions: {
         'tx-type': (el) => {
@@ -6441,18 +7810,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
           if (ty !== 'TRANSFER' && !catValid(f.category, ty)) { f.category = catFor(entry.q('#txTitle').value, ty); f.catTouched = false; }
           ensureTransfer();
           draw();
+          checkDup();
         },
-        'tx-cat': (el) => { f.category = el.dataset.id; f.catTouched = true; draw(); },
-        'tx-wallet': (el) => { f.walletId = el.dataset.id; entry.q('#txWalletErr').textContent = ''; draw(); },
-        'tx-from': (el) => { f.walletId = el.dataset.id; if (f.toWalletId === f.walletId) f.toWalletId = pickOther(f.walletId); entry.q('#txWalletErr').textContent = ''; draw(); },
-        'tx-to': (el) => { f.toWalletId = el.dataset.id; entry.q('#txWalletErr').textContent = ''; draw(); },
+        'tx-cat': (el) => { f.category = el.dataset.id; f.catTouched = true; draw(); checkDup(); },
+        'tx-wallet': (el) => { f.walletId = el.dataset.id; entry.q('#txWalletErr').textContent = ''; clearUnsure('wallet'); draw(); },
+        'tx-from': (el) => { f.walletId = el.dataset.id; if (f.toWalletId === f.walletId) f.toWalletId = pickOther(f.walletId); entry.q('#txWalletErr').textContent = ''; clearUnsure('wallet'); draw(); },
+        'tx-to': (el) => { f.toWalletId = el.dataset.id; entry.q('#txWalletErr').textContent = ''; clearUnsure('to'); draw(); },
         'tx-save': () => saveTx(),
         'tx-delete': (el) => {
           if (!armButton(f, el, 'tx.delete', 'tx.confirmDelete')) return;
           closeSheet(entry);
           deleteTxWithUndo(editing.id);
         },
-        'toggle-preview': (el) => el.classList.toggle('expanded')
+        'toggle-preview': (el) => {
+          const card = el.closest('.read-card');
+          if (!card) { el.classList.toggle('expanded'); return; }
+          el.setAttribute('aria-expanded', String(card.classList.toggle('expanded')));
+        }
       }
     });
 
@@ -6474,6 +7848,47 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         q('#txFrom').innerHTML = walletChips(pickList(), f.walletId, 'tx-from');
         q('#txTo').innerHTML = walletChips(pickList(), f.toWalletId, 'tx-to', f.walletId);
       }
+      if (fee) q('#txFeeText').textContent = t('shot.feeAlso', { fee: fmt(fee), wallet: walletName(f.walletId) });
+      refreshUnsureNote();
+    }
+    // "Belum kebaca: Wallet, Jam" in the read card, for marks that may be below the fold
+    function refreshUnsureNote() {
+      const note = entry.q('.read-warn:not(.read-amt)');
+      if (!note) return;
+      const names = { amount: t('tx.amount'), title: t('tx.title'), wallet: f.type === 'TRANSFER' ? t('shot.fieldFrom') : t('tx.wallet'), to: t('shot.fieldTo'), date: t('tx.date'), time: t('tx.time') };
+      const keys = [];
+      entry.qa('.field.unsure').forEach((field) => { const k = field.dataset.unsure; if (keys.indexOf(k) < 0 && !(k === 'to' && f.type !== 'TRANSFER')) keys.push(k); });
+      note.hidden = !keys.length;
+      note.textContent = t('shot.unsureList', { fields: keys.map((k) => names[k]).join(', ') });
+    }
+
+    // Fields a screenshot/receipt did not give are marked until they are edited or chosen.
+    function markUnsure(key) {
+      entry.qa(UNSURE_SEL[key] || '#none').forEach((n) => {
+        const field = n.closest('.field');
+        if (!field || field.classList.contains('unsure')) return;
+        field.classList.add('unsure');
+        field.dataset.unsure = key;
+        const label = field.querySelector('.field-label');
+        if (label) { const tag = document.createElement('span'); tag.className = 'unsure-tag'; tag.textContent = t('shot.unsure'); label.appendChild(tag); }
+      });
+    }
+    function clearUnsure(key) {
+      entry.qa('.field.unsure').forEach((field) => {
+        if (field.dataset.unsure !== key) return;
+        field.classList.remove('unsure');
+        const tag = field.querySelector('.unsure-tag');
+        if (tag) tag.remove();
+      });
+      refreshUnsureNote();
+    }
+    function checkDup() {
+      const box = entry.q('#txDup');
+      if (!box) return;
+      const amt = parseAmt(entry.q('#txAmount').value);
+      const hit = amt ? findDuplicate({ type: f.type, amount: roundAmt(amt), day: entry.q('#txDate').value, title: entry.q('#txTitle').value, category: f.type === 'TRANSFER' ? 'transfer' : f.category }) : null;
+      box.hidden = !hit;
+      box.innerHTML = hit ? '<strong>' + T('shot.dup') + '</strong><span>' + esc(dupLineText(hit)) + '</span>' : '';
     }
 
     function saveTx() {
@@ -6493,6 +7908,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       if (bad) { if (bad.focus && bad.tagName !== 'SPAN') focusEl(bad); else bad.scrollIntoView({ block: 'center' }); return; }
       const tm = isTime(q('#txTime').value) ? q('#txTime').value : localNow().time;
       const category = isTr ? 'transfer' : (catValid(f.category, f.type) ? f.category : catDefault(f.type));
+      const feeOn = !!fee && isTr && !!q('#txFee') && q('#txFee').checked;
       let title = clampStr(q('#txTitle').value, 80);
       // an empty transfer title is rendered from the current wallet names, so renames stay correct
       if (!title && !isTr) title = catLabel(category);
@@ -6507,13 +7923,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         source: f.source,
         createdAt: editing ? editing.createdAt : stamp()
       };
+      // a top-up's admin fee is paid on top of what arrives: its own expense from the same wallet
+      const feeTitle = t('shot.feeTitle');
+      const feeRec = feeOn ? {
+        id: Core.uid(), type: 'EXPENSE', amount: fee, walletId: f.walletId, toWalletId: null, goalId: null,
+        category: catFor(feeTitle, 'EXPENSE') === catDefault('EXPENSE') ? catFor('biaya admin', 'EXPENSE') : catFor(feeTitle, 'EXPENSE'),
+        title: feeTitle, note: '', date: rec.date, source: f.source, createdAt: rec.createdAt
+      } : null;
       const ok = commit((s) => {
         const i = editing ? s.transactions.findIndex((x) => x.id === editing.id) : -1;
         if (i >= 0) s.transactions[i] = rec; else s.transactions.push(rec);
+        if (feeRec) s.transactions.push(feeRec);
       });
       if (!ok) return;
       closeSheet(entry);
-      celebrate(rec.type === 'INCOME' ? fmtSigned(amount) : fmt(amount), editing ? t('tx.updated') + ' · ' + txWalletText(rec) : txWalletText(rec));
+      celebrate(rec.type === 'INCOME' ? fmtSigned(amount) : fmt(amount),
+        (editing ? t('tx.updated') + ' · ' : '') + txWalletText(rec) + (feeRec ? ' · ' + feeTitle + ' ' + fmt(fee) : ''));
+      if (typeof opts.onSaved === 'function') { try { opts.onSaved(rec); } catch (e) { console.error(e); } }
     }
 
     // initial values are set via .value so user text never touches innerHTML
@@ -6533,6 +7959,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       if (c !== f.category) { f.category = c; draw(); }
     });
     draw();
+    if (rd) {
+      (rd.unsure || []).forEach(markUnsure);
+      refreshUnsureNote();
+      const onEdit = (e) => {
+        const field = e.target && e.target.closest ? e.target.closest('.field.unsure') : null;
+        if (field) clearUnsure(field.dataset.unsure);
+      };
+      entry.layer.addEventListener('input', onEdit);
+      entry.layer.addEventListener('change', onEdit);
+    }
+    if (entry.q('#txDup')) {
+      ['#txAmount', '#txTitle', '#txDate'].forEach((sel) => { q(sel).addEventListener('input', checkDup); q(sel).addEventListener('change', checkDup); });
+      checkDup();
+    }
     return entry;
   }
 
@@ -7048,7 +8488,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         'set-sound': () => { commit((s) => { s.settings.sound = !s.settings.sound; }); if (S().sound) playChime(); },
         'export-csv': () => exportCsv(),
         'backup-json': () => exportBackup(),
-        'reset-all': () => resetAll()
+        'reset-all': () => resetAll(),
+        'open-shot-tips': () => openShotTips()
       }
     });
     function html() {
@@ -7071,14 +8512,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         '<span class="field-hint" id="setStartHint"></span></div></section>' +
         '<section class="settings-group"><h3>' + T('settings.other') + '</h3>' +
         '<div class="settings-row"><span class="sr-text"><strong id="setSoundL">' + T('settings.sound') + '</strong><small>' + T('settings.soundSub') + '</small></span>' +
-        '<button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="setSoundL" data-action="set-sound" id="setSound"></button></div></section>' +
+        '<button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="setSoundL" data-action="set-sound" id="setSound"></button></div>' +
+        '<button type="button" class="settings-row settings-link" data-action="open-shot-tips"><span class="sr-icon" aria-hidden="true">' + ICON.shot + '</span>' +
+        '<span class="sr-text"><strong>' + T('tips.item') + '</strong><small>' + T('tips.itemSub') + '</small></span>' + ICON.chevR + '</button></section>' +
         '<section class="settings-group"><h3>' + T('settings.data') + '</h3><p class="field-hint" id="setCounts"></p><div class="data-buttons">' +
         '<button type="button" class="btn-secondary" data-action="export-csv">' + ICON.table + '<span>' + T('settings.exportCsv') + '</span></button>' +
         '<button type="button" class="btn-secondary" data-action="backup-json">' + ICON.download + '<span>' + T('settings.backup') + '</span></button>' +
         '<label class="btn-secondary file-btn">' + ICON.upload + '<span>' + T('settings.restore') + '</span><input type="file" accept="application/json,.json" id="setRestore" class="visually-hidden"></label>' +
         '<button type="button" class="btn-danger" data-action="reset-all">' + ICON.trash + '<span>' + T('settings.reset') + '</span></button></div></section>' +
         '<section class="settings-group"><h3>' + T('settings.about') + '</h3>' +
-        '<div class="about-card"><svg aria-hidden="true" focusable="false"><use href="#app-logo"/></svg><div><strong>' + esc(APP_NAME) + '</strong><small>' + T('settings.version', { v: Core.VERSION || '1.0.0' }) + '</small><small>' + T('tagline') + '</small></div></div>' +
+        '<div class="about-card"><svg aria-hidden="true" focusable="false"><use href="#app-logo"/></svg><div><strong>' + esc(APP_NAME) + '</strong><small class="about-version" id="setVersion">' + T('settings.version', { v: Core.VERSION || '1.0.0' }) + '</small><small>' + T('tagline') + '</small></div></div>' +
         '<p class="notice warn">' + T('settings.storageNote') + '</p><p class="field-hint">' + T('settings.offlineNote') + '</p></section>';
     }
     function build() {
@@ -7095,6 +8538,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         commit((s) => { s.settings.periodStartDay = d; });
       });
       q('#setRestore').addEventListener('change', (e) => { const file = e.target.files && e.target.files[0]; e.target.value = ''; handleRestore(file); });
+      // hidden screen info for layout problems on a phone (press and hold "Versi ...")
+      onLongPress(q('#setVersion'), () => openViewportDiag());
       refresh();
     }
     function refresh() {
@@ -7273,19 +8718,59 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     const guard = new Promise((_, reject) => { timer = setTimeout(() => { const e = new Error('timeout'); e.code = 'timeout'; reject(e); }, ms); });
     return Promise.race([promise, guard]).finally(() => clearTimeout(timer));
   }
-  // Downscale big phone photos: faster OCR, same accuracy for receipts.
-  function prepareImage(file, url) {
+  // Gives up only when the engine stops reporting progress for `ms` (the first download of the reader on a
+  // slow connection keeps moving and may take longer), or after `cap` ms of work in any case. Time the app
+  // spent in the background (iOS suspends it) does not count.
+  function withStall(promise, job, ms, cap) {
+    let timer = 0;
+    let last = performance.now(), ref = last, active = 0;
+    const guard = new Promise((_, reject) => {
+      const tick = () => {
+        const now = performance.now(), gap = now - last;
+        last = now;
+        if (gap > 5000 || document.hidden) ref = now; else active += gap;
+        if (now - Math.max(job.lastProgress || 0, ref) > ms || active > cap) { const e = new Error('timeout'); e.code = 'timeout'; reject(e); return; }
+        timer = setTimeout(tick, 1000);
+      };
+      timer = setTimeout(tick, 1000);
+    });
+    return Promise.race([promise, guard]).finally(() => clearTimeout(timer));
+  }
+  const OCR_CAP_MS = 120000;
+  // the engine's first download (core + language data, several MB) reports no progress while it runs
+  const OCR_SETUP_STALL_MS = 45000;
+  // Phone screenshots: grayscale, inverted when the screen is mostly dark, then gamma 2.2. Without it tesseract
+  // drops light-gray labels and white text on coloured headers (merchant, date); with it all 22 test screens read fully.
+  function enhanceForOcr(g, w, h) {
+    const d = g.getImageData(0, 0, w, h), p = d.data, n = w * h;
+    const lum = new Uint8ClampedArray(n);
+    let sum = 0;
+    for (let i = 0, j = 0; i < n; i++, j += 4) { const v = (p[j] * 299 + p[j + 1] * 587 + p[j + 2] * 114) / 1000; lum[i] = v; sum += v; }
+    const dark = sum / n < 128;
+    const lut = new Uint8ClampedArray(256);
+    for (let v = 0; v < 256; v++) lut[v] = 255 * Math.pow((dark ? 255 - v : v) / 255, 2.2);
+    for (let i = 0, j = 0; i < n; i++, j += 4) { const v = lut[lum[i]]; p[j] = v; p[j + 1] = v; p[j + 2] = v; p[j + 3] = 255; }
+    g.putImageData(d, 0, 0);
+  }
+  // Downscale big pictures (faster OCR, same accuracy). Phone-shaped screenshots (a PNG, or anything picked as a
+  // screenshot) are also enhanced; camera photos of receipts keep the plain downscale.
+  function prepareImage(file, url, asScreenshot) {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
         try {
           const w = img.naturalWidth, h = img.naturalHeight, max = 1800;
+          if (!w || !h) { resolve(file); return; }
           const scale = Math.min(1, max / Math.max(w, h));
-          if (!w || !h || scale >= 1) { resolve(file); return; }
+          const phoneShaped = Math.max(w, h) / Math.min(w, h) >= 1.6;
+          const enhance = phoneShaped && (asScreenshot || /png/i.test(file.type || ''));
+          if (scale >= 1 && !enhance) { resolve(file); return; }
           const c = document.createElement('canvas');
           c.width = Math.round(w * scale);
           c.height = Math.round(h * scale);
-          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          const g = c.getContext('2d');
+          g.drawImage(img, 0, 0, c.width, c.height);
+          if (enhance) { try { enhanceForOcr(g, c.width, c.height); } catch (_) { g.drawImage(img, 0, 0, c.width, c.height); } }
           resolve(c);
         } catch (_) { resolve(file); }
       };
@@ -7304,35 +8789,204 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     terminateWorker(job);
     if (!job.handedOff) revokeUrl(job.url);
   }
+  // Reads the text in a picture on this device. progress(key, pct): preparing the engine fills 0-40%, reading 40-100%.
+  // Resolves { text, failKey: null | 'offline' | 'timeout' | 'failed' }, or null when the job was cancelled.
+  async function ocrRead(job, file, keys, progress) {
+    let text = '', failKey = null;
+    try {
+      if (navigator.onLine === false && !window.Tesseract) { const e = new Error('offline'); e.code = 'offline'; throw e; }
+      const Tess = await withTimeout(loadTesseract(), OCR_TIMEOUT_MS);
+      if (job !== ocrJob) return null;
+      const logger = (m) => {
+        if (job !== ocrJob || !m) return;
+        job.lastProgress = performance.now();
+        const p = Math.max(0, Math.min(1, num(m.progress)));
+        if (m.status === 'recognizing text') progress(keys.reading, Math.round(40 + p * 60));
+        else progress(keys.preparing, Math.round(p * 40));
+      };
+      const img = await prepareImage(file, job.url, job.screenshot);
+      if (job !== ocrJob) return null;
+      let result;
+      if (typeof Tess.createWorker === 'function') {
+        const wp = Promise.resolve(Tess.createWorker('eng', 1, { logger }));
+        wp.then((w) => { job.worker = w; if (job !== ocrJob) terminateWorker(job); }, () => {});
+        await withStall(wp, job, OCR_SETUP_STALL_MS, OCR_CAP_MS);
+        if (job !== ocrJob) return null;
+        result = await withStall(job.worker.recognize(img), job, OCR_TIMEOUT_MS, OCR_CAP_MS);
+      } else {
+        result = await withStall(Tess.recognize(img, 'eng', { logger }), job, OCR_SETUP_STALL_MS, OCR_CAP_MS);
+      }
+      text = (result && result.data && result.data.text) || '';
+    } catch (e) {
+      failKey = (e && e.code === 'offline') || navigator.onLine === false ? 'offline' : (e && e.code === 'timeout' ? 'timeout' : 'failed');
+      console.warn('OCR fallback:', e);
+    } finally {
+      terminateWorker(job);
+    }
+    if (job !== ocrJob) return null;
+    return { text, failKey };
+  }
+
+  // ---------- Text read from a screenshot, receipt photo or the clipboard -> transaction sheet ----------
+  // A bank statement / history list: two or more rows that start with a date and carry an amount
+  // ("01/10 QRIS ALFAMART 45.000 DB"). Payment screens and receipts have one date line.
+  const STMT_DATE_ROW = /^\s*\d{1,2}[\/.-]\d{1,2}(?:[\/.-]\d{2,4})?\b/;
+  const STMT_AMOUNT = /\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?|\d{4,}[.,]\d{2}\b/;
+  function looksLikeStatement(text) {
+    return String(text || '').split(/\r?\n/).filter((l) => STMT_DATE_ROW.test(l) && STMT_AMOUNT.test(l.replace(STMT_DATE_ROW, ''))).length >= 2;
+  }
+  // Is this text a payment screen (or, when pasted, a receipt)? Returns Core's reading, or null.
+  // Short entries ("kopi 25rb pakai GoPay") never get here: a screen's text has many lines.
+  function screenFromText(text, pasted) {
+    const s = String(text == null ? '' : text).replace(/\r\n?/g, '\n').trim();
+    if (!s || !activeWallets().length || looksLikeStatement(s)) return null;
+    const lines = s.split('\n').filter((l) => l.trim()).length;
+    if (pasted ? (lines < 3 && s.length < 100) : (lines < 4 && s.length < 120)) return null;
+    const r = safe(() => Core.extractFromImageText(s, coreCtx()), null);
+    if (!r || !(num(r.amount) > 0) || num(r.confidence) < 0.5) return null;
+    if (r.kind === 'payment') return r;
+    if (pasted && r.kind === 'receipt' && looksLikeReceipt(s, r)) return r;
+    return null;
+  }
+  // A receipt's text has a line that starts with its total / cash / change and an amount ("TOTAL 45.000",
+  // "TUNAI 50.000"). A list someone wrote ("jajan 12.000", "bayar parkir 5.000", "belanja tunai 40.000") does not.
+  const RECEIPT_LINE = /^[^\S\n]*(grand[^\S\n]*total|sub[^\S\n]*-?[^\S\n]*total|total|jumlah|tunai|kembali|kembalian|cash|change|amount[^\S\n]+due)\b[^\n]*\d/im;
+  function looksLikeReceipt(s, r) {
+    if (!RECEIPT_LINE.test(s)) return false;
+    // still a list when every other line is one entry of its own and the "receipt" amount is one of them, not their sum
+    const rows = s.split('\n').map((l) => l.trim()).filter((l) => l && !RECEIPT_LINE.test(l));
+    if (rows.length < 2 || rows.length > 30) return true;
+    const items = [];
+    for (const l of rows) { const p = parseCaption(l); if (p.length !== 1) return true; items.push(roundAmt(p[0].amount)); }
+    const amt = roundAmt(num(r.amount)), sum = roundAmt(items.reduce((a, b) => a + b, 0));
+    return !(items.some((v) => Math.abs(v - amt) < 0.005) && Math.abs(sum - amt) >= 0.005);
+  }
+  const READ_FAIL = {
+    photo: { failed: 'scan.failed', offline: 'scan.offline', timeout: 'scan.timeout', skip: 'scan.noAmount', none: 'scan.noAmount' },
+    shot: { failed: 'shot.failed', offline: 'shot.offline', timeout: 'shot.timeout', skip: 'shot.noAmount', none: 'shot.noAmount' }
+  };
+  const GENERIC_TITLE = /^(pembayaran|payment|transfer|transaksi|transaction|nota|receipt|struk)$/i;
+  // o: { text, result?, failKey?, previewUrl?, origin: 'screenshot' | 'photo' | 'text', onSaved? }
+  function openFromRead(o) {
+    const photo = o.origin === 'photo';
+    const text = String(o.text || '');
+    // a screenshot of a mutasi / history list: review its rows in the statement reader
+    if (!o.result && !o.failKey && looksLikeStatement(text)) {
+      revokeUrl(o.previewUrl);
+      const entry = openScanSheet('statement');
+      if (entry) entry.takeText(text);
+      return entry;
+    }
+    const r = o.result || (!o.failKey && text.trim() ? safe(() => Core.extractFromImageText(text, coreCtx()), null) : null);
+    const kind = r ? r.kind : 'unknown';
+    const prefill = { type: 'EXPENSE', source: kind === 'payment' ? 'SCREENSHOT' : ((kind === 'receipt' || photo) ? 'RECEIPT' : 'SCREENSHOT') };
+    const fails = READ_FAIL[photo ? 'photo' : 'shot'];
+    const read = { thumbKey: photo ? 'tx.receiptAlt' : 'shot.thumbAria', unsure: [] };
+    const unsure = read.unsure;
+    if (r && kind !== 'unknown') {
+      const fields = r.fields || {};
+      let type = ['EXPENSE', 'INCOME', 'TRANSFER'].indexOf(r.type) >= 0 ? r.type : 'EXPENSE';
+      const from = activeWalletId(r.walletHint), to = activeWalletId(r.toWalletHint);
+      const fee = num(fields.fee) > 0 ? roundAmt(fields.fee) : 0;
+      const tip = num(fields.tip) > 0 ? roundAmt(fields.tip) : 0;
+      // a top-up into a wallet that is not tracked here is money leaving the tracked one: amount plus its fee
+      const untracked = type === 'TRANSFER' && (!to || to === from || activeWallets().length < 2);
+      // a top-up from an account that is not tracked here (the screen names it, e.g. BCA) into a tracked wallet:
+      // money arriving from outside, no fee to charge to any tracked wallet
+      const fromOutside = !untracked && type === 'TRANSFER' && !from && !!fields.app;
+      if (untracked) type = 'EXPENSE';
+      if (fromOutside) type = 'INCOME';
+      prefill.type = type;
+      if (num(r.amount) > 0) prefill.amount = roundAmt(num(r.amount) + (untracked ? fee : 0)); else unsure.push('amount');
+      const title = clampStr(r.title, 80);
+      if (title && !(GENERIC_TITLE.test(title) && !fields.merchant)) prefill.title = title; else unsure.push('title');
+      if (type === 'TRANSFER') {
+        const other = activeWallets().find((w) => w.id !== to);
+        prefill.walletId = from || (defaultWalletId() !== to ? defaultWalletId() : (other ? other.id : null));
+        prefill.toWalletId = to;
+        if (!from) unsure.push('wallet');
+      } else if (fromOutside) {
+        prefill.walletId = to;
+        prefill.category = catFor('top up', 'INCOME');
+      } else {
+        if (r.category) prefill.category = r.category;
+        if (from) prefill.walletId = from; else unsure.push('wallet');
+      }
+      if (isDayKey(r.dayKey) && r.dayKey <= today) prefill.day = r.dayKey; else unsure.push('date');
+      if (isTime(r.time)) prefill.time = r.time; else unsure.push('time');
+      // Ask for a check of the amount when the reading is weak, came from a loose figure, or the big amount on the
+      // screen says something else (a difference of exactly the fee or tip is explained by those rows).
+      const amt = num(r.amount), hero = num(fields.heroAmount);
+      const gap = hero > 0 && amt > 0 ? Math.abs(roundAmt(hero - amt)) : 0;
+      const explained = !gap || [fee, tip, roundAmt(fee + tip)].some((v) => v > 0 && Math.abs(gap - v) < 0.005);
+      if (prefill.amount && unsure.indexOf('amount') < 0 &&
+          (num(r.confidence) < 0.7 || fields.amountFrom === 'loose' || fields.amountFrom === 'sub' || !explained)) {
+        unsure.push('amount');
+        if (!explained) read.onScreen = t('shot.onScreen', { amount: fmt(hero) });
+      }
+      // fees: on a transfer, an own expense (checkbox); otherwise say whether the amount already includes them
+      const feeOn = fee && type === 'TRANSFER';
+      if (feeOn) { read.fee = fee; read.feeOff = !from; }
+      else if (fee && untracked && prefill.amount) read.extra = t('shot.feeIncluded', { fee: fmt(fee) });
+      else if ((fee || tip) && !fromOutside) {
+        const included = fields.amountFrom === 'nominal' || (fields.amountFrom === 'total' && (!hero || Math.abs(hero - amt) < 0.005));
+        if (included) read.extra = fee && tip ? t('shot.inclFeeTip', { fee: fmt(fee), tip: fmt(tip) }) : tip ? t('shot.inclTip', { tip: fmt(tip) }) : t('shot.inclFee', { fee: fmt(fee) });
+        else if (fee) read.extra = t('shot.feeHint', { fee: fmt(fee) });
+      }
+      // "GoPay · QRIS", or just "GoPay Saldo" when the method already names the app
+      const app = clampStr(fields.appName, 30), method = clampStr(fields.method, 40);
+      read.sub = app && method && normName(method).indexOf(normName(app)) >= 0 ? method : [app, method].filter(Boolean).join(' · ');
+      if (prefill.amount) read.head = t(o.origin === 'text' ? 'shot.fromText' : (photo && kind !== 'payment' ? 'shot.fromPhoto' : 'shot.fromShot'));
+      else { read.head = t(fails.none); read.failed = true; }
+    } else {
+      // nothing usable: say what happened, keep the picture to type from
+      read.head = t(fails[o.failKey] || fails.none);
+      read.failed = true;
+      unsure.push('amount');
+    }
+    return openTxSheet({
+      prefill, previewUrl: o.previewUrl || null, read, dupCheck: true,
+      focus: prefill.amount ? null : '#txAmount', onSaved: o.onSaved
+    });
+  }
 
   // ---------- Nota / Mutasi sheet ----------
-  function openScanSheet(mode) {
+  // mode 'photo' | 'statement'; opts.screenshot: the "Dari screenshot" variant (one picture, no statement tab)
+  function openScanSheet(mode, opts) {
+    opts = opts || {};
     if (!activeWallets().length) {
       toast(t('err.needWallet'), { type: 'error', action: { label: t('catat.addWallet'), fn: () => openWalletSheet(null) } });
       return null;
     }
-    const sc = { mode: mode === 'statement' ? 'statement' : 'photo', items: [], walletId: defaultWalletId() };
+    const shotMode = !!opts.screenshot;
+    const K = shotMode
+      ? { title: 'shot.title', pick: 'shot.pick', loading: 'shot.loading', preparing: 'shot.preparing', reading: 'shot.reading', privacy: 'shot.privacy', thumb: 'shot.thumbAlt' }
+      : { title: 'scan.title', pick: 'scan.pick', loading: 'scan.loading', preparing: 'scan.preparing', reading: 'scan.reading', privacy: 'scan.privacy', thumb: 'scan.thumbAlt' };
+    const sc = { mode: !shotMode && mode === 'statement' ? 'statement' : 'photo', items: [], walletId: defaultWalletId() };
     const body =
-      '<div class="ob-seg-group" role="tablist" id="scModes"></div>' +
+      (shotMode ? '' : '<div class="ob-seg-group" role="tablist" id="scModes"></div>') +
       '<div class="stack" id="scPhoto">' +
-      '<label class="scan-drop" id="scDrop">' + ICON.camera + '<strong>' + T('scan.pick') + '</strong><small class="fine-pointer-only">' + T('scan.pickSub') + '</small>' +
+      '<div class="stack" id="scPick"><label class="scan-drop" id="scDrop">' + (shotMode ? ICON.shot : ICON.camera) + '<strong>' + T(K.pick) + '</strong><small class="fine-pointer-only">' + T('scan.pickSub') + '</small>' +
       '<input type="file" accept="image/*" id="scFile" class="visually-hidden"></label>' +
-      '<div class="scan-status" id="scStatus" hidden><img class="scan-thumb" id="scThumb" alt="' + T('scan.thumbAlt') + '">' +
+      '<button type="button" class="btn-secondary block" data-action="sc-paste">' + ICON.paste + '<span>' + T('scan.paste') + '</span></button></div>' +
+      '<div class="scan-status" id="scStatus" hidden><img class="scan-thumb" id="scThumb" alt="' + T(K.thumb) + '">' +
       '<div class="scan-info"><span class="scan-text" id="scText" aria-live="polite"></span><div class="bar-track" id="scTrack"><div class="bar-fill" id="scBar" style="width:0%"></div></div>' +
       '<button type="button" class="btn-secondary" data-action="sc-skip">' + T('scan.skip') + '</button></div></div>' +
-      '<p class="field-hint">' + T('scan.privacy') + '</p></div>' +
+      '<p class="field-hint">' + T(K.privacy) + '</p></div>' +
       '<div class="stack" id="scStmt" hidden>' +
       '<p class="notice">' + T('stmt.hint') + '</p>' +
-      '<div class="field"><label class="field-label" for="stText">' + T('stmt.label') + '</label>' +
+      '<div class="field"><div class="field-label-row"><label class="field-label" for="stText">' + T('stmt.label') + '</label>' +
+      '<button type="button" class="text-action-btn accent" data-action="sc-paste">' + T('catat.paste') + '</button></div>' +
       '<textarea id="stText" class="ob-input" rows="6" spellcheck="false" placeholder="' + T('stmt.ph') + '"></textarea><span class="field-error" id="stErr"></span></div>' +
       '<button type="button" class="btn-secondary block" data-action="st-parse">' + T('stmt.parse') + '</button>' +
       '<div id="stReview"></div></div>';
     const entry = openSheet({
-      id: 'scan', title: t('scan.title'), body, foot: '', cls: 'scan',
+      id: 'scan', title: t(K.title), body, foot: '', cls: 'scan' + (shotMode ? ' shot' : ''),
       onClose: () => cancelOcr(),
       actions: {
         'sc-mode': (el) => { sc.mode = el.dataset.mode === 'statement' ? 'statement' : 'photo'; drawMode(); },
         'sc-skip': () => skipOcr(),
+        'sc-paste': () => pasteFromClipboard(entry),
         'st-parse': () => parseStmt(),
         'st-toggle-all': () => { const allOn = sc.items.every((i) => i.on); sc.items.forEach((i) => { i.on = !allOn; }); drawReview(); },
         'st-type': (el) => {
@@ -7348,7 +9002,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     });
 
     function drawMode() {
-      entry.q('#scModes').innerHTML = [['photo', 'scan.modePhoto'], ['statement', 'scan.modeStatement']].map((m) => {
+      const modes = entry.q('#scModes');
+      if (modes) modes.innerHTML = [['photo', 'scan.modePhoto'], ['statement', 'scan.modeStatement']].map((m) => {
         const on = sc.mode === m[0];
         return '<button type="button" class="ob-seg-btn' + (on ? ' active' : '') + '" role="tab" aria-selected="' + on + '" data-action="sc-mode" data-mode="' + m[0] + '">' + T(m[1]) + '</button>';
       }).join('');
@@ -7359,10 +9014,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     // Overall progress never goes backwards: preparing the engine fills 0-40%, reading 40-100%.
     // While nothing is measurable yet the bar shimmers instead of sitting at 0%.
     let shownPct = 0;
-    function setProgress(text, pct) {
-      const el = entry.q('#scText');
-      if (el) el.textContent = text;
+    function setProgress(key, pct) {
       shownPct = Math.max(shownPct, Math.max(0, Math.min(100, pct)));
+      const el = entry.q('#scText');
+      if (el) el.textContent = t(key, { pct: shownPct });
       const bar = entry.q('#scBar');
       if (bar) bar.style.width = shownPct + '%';
       const track = entry.q('#scTrack');
@@ -7375,67 +9030,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       sc.mode = 'photo';
       drawMode();
       const url = URL.createObjectURL(file);
-      const job = { url, worker: null, handedOff: false };
+      const job = { url, worker: null, handedOff: false, screenshot: shotMode };
       ocrJob = job;
-      entry.q('#scDrop').hidden = true;
+      entry.q('#scPick').hidden = true;
       entry.q('#scStatus').hidden = false;
       entry.q('#scThumb').src = url;
       shownPct = 0;
-      setProgress(t('scan.loading'), 0);
-      let text = '', failKey = null;
-      try {
-        if (navigator.onLine === false && !window.Tesseract) { const e = new Error('offline'); e.code = 'offline'; throw e; }
-        const Tess = await withTimeout(loadTesseract(), OCR_TIMEOUT_MS);
-        if (job !== ocrJob) return;
-        const logger = (m) => {
-          if (job !== ocrJob || !m) return;
-          const p = Math.max(0, Math.min(1, num(m.progress)));
-          if (m.status === 'recognizing text') { const pct = Math.round(40 + p * 60); setProgress(t('scan.reading', { pct }), pct); } else {
-            const pct = Math.round(Math.max(shownPct, p * 40));
-            setProgress(t('scan.preparing', { pct }), pct);
-          }
-        };
-        const img = await prepareImage(file, url);
-        let result;
-        if (typeof Tess.createWorker === 'function') {
-          const wp = Promise.resolve(Tess.createWorker('eng', 1, { logger }));
-          wp.then((w) => { job.worker = w; if (job !== ocrJob) terminateWorker(job); }, () => {});
-          await withTimeout(wp, OCR_TIMEOUT_MS);
-          if (job !== ocrJob) return;
-          result = await withTimeout(job.worker.recognize(img), OCR_TIMEOUT_MS);
-        } else {
-          result = await withTimeout(Tess.recognize(img, 'eng', { logger }), OCR_TIMEOUT_MS);
-        }
-        text = (result && result.data && result.data.text) || '';
-      } catch (e) {
-        failKey = e && e.code === 'offline' ? 'scan.offline' : (e && e.code === 'timeout' ? 'scan.timeout' : 'scan.failed');
-        console.warn('OCR fallback:', e);
-      } finally {
-        terminateWorker(job);
-      }
-      if (job !== ocrJob) return;
-      finishOcr(job, text, failKey);
+      setProgress(K.loading, 0);
+      const res = await ocrRead(job, file, K, setProgress);
+      if (!res || job !== ocrJob) return;
+      finishOcr(job, res.text, res.failKey);
     }
+    // one message, in the next sheet, saying what actually happened (no toast over the sheet header)
     function finishOcr(job, text, failKey) {
       job.handedOff = true;
       ocrJob = null;
-      const prefill = { type: 'EXPENSE', source: 'RECEIPT' };
-      let notice, noticeType;
-      if (!failKey && text.trim()) {
-        const r = safe(() => Core.extractReceipt(text, { currency: cur(), today }), {});
-        if (r.title) prefill.title = clampStr(r.title, 80);
-        if (num(r.amount) > 0) prefill.amount = r.amount;
-        if (isDayKey(r.dayKey) && r.dayKey <= today) prefill.day = r.dayKey;
-        if (r.category) prefill.category = r.category;
-        notice = prefill.amount ? t('scan.checkAmount') : t('scan.noAmount');
-        noticeType = prefill.amount ? 'info' : 'warn';
-      } else {
-        // one message, in the sheet, saying what actually happened (no toast over the sheet header)
-        notice = t(failKey || 'scan.failed');
-        noticeType = 'warn';
-      }
       closeSheet(entry, true);
-      openTxSheet({ prefill, previewUrl: job.url, notice, noticeType });
+      openFromRead({ text, failKey, previewUrl: job.url, origin: shotMode ? 'screenshot' : 'photo' });
     }
     function skipOcr() {
       const job = ocrJob;
@@ -7444,7 +9055,25 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       terminateWorker(job);
       job.handedOff = true;
       closeSheet(entry, true);
-      openTxSheet({ prefill: { type: 'EXPENSE', source: 'RECEIPT' }, previewUrl: job.url, notice: t('scan.noAmount'), noticeType: 'warn' });
+      openFromRead({ text: '', failKey: 'skip', previewUrl: job.url, origin: shotMode ? 'screenshot' : 'photo' });
+    }
+    // Text from the clipboard: a payment screen opens the transaction sheet, anything else is read as a statement.
+    // In the statement tab it always fills the statement box.
+    function takeText(text) {
+      const clean = String(text == null ? '' : text).replace(/\r\n?/g, '\n').trim();
+      if (sc.mode !== 'statement') {
+        const r = screenFromText(clean, true);
+        if (r || shotMode) {
+          cancelOcr();
+          closeSheet(entry, true);
+          if (r) openFromRead({ text: clean, origin: 'text', result: r }); else routeText(clean);
+          return;
+        }
+        sc.mode = 'statement';
+        drawMode();
+      }
+      entry.q('#stText').value = clean;
+      parseStmt();
     }
 
     function parseStmt() {
@@ -7474,7 +9103,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         '<span class="review-amt ' + (it.type === 'INCOME' ? 'val-inc' : 'val-exp') + '">' + esc(it.type === 'INCOME' ? fmtSigned(it.amount) : fmt(-it.amount)) + '</span></div>' +
         '<div class="review-meta"><span>' + esc(dayLabel(it.dayKey)) + '</span>' +
         '<button type="button" class="type-toggle' + (it.type === 'INCOME' ? ' inc' : '') + '" data-action="st-type" data-idx="' + i + '" aria-label="' + T('stmt.typeAria', { title: it.title }) + '">' + T('type.' + it.type) + '</button>' +
-        '<select data-st-cat="' + i + '" aria-label="' + T('stmt.catAria', { title: it.title }) + '">' + opts + '</select>' +
+        '<span class="cat-chip"><span class="cat-chip-text" aria-hidden="true">' + esc(catLabel(it.category)) + '</span>' +
+        '<select data-st-cat="' + i + '" aria-label="' + T('stmt.catAria', { title: it.title }) + '">' + opts + '</select></span>' +
         (it.dup ? '<span class="dup-tag">' + T('stmt.dup') + '</span>' : '') + '</div></div></div>';
     }
     function drawReview() {
@@ -7533,26 +9163,125 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       if (el.hasAttribute('data-st-cat')) {
         const it = sc.items[Number(el.getAttribute('data-st-cat'))];
         if (it) it.category = el.value;
+        const shown = el.parentElement && el.parentElement.querySelector('.cat-chip-text');
+        if (shown) shown.textContent = catLabel(el.value);
       }
     });
     entry.startOcr = startOcr;
+    entry.takeText = takeText;
+    entry.parseStmt = parseStmt;
+    entry.mode = () => sc.mode;
     drawMode();
     return entry;
   }
 
-  // Images arriving by paste or drag-drop
+  // Images arriving by the Catat picker, Tempel, paste or drag-drop
   function canTakeImage() {
     if (!$('onboarding').hidden) return false;
     const top = topSheet();
     return !top || top.id === 'scan';
   }
-  function routeImage(file) {
+  function routeImage(file, variant) {
     if (!canTakeImage()) return;
     const top = topSheet();
     if (top && top.id === 'scan') { top.startOcr(file); return; }
-    const entry = openScanSheet('photo');
+    const entry = openScanSheet('photo', { screenshot: variant === 'screenshot' });
     if (entry) entry.startOcr(file);
   }
+  // Text arriving in the Catat tab (Tempel): a payment screen -> transaction sheet; a bank statement -> the
+  // Mutasi reader; anything else goes into the Catat box like typed text.
+  function routeText(text) {
+    const clean = String(text == null ? '' : text).replace(/\r\n?/g, '\n').trim();
+    if (!clean) return;
+    const r = screenFromText(clean, true);
+    if (r) { openFromRead({ text: clean, origin: 'text', result: r }); return; }
+    // dated rows ("01/10 ..."), or rows on different days in other layouts; an undated list stays in the box
+    const rows = safe(() => Core.parseStatement(clean, { currency: cur(), today }), []).filter((x) => x && num(x.amount) > 0);
+    const days = new Set(rows.map((x) => x.dayKey));
+    if (looksLikeStatement(clean) || (rows.length >= 2 && days.size >= 2)) {
+      const entry = openScanSheet('statement');
+      if (entry) entry.takeText(clean);
+      return;
+    }
+    const c = $('captionInput');
+    c.value = c.value.trim() ? c.value.replace(/\s+$/, '') + '\n' + clean : clean;
+    ui.dropped.clear();
+    switchTab('catat');
+    updatePreview();
+  }
+
+  // ---------- Clipboard (Tempel) ----------
+  // Browsers only hand the clipboard over on a tap. iOS shows its own "Paste" bubble first; the promise settles
+  // when it is tapped (or rejects with NotAllowedError when it is dismissed).
+  function clipErr(e) {
+    const n = e && e.name;
+    if (n === 'NotAllowedError' || n === 'SecurityError') return 'denied';
+    if (n === 'NotSupportedError') return 'unsupported';
+    return 'failed';
+  }
+  const blobText = (b) => (b && typeof b.text === 'function') ? b.text() : new Response(b).text();
+  function blobToFile(blob, type) {
+    const ext = (String(type).split('/')[1] || 'png').replace(/[^a-z0-9]/gi, '') || 'png';
+    try { return new File([blob], 'clipboard.' + ext, { type: blob.type || type }); } catch (_) { return blob.type ? blob : new Blob([blob], { type }); }
+  }
+  function readClipboard() {
+    const cb = navigator.clipboard;
+    // called synchronously too: Safari only grants the clipboard inside the tap itself
+    const viaText = () => {
+      if (!cb || typeof cb.readText !== 'function') return Promise.resolve({ error: 'unsupported' });
+      let p;
+      try { p = Promise.resolve(cb.readText()); } catch (e) { return Promise.resolve({ error: clipErr(e) }); }
+      return p.then((text) => (String(text || '').trim() ? { kind: 'text', text: String(text) } : { kind: 'empty' }), (e) => ({ error: clipErr(e) }));
+    };
+    if (!cb || typeof cb.read !== 'function') return viaText();
+    let pending;
+    try { pending = Promise.resolve(cb.read()); } catch (e) { return Promise.resolve({ error: clipErr(e) }); }
+    return pending.then(async (items) => {
+      const list = Array.from(items || []);
+      for (const it of list) {
+        const type = Array.from(it.types || []).find((x) => /^image\//.test(x));
+        if (type) return { kind: 'image', file: blobToFile(await it.getType(type), type) };
+      }
+      for (const it of list) {
+        if (Array.from(it.types || []).indexOf('text/plain') < 0) continue;
+        const text = await blobText(await it.getType('text/plain'));
+        if (String(text || '').trim()) return { kind: 'text', text: String(text) };
+      }
+      return { kind: 'empty' };
+    }, (e) => {
+      // a refusal stays a refusal; other failures (e.g. no image support) still allow plain text
+      const err = clipErr(e);
+      return err === 'denied' ? { error: err } : viaText();
+    }).catch((e) => ({ error: clipErr(e) === 'denied' ? 'denied' : 'failed' }));
+  }
+  const CLIP_MSG = { denied: 'clip.denied', unsupported: 'clip.unsupported', failed: 'clip.failed' };
+  // entry: the Nota/Mutasi sheet it was tapped in, or null for the Catat tab
+  function pasteFromClipboard(entry) {
+    // iOS may show its Paste bubble first: no automatic reload while it waits
+    setBusy('clipboard', 60000);
+    readClipboard().then((res) => {
+      try {
+        if (entry ? entry.closed : (!$('onboarding').hidden || topSheet())) return;
+        if (res.error) { toast(t(CLIP_MSG[res.error] || CLIP_MSG.failed), { type: res.error === 'failed' ? 'error' : undefined, duration: 6500 }); return; }
+        if (res.kind === 'empty') { toast(t('clip.empty'), { duration: 4500 }); return; }
+        if (res.kind === 'image') { if (entry) entry.startOcr(res.file); else routeImage(res.file, 'screenshot'); return; }
+        if (entry) entry.takeText(res.text); else routeText(res.text);
+      } finally {
+        // what was pasted is in a sheet or the Catat box by now
+        clearBusy('clipboard');
+      }
+    });
+  }
+
+  // "Dari screenshot" in the Catat tab: a plain picker (no capture attribute), so iOS offers the photo
+  // library with the newest screenshots on top.
+  document.addEventListener('change', (e) => {
+    const el = e.target;
+    if (!el || el.id !== 'shotFile') return;
+    const file = el.files && el.files[0];
+    el.value = '';
+    if (file) routeImage(file, 'screenshot');
+  });
   function imageFromList(list) {
     const arr = list ? Array.from(list) : [];
     for (const it of arr) {
@@ -7564,11 +9293,28 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   document.addEventListener('paste', (e) => {
     const cd = e.clipboardData;
     const file = cd ? (imageFromList(cd.items) || imageFromList(cd.files)) : null;
-    if (!file) return;
     const top = topSheet();
+    if (!file) {
+      const target = e.target;
+      // a payment screen's text pasted into the Catat box opens the review sheet right away
+      if (cd && target && target.id === 'captionInput' && !top && $('onboarding').hidden) {
+        const text = cd.getData('text/plain');
+        const r = screenFromText(text, true);
+        if (r) {
+          e.preventDefault();
+          // the sheet must not hand focus back to the (empty) box when it closes: that would raise the keyboard
+          // again over the success check after Simpan
+          target.blur();
+          openFromRead({ text, origin: 'text', result: r });
+        }
+      }
+      // statement text pasted into the Mutasi box is read at once
+      if (target && target.id === 'stText' && top && top.id === 'scan') setTimeout(() => { if (!top.closed) top.parseStmt(); }, 0);
+      return;
+    }
     if ((top && top.id === 'scan') || (!top && ui.tab === 'catat' && $('onboarding').hidden)) {
       e.preventDefault();
-      routeImage(file);
+      routeImage(file, top ? null : 'screenshot');
     }
   });
   const hasFiles = (e) => !!(e.dataTransfer && Array.from(e.dataTransfer.types || []).indexOf('Files') >= 0);
@@ -7590,6 +9336,32 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     if (!f) { if (files.length) toast(t('scan.notImage'), { type: 'error' }); return; }
     routeImage(f);
   });
+
+  // ---------- Tips: recording from screenshots (Settings) ----------
+  function openShotTips() {
+    const step = (n, titleHtml, bodyHtml) => '<li class="tip"><span class="tip-num" aria-hidden="true">' + n + '</span><div class="tip-body"><strong>' + titleHtml + '</strong>' + bodyHtml + '</div></li>';
+    const body =
+      '<div class="notice info">' + T('tips.honest') + '</div>' +
+      '<ol class="tip-list">' +
+      step(1, T('tips.s1Title'), '<p>' + T('tips.s1') + '</p>') +
+      step(2, T('tips.s2Title'), '<p>' + T('tips.s2') + '</p>') +
+      step(3, T('tips.s3Title'), '<p>' + T('tips.s3') + '</p><ol class="tip-steps"><li>' + T('tips.s3a') + '</li><li>' + T('tips.s3b') + '</li><li>' + T('tips.s3c') + '</li></ol>') +
+      '</ol>' +
+      '<p class="field-hint">' + T('tips.privacy') + '</p>';
+    const entry = openSheet({
+      id: 'tips', title: t('tips.title'), body,
+      foot: '<button type="button" class="btn-primary" data-action="tips-try">' + ICON.shot + '<span>' + T('tips.try') + '</span></button>',
+      actions: {
+        'tips-try': () => {
+          closeAllSheets();
+          switchTab('catat');
+          const card = document.querySelector('.shot-card');
+          if (card) { card.classList.remove('pulse'); void card.offsetWidth; card.classList.add('pulse'); }
+        }
+      }
+    });
+    return entry;
+  }
 
   // ---------- Voice (Web Speech API, built into the browser) ----------
   let recog = null;
@@ -7653,6 +9425,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   }
   function commitVoice() {
     if (ui.recording && recog) { ui.commitAfterStop = true; stopVoice(); return; }
+    // the box holds a payment screen's text: review it in the transaction sheet, clear the box once saved
+    if (ui.shot) {
+      openFromRead({ text: $('captionInput').value, origin: 'text', result: ui.shot, onSaved: () => resetCaption() });
+      return;
+    }
     const items = ui.parsed.filter((_, i) => !ui.dropped.has(i));
     if (!items.length) return;
     if (recog) { recog.saved = true; stopVoice(); }
@@ -7698,6 +9475,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     });
     const pane = document.querySelector('.view-pane[data-view="' + name + '"]');
     if (pane && changed) pane.scrollTop = 0;
+    if (name === 'catat') autoGrow($('captionInput'));
   }
 
   function toggleNoSpend() {
@@ -7725,8 +9503,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     setTimeout(focusObHeading, 60);
   }
   function closeOnboarding() {
+    // the setup's fields are gone with it: drop the keyboard state and any scroll iOS left on the document
+    const f = document.activeElement;
+    if (f && f !== document.body && $('onboarding').contains(f) && typeof f.blur === 'function') f.blur();
     $('onboarding').hidden = true;
     syncModalState();
+    syncViewport();
   }
   function focusObHeading() {
     const step = document.querySelector('[data-ob-step="' + obStep + '"]');
@@ -7881,6 +9663,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'voice-commit': () => commitVoice(),
     'open-manual': () => openTxSheet({}),
     'open-scan': () => openScanSheet('photo'),
+    'clip-paste': () => pasteFromClipboard(null),
+    // the label opens the picker by itself; without a wallet there is nothing to record into yet
+    'shot-pick': (el, e) => {
+      if (activeWallets().length) return;
+      if (e) e.preventDefault();
+      toast(t('err.needWallet'), { type: 'error', action: { label: t('catat.addWallet'), fn: () => openWalletSheet(null) } });
+    },
     'ob-lang': (el) => { saveObName(); commit((s) => { s.settings.lang = el.dataset.lang === 'en' ? 'en' : 'id'; }); },
     'ob-cur': (el) => {
       const c = el.dataset.cur;
@@ -8030,6 +9819,145 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     }
   });
 
+  // ---------- Viewport guard (phones, iOS Home Screen app) ----------
+  // The shell is position:fixed, so a scrolled document can no longer drag it under the status bar. iOS
+  // still scrolls the document while the keyboard is up and does not always scroll it back: that is undone
+  // whenever nothing is being typed. While typing, sheets and the setup screen are fitted to the visible
+  // area above the keyboard (CSS: .app.kb-open with --kb and --vv-top).
+  const VV = window.visualViewport || null;
+  // The framed shell (520px and wider) on a desktop has no on-screen keyboard; a phone on its side (or a tablet)
+  // is framed too and does: fit sheets above its keyboard as in portrait.
+  const framedMQ = window.matchMedia ? window.matchMedia('(min-width: 520px)') : null;
+  const touchMQ = window.matchMedia ? window.matchMedia('(pointer: coarse)') : null;
+  const deskFramed = () => !!(framedMQ && framedMQ.matches) && !(touchMQ && touchMQ.matches) && !(navigator.maxTouchPoints > 0);
+  const TEXT_INPUT = /^(text|search|email|url|tel|password|number|date|time|datetime-local|month|week)$/i;
+  function isTextField(el) {
+    if (!el || !el.tagName || el.disabled || el.readOnly) return false;
+    if (el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable) return true;
+    return el.tagName === 'INPUT' && TEXT_INPUT.test(el.type || 'text');
+  }
+  const editing = () => isTextField(document.activeElement);
+  function resetDocScroll() {
+    const se = document.scrollingElement || document.documentElement;
+    // the visible area left panned down after the keyboard closed (not a pinch zoom)
+    const panned = !!VV && Math.abs(VV.scale - 1) < 0.01 && VV.offsetTop > 0.5;
+    if (window.scrollX || window.scrollY || se.scrollTop || se.scrollLeft || panned) window.scrollTo(0, 0);
+    if (document.body.scrollTop || document.body.scrollLeft) { document.body.scrollTop = 0; document.body.scrollLeft = 0; }
+  }
+  // Keeps the focused field inside its (now shorter) scroller.
+  function revealFocused() {
+    const el = document.activeElement;
+    const box = el && el.closest ? el.closest('.sheet-body, .ob-top') : null;
+    if (!box || !isTextField(el)) return;
+    const a = el.getBoundingClientRect(), b = box.getBoundingClientRect(), pad = 16;
+    if (a.bottom > b.bottom - pad) box.scrollTop += Math.max(0, Math.min(a.bottom - b.bottom + pad, a.top - b.top - pad));
+    else if (a.top < b.top + pad) box.scrollTop -= b.top + pad - a.top;
+  }
+  let kbKey = '0:0';
+  function syncViewport() {
+    let kb = 0, top = 0;
+    if (VV && editing() && !deskFramed() && Math.abs(VV.scale - 1) < 0.05) {
+      const r = appEl.getBoundingClientRect();
+      // a keyboard (or picker) hides a good part of the screen; small differences are toolbars or rounding
+      if (r.height - VV.height > 120) {
+        top = Math.max(0, Math.round(VV.offsetTop - r.top));
+        kb = Math.max(1, Math.round(r.bottom - (VV.offsetTop + VV.height)));
+      }
+    }
+    const key = kb + ':' + top;
+    if (key !== kbKey) {
+      kbKey = key;
+      appEl.style.setProperty('--kb', kb + 'px');
+      appEl.style.setProperty('--vv-top', top + 'px');
+      appEl.classList.toggle('kb-open', kb > 0);
+      if (kb > 0) requestAnimationFrame(revealFocused);
+    }
+    if (!kb && !editing()) { resetDocScroll(); fitShell(); }
+  }
+  // iOS Home Screen app, portrait: the shell must reach the bottom edge of the screen. When WebKit reports a layout
+  // viewport shorter than the screen (seen once as a dark band under the tab bar), the shell is sized to the screen
+  // instead (a fixed box still paints past a short layout viewport). Never while typing, never in a normal tab.
+  let shellFix = 0;
+  function fitShell() {
+    let want = 0;
+    if (navigator.standalone === true && !(framedMQ && framedMQ.matches) && (!VV || Math.abs(VV.scale - 1) < 0.01)) {
+      const sw = Math.min(screen.width, screen.height), sh = Math.max(screen.width, screen.height);
+      const gap = sh - window.innerHeight;
+      if (window.innerHeight > window.innerWidth && Math.abs(window.innerWidth - sw) <= 1 && gap > 1 && gap <= 120) want = sh;
+    }
+    if (want === shellFix) return;
+    shellFix = want;
+    appEl.style.bottom = want ? 'auto' : '';
+    appEl.style.height = want ? want + 'px' : '';
+  }
+
+  // ---------- Screen info (Settings: press and hold the version line) ----------
+  // Numbers to send when something on screen looks wrong on a phone: viewport, screen, safe areas, the shell.
+  function viewportInfo() {
+    const r = appEl.getBoundingClientRect();
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';
+    document.body.appendChild(probe);
+    const cs = getComputedStyle(probe);
+    const inset = ['Top', 'Right', 'Bottom', 'Left'].map((k) => Math.round(parseFloat(cs['padding' + k]) || 0)).join('/');
+    probe.remove();
+    const vv = VV ? Math.round(VV.width) + 'x' + Math.round(VV.height) + ' top ' + Math.round(VV.offsetTop) + ' scale ' + (Math.round(VV.scale * 100) / 100) : '-';
+    const mq = (q) => !!(window.matchMedia && window.matchMedia(q).matches);
+    return [
+      'window ' + window.innerWidth + 'x' + window.innerHeight + ' · dpr ' + (window.devicePixelRatio || 1),
+      'visualViewport ' + vv,
+      'screen ' + screen.width + 'x' + screen.height,
+      'app ' + Math.round(r.left) + ',' + Math.round(r.top) + ' → ' + Math.round(r.right) + ',' + Math.round(r.bottom) + ' (' + Math.round(r.height) + ')',
+      'safe area t/r/b/l ' + inset,
+      'standalone ' + (navigator.standalone === true ? 'yes' : mq('(display-mode: standalone)') ? 'display-mode' : 'no') + ' · ' + (window.innerHeight > window.innerWidth ? 'portrait' : 'landscape'),
+      'framed ' + (framedMQ && framedMQ.matches ? 'yes' : 'no') + ' · keyboard ' + (appEl.classList.contains('kb-open') ? kbKey : 'no') + ' · shell fix ' + (shellFix || 'no'),
+      'scroll ' + Math.round(window.scrollX) + ',' + Math.round(window.scrollY),
+      'update ' + (upd.pending ? 'pending' : 'none') + ' · sw ' + ('serviceWorker' in navigator && navigator.serviceWorker.controller ? 'on' : 'off'),
+      navigator.userAgent.replace(/^Mozilla\/5\.0 /, '')
+    ].join('\n');
+  }
+  function openViewportDiag() {
+    const entry = openSheet({
+      id: 'diag', title: t('diag.title'),
+      body: '<p class="field-hint">' + T('diag.hint') + '</p><pre class="diag-pre" id="diagText"></pre>',
+      foot: '<button type="button" class="btn-primary" data-action="diag-copy">' + T('diag.copy') + '</button>',
+      actions: {
+        'diag-copy': () => {
+          const text = entry.q('#diagText').textContent;
+          const done = () => toast(t('diag.copied'));
+          try { navigator.clipboard.writeText(text).then(done, () => toast(t('clip.failed'), { type: 'error' })); } catch (_) { toast(t('clip.failed'), { type: 'error' }); }
+        }
+      }
+    });
+    const fill = (extra) => { const el = entry.q('#diagText'); if (el) el.textContent = viewportInfo() + (extra ? '\n' + extra : ''); };
+    fill();
+    if (window.caches) caches.keys().then((k) => fill('caches ' + k.join(', '))).catch(() => {});
+    return entry;
+  }
+  // press and hold (about 0.7 s) without moving
+  function onLongPress(el, fn) {
+    let timer = 0, x = 0, y = 0;
+    const stop = () => { clearTimeout(timer); timer = 0; };
+    el.addEventListener('pointerdown', (e) => { x = e.clientX; y = e.clientY; stop(); timer = setTimeout(() => { timer = 0; fn(); }, 700); });
+    el.addEventListener('pointermove', (e) => { if (timer && Math.hypot(e.clientX - x, e.clientY - y) > 10) stop(); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => el.addEventListener(ev, stop));
+    el.addEventListener('contextmenu', (e) => { e.preventDefault(); stop(); fn(); });
+  }
+  if (VV) { VV.addEventListener('resize', syncViewport); VV.addEventListener('scroll', syncViewport); }
+  window.addEventListener('resize', syncViewport);
+  document.addEventListener('focusin', (e) => { if (isTextField(e.target)) syncViewport(); });
+  // leaving a field: wait a moment, focus may just be moving on to the next field
+  document.addEventListener('focusout', () => { setTimeout(() => { if (!editing()) syncViewport(); }, 80); });
+  let docScrollQueued = false;
+  window.addEventListener('scroll', () => {
+    if (docScrollQueued) return;
+    docScrollQueued = true;
+    requestAnimationFrame(() => { docScrollQueued = false; if (!editing()) resetDocScroll(); });
+  }, { passive: true });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) syncViewport(); });
+  window.addEventListener('pageshow', syncViewport);
+  window.addEventListener('orientationchange', () => setTimeout(syncViewport, 300));
+
   // ---------- Day rollover & cross-tab sync ----------
   function refreshToday() {
     const n = localNow().day;
@@ -8062,6 +9990,94 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   });
 
   // ---------- Optional PWA (only when served over http(s) from a real origin) ----------
+  // Updates: a new service worker takes over as soon as it is installed (skipWaiting + clients.claim).
+  // This page then reloads once onto the new build when nothing is going on. While something is (an open sheet,
+  // an Undo toast, a photo picker or the iOS Paste bubble, the success check, a tap moments ago) it waits and tries
+  // again when that ends; while text is being typed it offers the reload in a toast (and keeps the Catat text).
+  // It also retries when the app comes back to the foreground.
+  const RELOAD_KEY = STORAGE_KEY + '.swReloadAt';
+  const DRAFT_KEY = STORAGE_KEY + '.draft';
+  const upd = { pending: false, manual: false, reg: null, lastCheck: 0, timer: 0, toastAt: 0 };
+  // Recent taps and key presses: the user is in the middle of something.
+  const INPUT_QUIET_MS = 2500;
+  ['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, () => { ui.lastInput = Date.now(); }, { capture: true, passive: true }));
+  // Photo and file pickers: from the tap that opens one until a file is chosen or the picker is dismissed.
+  const isFileInput = (el) => !!el && el.tagName === 'INPUT' && el.type === 'file';
+  document.addEventListener('click', (e) => { if (isFileInput(e.target) && !e.defaultPrevented) setBusy('picker', 120000); }, true);
+  ['change', 'cancel'].forEach((ev) => document.addEventListener(ev, (e) => {
+    // a picked file opens its sheet in the same task; that sheet holds the reload from then on
+    if (isFileInput(e.target)) setTimeout(() => clearBusy('picker'), 0);
+  }, true));
+  // browsers without the 'cancel' event: the window gets its focus back when the picker closes
+  window.addEventListener('focus', () => { if (busyUntil.picker) setTimeout(() => clearBusy('picker'), 1500); });
+  // done typing: a waiting update may go ahead
+  document.addEventListener('focusout', () => { setTimeout(() => { if (!editing()) notifyIdle(); }, 120); });
+  // Something short-lived the reload must not cut off: no toast for it, just wait.
+  function quietBlocked() { return sheets.length > 0 || actionToastShown() || busyLeft() > 0 || Date.now() - ui.lastInput < INPUT_QUIET_MS; }
+  function canReloadNow() {
+    if (navigator.onLine === false || quietBlocked() || !$('onboarding').hidden || editing() || ui.recording) return false;
+    const cap = $('captionInput');
+    return !(cap && cap.value.trim());
+  }
+  function reloadPage() {
+    try {
+      sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
+      // what is typed in the Catat box survives the reload
+      const cap = $('captionInput');
+      if (cap && cap.value.trim()) sessionStorage.setItem(DRAFT_KEY, cap.value); else sessionStorage.removeItem(DRAFT_KEY);
+    } catch (_) { /* ignore */ }
+    location.reload();
+  }
+  function retryUpdateSoon(ms) {
+    if (!upd.pending) return;
+    clearTimeout(upd.timer);
+    upd.timer = setTimeout(() => { if (upd.pending && !document.hidden) applyUpdate(); }, Math.max(50, ms || 0));
+  }
+  idleHooks.push(() => retryUpdateSoon(400));
+  function applyUpdate() {
+    upd.pending = true;
+    clearTimeout(upd.timer);
+    let recent = false; // reloaded for an update moments ago: never loop, ask instead
+    try { recent = Date.now() - Number(sessionStorage.getItem(RELOAD_KEY) || 0) < 30000; } catch (_) { recent = false; }
+    if (!recent && !upd.manual && canReloadNow()) { reloadPage(); return; }
+    if (quietBlocked()) {
+      // timed states end by themselves; sheets, toasts and pickers call the idle hook when they end
+      const wait = Math.max(busyLeft(), INPUT_QUIET_MS - (Date.now() - ui.lastInput));
+      if (wait > 0) retryUpdateSoon(wait + 100);
+      return;
+    }
+    if (Date.now() - upd.toastAt < 20000) return; // asked moments ago
+    upd.toastAt = Date.now();
+    toast(t('update.ready'), { kind: 'update', duration: 15000, action: { label: t('update.reload'), fn: reloadPage } });
+  }
+  // True when this page already is the build the new worker cached (the launch that found the update also
+  // loaded the page from the network): same Last-Modified as the cached index.html, nothing to reload.
+  // 'unknown' when no cache holds the page (then never reload by itself: offline it could not come back).
+  // controllerchange fires as the new worker starts activating, before its activate step removed the old
+  // build's cache; compare only once it is 'activated' (or after 5 s at most).
+  function whenActivated() {
+    const c = navigator.serviceWorker.controller;
+    if (!c || c.state === 'activated') return Promise.resolve();
+    return new Promise((resolve) => {
+      const done = () => { c.removeEventListener('statechange', check); resolve(); };
+      const check = () => { if (c.state === 'activated' || c.state === 'redundant') done(); };
+      c.addEventListener('statechange', check);
+      setTimeout(done, 5000);
+    });
+  }
+  function pageIsCurrent() {
+    if (!window.caches) return Promise.resolve('unknown');
+    const url = new URL('index.html', location.href).href;
+    // newest cache first (keys() is in creation order): a leftover older cache must not hide the new copy
+    const newest = () => caches.keys().then((keys) => keys.reverse().reduce(
+      (p, k) => p.then((hit) => hit || caches.open(k).then((c) => c.match(url))), Promise.resolve(null)));
+    return whenActivated().then(newest).then((res) => {
+      if (!res) return 'unknown';
+      const theirs = Date.parse(res.headers.get('last-modified') || '');
+      const mine = Date.parse(document.lastModified);
+      return isFinite(theirs) && isFinite(mine) && Math.abs(theirs - mine) < 2000;
+    }).catch(() => 'unknown');
+  }
   function setupPWA() {
     const host = location.hostname;
     const local = host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
@@ -8071,8 +10087,31 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     link.href = 'manifest.webmanifest';
     document.head.appendChild(link);
     if (!('serviceWorker' in navigator)) return;
-    const reg = () => navigator.serviceWorker.register('sw.js').catch(() => {});
+    const sw = navigator.serviceWorker;
+    let hadController = !!sw.controller;
+    sw.addEventListener('controllerchange', () => {
+      if (!hadController) { hadController = true; return; } // first install: this page is what it cached
+      if (upd.pending) return;
+      pageIsCurrent().then((current) => {
+        if (current === true) return;
+        if (current === 'unknown') upd.manual = true;
+        applyUpdate();
+      });
+    });
+    const reg = () => sw.register('sw.js', { updateViaCache: 'none' })
+      .then((r) => { upd.reg = r; upd.lastCheck = Date.now(); })
+      .catch(() => {});
     if (document.readyState === 'complete') reg(); else window.addEventListener('load', reg);
+    // iOS keeps Home Screen apps alive in the background (no new page load, so no update check):
+    // look for a new build whenever the app comes back to the foreground.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) return;
+      if (upd.pending) { applyUpdate(); return; }
+      if (upd.reg && Date.now() - upd.lastCheck > 60000) {
+        upd.lastCheck = Date.now();
+        upd.reg.update().catch(() => {});
+      }
+    });
   }
 
   // ---------- Boot ----------
@@ -8083,6 +10122,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
 
   switchTab('home');
   if (!S().onboarded) openOnboarding();
+  // Catat text kept across an update reload
+  try {
+    const draft = sessionStorage.getItem(DRAFT_KEY);
+    if (draft) {
+      sessionStorage.removeItem(DRAFT_KEY);
+      if (S().onboarded) { $('captionInput').value = draft; switchTab('catat'); updatePreview(); }
+    }
+  } catch (_) { /* ignore */ }
   setupPWA();
 
   // Small debug handle for integration tests.
@@ -8090,7 +10137,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     get state() { return state; },
     get today() { return today; },
     renderAll: () => renderAll(),
-    reload: () => { load(); renderAll(); }
+    reload: () => { load(); renderAll(); },
+    // what holds back an automatic update reload (tests)
+    get updateState() { return { pending: upd.pending, manual: upd.manual, busyMs: busyLeft(), busy: Object.keys(busyUntil), sheets: sheets.length, sinceInput: Date.now() - ui.lastInput, canReload: canReloadNow() }; }
   };
 })();
 </script>
