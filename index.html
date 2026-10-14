@@ -68,10 +68,17 @@
       overflow-x: hidden;
       overscroll-behavior: none;
     }
+    /* iOS Home Screen app laid out in a viewport shorter than the screen (the viewport guard in JS measures it and
+       sets html.shell-fix, --app-h = screen height, --vp-gap = how much shorter): the document and the shell take
+       the full screen height, so nothing ends early and leaves a band of page background under the tab bar. */
+    html.shell-fix, html.shell-fix body { height: var(--app-h); }
 
+    /* Phones: the page background is the app's own colour (= theme-color, = the tab bar). Where iOS leaves a strip
+       of the screen to the page background (a Home Screen app laid out short, see shell-fix), that strip then
+       continues the tab bar instead of showing a darker edge under its labels. The canvas only shows around the
+       framed shell on wide screens (see the min-width: 520px block). */
     body {
-      background-color: var(--bg-canvas);
-      background-image: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 60%);
+      background-color: var(--bg-app);
       color: var(--text-primary);
       overflow: hidden;
       overscroll-behavior: none;
@@ -119,6 +126,8 @@
 
     @media (min-width: 520px) {
       body {
+        background-color: var(--bg-canvas);
+        background-image: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.04) 0%, transparent 60%);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -141,6 +150,13 @@
         --safe-left: 0px;
         --safe-right: 0px;
       }
+    }
+    /* Shell fix (see html.shell-fix above): the shell is exactly the screen tall, and the bottom safe area is at least
+       the missing part, so the tab bar, sheet buttons and toasts stay whole even where iOS does not draw it. */
+    html.shell-fix .app {
+      bottom: auto;
+      height: var(--app-h);
+      --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--vp-gap, 0px));
     }
 
     .app-main {
@@ -654,16 +670,6 @@
     }
     .icon-btn svg { width: 17px; height: 17px; stroke-width: 1.8; }
     .icon-btn.sm { width: 36px; height: 36px; border-radius: 10px; }
-    .icon-btn.head-paste {
-      width: auto;
-      gap: 6px;
-      padding: 0 13px 0 11px;
-      color: var(--positive);
-      border-color: rgba(52, 211, 153, 0.28);
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .icon-btn.head-paste svg { width: 16px; height: 16px; }
 
     /* Views Container */
     .view-pane {
@@ -1196,74 +1202,31 @@
     .empty-state p { font-size: 12.5px; line-height: 1.5; max-width: 280px; }
     .empty-state .btn-secondary { margin-top: 4px; }
 
-    /* VIEW 2: CATAT */
+    /* VIEW 2: CATAT
+       One composer card: default-wallet pills, the text field, what was understood from it (rows, or a note on what is
+       missing) right under the text, then free space (a tap there types too) and a foot row in the thumb zone with
+       one quiet line of guidance (or Save) beside the mic. */
     .catat-studio {
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       gap: 12px;
       padding-top: 2px;
     }
 
     .voice-stage {
+      --stage-gap: 12px;
+      flex: 1 0 auto;
       background: var(--surface-1);
       border: 1px solid var(--border);
       border-radius: var(--radius-xl);
-      padding: 16px 16px 14px;
+      padding: 14px 16px 16px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 14px;
+      gap: var(--stage-gap);
+      transition: border-color 0.2s ease;
     }
-
-    .stage-top-bar {
-      width: 100%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .stage-badge {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      text-align: left;
-    }
-
-    .stage-badge-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--positive);
-      flex-shrink: 0;
-    }
-    .stage-badge-dot.rec {
-      background: var(--negative);
-      animation: pulseOrb 1.2s infinite;
-    }
-    .stage-badge-dot.off { background: var(--text-muted); }
-
-    .reset-pill {
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
-      padding: 6px 10px;
-      border-radius: 9px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      min-height: 32px;
-      flex-shrink: 0;
-    }
+    .voice-stage:has(.caption-input:focus) { border-color: var(--border-hover); }
 
     .catat-wallet-selector {
       display: flex;
@@ -1303,62 +1266,97 @@
     .w-pill .pill-sub.neg { color: var(--negative); opacity: 1; }
 
     .caption-box {
-      width: 100%;
-      min-height: 62px;
+      flex: 0 0 auto;
+      position: relative;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      min-height: 52px;
     }
-
+    .caption-hit { flex: 1; display: block; cursor: text; }
+    /* the card's free space between the rows and the foot row: a tap there types (it labels the field) */
+    .caption-rest { flex: 1 1 auto; min-height: 0; margin-top: calc(-1 * var(--stage-gap)); cursor: text; }
     .caption-input {
+      display: block;
       width: 100%;
+      margin: 0;
+      padding: 0 34px 0 0;
       background: transparent;
-      border: none;
-      text-align: center;
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: -0.02em;
-      line-height: 1.35;
+      border: 0;
       outline: none;
       resize: none;
-      border-radius: 10px;
-      padding: 4px;
-      max-height: 140px;
+      text-align: left;
+      font-size: 17px;
+      font-weight: 500;
+      line-height: 1.45;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      caret-color: var(--positive);
     }
-    .caption-input::placeholder { color: var(--text-muted); font-weight: 600; }
-    .caption-input:focus-visible { outline: 1px dashed var(--border-hover); outline-offset: 2px; }
+    .caption-input::placeholder { color: var(--text-muted); font-weight: 500; opacity: 1; }
+    /* clear: only while there is text, iOS-style small filled circle in the field's corner */
+    .caption-clear {
+      position: absolute;
+      top: -8px;
+      right: -10px;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .caption-clear svg { width: 20px; height: 20px; padding: 5px; border-radius: 50%; background: var(--surface-3); stroke-width: 2.6; }
+    .caption-clear:hover { color: var(--text-primary); }
 
     .live-parsed-preview {
       display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
+      flex-direction: column;
       gap: 6px;
-      min-height: 28px;
       width: 100%;
     }
+    .live-parsed-preview:empty { display: none; }
+    .live-parsed-preview > * { flex-shrink: 0; }
+    /* what is missing ("Sebut nominalnya…"), right under the words it is about */
+    .parsed-note {
+      margin: -2px 0 0;
+      font-size: 12.5px;
+      font-weight: 500;
+      line-height: 1.45;
+      color: var(--text-secondary);
+      animation: fadeIn 0.2s ease;
+    }
 
+    /* one row per entry, like the rows on Ringkasan: what, then wallet · day under it; amount and × on the right */
     .parsed-tag {
+      width: 100%;
+      min-height: 42px;
       background: var(--surface-2);
-      border: 1px solid rgba(255,255,255,0.12);
-      padding: 4px 4px 4px 11px;
-      border-radius: 20px;
-      font-size: 12px;
+      border: 1px solid var(--border);
+      padding: 4px 4px 4px 12px;
+      border-radius: 12px;
+      font-size: 13px;
       font-weight: 600;
       color: var(--text-primary);
       display: flex;
       align-items: center;
-      gap: 6px;
-      max-width: 100%;
+      gap: 8px;
       animation: fadeSlideUp 0.22s var(--spring);
     }
-    .parsed-tag .pt-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    /* a row that only changed (or moved up) while typing stays still; only a new one comes in */
+    .parsed-tag.no-anim { animation: none; }
+    .parsed-tag .pt-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .parsed-tag .pt-title { line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .parsed-tag .pt-meta { display: flex; min-width: 0; font-size: 11px; font-weight: 500; line-height: 1.3; color: var(--text-secondary); white-space: nowrap; }
+    .parsed-tag .pt-wallet { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .parsed-tag .pt-day { flex-shrink: 0; color: var(--warning); }
+    .parsed-tag .pt-day::before { content: '\00a0\00b7\00a0'; color: var(--text-muted); }
     .parsed-tag .pt-amt { color: var(--positive); font-variant-numeric: tabular-nums; white-space: nowrap; }
     .parsed-tag .pt-amt.exp { color: var(--text-primary); }
     .parsed-tag .pt-amt.mute { color: var(--text-secondary); }
-    .parsed-tag .pt-day { color: var(--warning); white-space: nowrap; }
-    .parsed-tag.hint { color: var(--text-muted); padding-right: 11px; border-style: dashed; }
     .chip-x {
       width: 24px; height: 24px; border-radius: 50%;
       border: none; background: var(--surface-3); color: var(--text-secondary);
@@ -1368,108 +1366,103 @@
     .chip-x svg { width: 12px; height: 12px; stroke-width: 2.4; }
     .chip-x:hover { color: var(--text-primary); }
 
-    .orb-center-wrap {
+    .composer-foot {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 12px;
-      width: 100%;
-      margin: 2px 0;
+      gap: 10px;
+      min-height: 48px;
     }
-
-    .wave-bars {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      height: 24px;
-      opacity: 0.25;
-      transition: opacity 0.2s;
+    .catat-hint {
+      flex: 1;
+      min-width: 0;
+      margin: 0;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.45;
+      color: var(--text-muted);
+      text-wrap: pretty;
     }
-    .wave-bars.active { opacity: 1; }
-
-    .wave-bar {
-      width: 3px;
-      height: 8px;
-      border-radius: 3px;
-      background: var(--text-primary);
+    .catat-hint .tip-key { color: var(--text-secondary); font-weight: 600; }
+    .catat-hint.strong { color: var(--text-secondary); }
+    .rec-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      margin: 0 7px 1px 1px;
+      border-radius: 50%;
+      background: var(--negative);
+      vertical-align: middle;
+      animation: recBlink 1.2s ease-in-out infinite;
     }
-    .wave-bars.active .wave-bar:nth-child(1) { animation: soundWave 0.7s 0.0s infinite ease-in-out; }
-    .wave-bars.active .wave-bar:nth-child(2) { animation: soundWave 0.7s 0.15s infinite ease-in-out; }
-    .wave-bars.active .wave-bar:nth-child(3) { animation: soundWave 0.7s 0.3s infinite ease-in-out; }
+    @keyframes recBlink { 50% { opacity: 0.35; } }
 
-    @keyframes soundWave {
-      0%, 100% { height: 6px; }
-      50% { height: 22px; background: var(--positive); }
-    }
-
+    /* mic: the bright one while it is the next step; quiet once there is something to save */
     .voice-orb {
-      width: 66px;
-      height: 66px;
+      position: relative;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
       background: var(--text-primary);
       color: var(--bg-app);
-      border: none;
+      border: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 0 0 6px rgba(255,255,255,0.05);
-      transition: all 0.25s var(--spring);
       flex-shrink: 0;
+      transition: background-color 0.2s ease, color 0.2s ease, transform 0.25s var(--spring);
     }
-
-    .voice-orb.recording {
-      background: var(--negative);
-      color: #FFFFFF;
-      box-shadow: 0 0 0 10px rgba(244, 63, 94, 0.16);
-      animation: pulseOrb 1.3s infinite;
+    .voice-orb svg { width: 21px; height: 21px; stroke-width: 2; }
+    .voice-orb.quiet { background: var(--surface-3); color: var(--text-primary); }
+    .voice-orb.recording { background: var(--negative); color: #FFFFFF; }
+    .voice-orb.recording::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid var(--negative);
+      animation: micRing 1.5s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+      pointer-events: none;
     }
-    .voice-orb.unsupported { background: var(--surface-3); color: var(--text-secondary); box-shadow: none; }
-
-    @keyframes pulseOrb {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.06); }
-      100% { transform: scale(1); }
+    @keyframes micRing {
+      from { transform: scale(1); opacity: 0.6; }
+      to { transform: scale(1.6); opacity: 0; }
     }
+    .voice-orb.unsupported { background: var(--surface-3); color: var(--text-muted); }
 
-    .voice-orb svg { width: 22px; height: 22px; stroke-width: 2; }
-
-    .stage-bottom-slot {
-      width: 100%;
-      padding-top: 10px;
-      border-top: 1px solid var(--border);
-      min-height: 52px;
-      display: flex;
-      align-items: center;
+    /* Typing in Catat (keyboard up, --kb from the viewport guard): the composer fits the area above the keyboard,
+       so its foot row (Save, mic) rides just above it; the other ways to record would be under the keyboard anyway.
+       The text gets at most 3 lines and the rows list gives way (it scrolls, faded at a cut edge), so however many
+       entries are typed, the text and the foot row both stay in view. */
+    #viewCatat { transition: padding-bottom 0.28s var(--spring); }
+    .app.kb-open #viewCatat { padding-bottom: max(12px, calc(var(--kb) - var(--tabbar-h) - var(--safe-bottom) + 12px)); }
+    .app.kb-open #viewCatat .bottom-dock-section { display: none; }
+    .app.kb-open .caption-input { max-height: 76px; }
+    /* a payment screen's text (pasted, Live Text, a Shortcut) is only the source: smaller, quieter, 4 lines at most;
+       the row it produced and "Cek & simpan" are what counts */
+    .caption-box.is-shot .caption-input { font-size: 13px; line-height: 1.4; font-weight: 500; color: var(--text-secondary); max-height: calc(4 * 1.4em); }
+    /* text cut off at the field's height fades out instead of being sliced through a line (not while editing it) */
+    .caption-input.clipped:not(:focus) { -webkit-mask-image: linear-gradient(#000 calc(100% - 20px), transparent); mask-image: linear-gradient(#000 calc(100% - 20px), transparent); }
+    /* (a phone on its side has too little room above the keyboard for this: there the view scrolls instead) */
+    @media (min-height: 501px) {
+      .app.kb-open .catat-studio { min-height: 0; }
+      .app.kb-open .voice-stage { flex: 1 1 auto; min-height: 0; }
+      .app.kb-open .voice-stage > * { flex-shrink: 0; }
+      .app.kb-open .voice-stage > .live-parsed-preview { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+      .app.kb-open .voice-stage > .live-parsed-preview::-webkit-scrollbar { display: none; }
     }
-
-    .sample-phrases {
-      width: 100%;
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .sample-phrases::-webkit-scrollbar { display: none; }
-
-    .phrase-chip {
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 8px 10px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      white-space: nowrap;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-    .phrase-chip:hover { color: var(--text-primary); border-color: var(--border-hover); }
+    .live-parsed-preview.fade-bottom { -webkit-mask-image: linear-gradient(#000 calc(100% - 22px), transparent); mask-image: linear-gradient(#000 calc(100% - 22px), transparent); }
+    .live-parsed-preview.fade-top { -webkit-mask-image: linear-gradient(transparent, #000 22px); mask-image: linear-gradient(transparent, #000 22px); }
+    .live-parsed-preview.fade-top.fade-bottom { -webkit-mask-image: linear-gradient(transparent, #000 22px, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(transparent, #000 22px, #000 calc(100% - 22px), transparent); }
 
     .full-save-bar-btn {
-      width: 100%;
-      min-height: 42px;
+      flex: 1;
+      min-width: 0;
+      height: 48px;
       border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       background: var(--text-primary);
       color: var(--bg-app);
       border: none;
@@ -1477,14 +1470,19 @@
       font-weight: 700;
       letter-spacing: -0.01em;
       cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
       padding: 0 12px;
       animation: fadeSlideUp 0.22s var(--spring);
     }
-    .full-save-bar-btn.add { background: var(--surface-2); color: var(--positive); border: 1px dashed rgba(52,211,153,0.4); }
+    /* one line, always: on a narrow screen the words give way (ellipsis), the amount stays whole */
+    .full-save-bar-btn .sv-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: pre; }
+    .full-save-bar-btn .sv-total { flex-shrink: 0; white-space: pre; }
+    /* a narrow screen (SE 1st gen, Display Zoom) gets the short words: "Simpan 3 · Rp 68.000" */
+    .full-save-bar-btn .sv-short { display: none; }
+    @media (max-width: 360px) {
+      .full-save-bar-btn { font-size: 12.5px; padding: 0 10px; letter-spacing: -0.02em; }
+      .full-save-bar-btn .sv-long { display: none; }
+      .full-save-bar-btn .sv-short { display: inline; }
+    }
 
     .bottom-dock-section {
       display: flex;
@@ -1533,8 +1531,11 @@
       font-size: 12.5px;
       font-weight: 600;
       color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .dock-text small { font-size: 11px; color: var(--text-muted); display: block; margin-top: 1px; }
+    .dock-text small { font-size: 11px; color: var(--text-muted); display: block; margin-top: 1px; text-wrap: balance; }
 
     .upload-drop, .scan-drop {
       position: relative;
@@ -1994,6 +1995,28 @@
 
     /* History filters */
     .hist-controls { display: flex; flex-direction: column; gap: 10px; }
+    /* the search row stays at the top of the sheet's scroll area; filters, totals and rows scroll under it */
+    .hist-search {
+      position: sticky;
+      top: -8px; /* sticks at the scroll area's very top edge (the offset counts from inside the body's 8px padding) */
+      z-index: 2;
+      margin: -8px -20px -6px;
+      padding: 8px 20px 0;
+      background: var(--surface-1);
+    }
+    .hist-search::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      height: 10px;
+      background: linear-gradient(var(--surface-1), transparent);
+      pointer-events: none;
+    }
+    /* typing a search (keyboard up): the filters and totals fold away, the matching rows come right under the field */
+    .app.kb-open .sheet-layer:has(#hQ:focus) .hist-controls,
+    .app.kb-open .sheet-layer:has(#hQ:focus) .hist-totals { display: none; }
     .search-wrap { position: relative; }
     .search-wrap svg {
       position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
@@ -2200,39 +2223,29 @@
     .recap-chip .recap-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .recap-chip em { min-width: 34px; text-align: right; }
 
-    /* Catat: one scrolling row of wallet pills, centred while they fit */
-    .catat-wallet-selector { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px; width: calc(100% + 32px); }
+    /* Catat: one left-aligned scrolling row of quiet wallet pills (32px to the eye, 40px to the finger) */
+    .catat-wallet-selector { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; margin: -4px -16px 0; padding: 4px 16px; width: calc(100% + 32px); }
     .catat-wallet-selector::-webkit-scrollbar { display: none; }
     .catat-wallet-selector {
       -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
       mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
     }
-    .catat-wallet-selector > .w-pill { flex-shrink: 0; }
-    .catat-wallet-selector > :first-child { margin-left: auto; }
-    .catat-wallet-selector > :last-child { margin-right: auto; }
-    .w-pill { min-height: 40px; }
-    .sample-phrases {
-      margin: 0 -16px; padding: 0 16px; width: calc(100% + 32px);
-      -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 32px), transparent);
-      mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 32px), transparent);
+    .catat-wallet-selector > .w-pill {
+      flex-shrink: 0; position: relative; overflow: visible;
+      min-height: 32px; height: 32px; padding: 0 11px;
+      background: transparent; border-color: var(--border); color: var(--text-secondary);
     }
-    .caption-input { border: 1px dashed transparent; transition: border-color 0.18s ease, background-color 0.18s ease; }
-    .caption-input:placeholder-shown { border-bottom-color: var(--border-hover); border-radius: 0; }
-    .caption-input:hover { border-color: var(--border-hover); border-radius: 10px; }
-    .caption-input:focus { border-color: var(--border-hover); border-radius: 10px; background: rgba(255, 255, 255, 0.02); }
-    .full-save-bar-btn:disabled, .full-save-bar-btn.waiting { background: var(--surface-3); color: var(--text-secondary); cursor: default; }
-    .parsed-tag .pt-text { display: flex; gap: 5px; align-items: baseline; }
-    .parsed-tag .pt-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-    .parsed-tag .pt-wallet { flex-shrink: 0; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
-    .parsed-tag .pt-wallet::before { content: '· '; color: var(--text-muted); }
+    .catat-wallet-selector > .w-pill::after { content: ''; position: absolute; inset: -4px 0; }
+    .catat-wallet-selector > .w-pill > span:nth-child(2) { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+    .catat-wallet-selector > .w-pill.active { background: var(--surface-3); border-color: var(--border-hover); color: var(--text-primary); }
+    .catat-wallet-selector .pill-sub { font-weight: 500; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .catat-wallet-selector .w-pill.active .pill-sub { color: var(--text-secondary); }
+    .catat-wallet-selector .w-pill.add { border-color: rgba(52, 211, 153, 0.4); color: var(--positive); }
+    .w-pill { min-height: 40px; }
     .chip-x { width: 32px; height: 32px; }
-    .dock-card { align-items: flex-start; }
 
     .tab-item > svg { margin: 5.5px 0; }
-    .phrase-chip { min-height: 40px; }
     .month-label { min-height: 40px; }
-    .reset-pill { position: relative; }
-    .reset-pill::after { content: ''; position: absolute; inset: -4px; }
     .icon-btn.sm { width: 40px; height: 40px; }
     .text-action-btn { position: relative; }
     .text-action-btn::after { content: ''; position: absolute; inset: -7px -4px; }
@@ -2473,11 +2486,13 @@
     .tip-steps li { padding-left: 2px; }
     .tip-steps li::marker { color: var(--text-muted); font-weight: 700; }
 
-    /* KEYBOARD (phones). While a field is edited the viewport guard (JS) sets --kb (keyboard height over the
-       shell) and --vv-top (how far iOS panned the visible area). Sheets and the setup screen then fill just
-       the visible area: the field, the sheet's buttons and toasts stay above the keyboard. */
+    /* KEYBOARD (phones). While a field is edited the viewport guard (JS) sets --kb (how much of the shell the
+       keyboard covers, accessory bar included) and --vv-top (how far iOS panned the visible area; the guard scrolls
+       that back when it can). Sheets and the setup screen then fill just the visible area: the field, the sheet's
+       buttons and toasts stay above the keyboard; the page behind a sheet stays where it was. */
     .app.kb-open .sheet-layer,
     .app.kb-open .onboarding-screen { top: var(--vv-top); bottom: var(--kb); }
+    .app.kb-open.sheet-open .app-main, .app.kb-open.ob-open .app-main { transform: translateY(var(--vv-top)); }
     .app.kb-open .sheet-foot { padding-bottom: 12px; }
     .app.kb-open .sheet-body:has(+ .sheet-foot:empty) { padding-bottom: 18px; }
     .app.kb-open .onboarding-screen { padding-bottom: 12px; }
@@ -2489,6 +2504,7 @@
       .app.kb-open .sheet-head { padding-top: 4px; padding-bottom: 2px; }
       .app.kb-open .sheet-close { width: 36px; height: 36px; }
       .app.kb-open .sheet-body { padding-top: 6px; padding-bottom: 8px; }
+      .app.kb-open .hist-search { top: -6px; margin-top: -6px; padding-top: 6px; }
       .app.kb-open .sheet-foot { padding-top: 6px; padding-bottom: 6px; }
       .app.kb-open .sheet-foot .btn-primary, .app.kb-open .sheet-foot .btn-danger, .app.kb-open .sheet-foot .btn-secondary { min-height: 40px; }
     }
@@ -2499,21 +2515,14 @@
     }
 
     /* SHORT SCREENS (iPhone SE / 8, a phone on its side): the whole Catat tab fits above the tab bar.
-       Tighter voice stage and orb, compact dock cards without their sub-lines. */
+       Tighter composer and compact dock cards. */
     @media (max-height: 700px) {
       #viewCatat { padding-bottom: 12px; }
       .catat-studio { gap: 10px; }
-      .voice-stage { padding: 12px 14px 10px; gap: 8px; }
-      .caption-box { min-height: 52px; }
-      .live-parsed-preview { min-height: 22px; }
-      .orb-center-wrap { margin: 0; }
-      .voice-orb { width: 56px; height: 56px; box-shadow: 0 0 0 5px rgba(255,255,255,0.05); }
-      .voice-orb.recording { box-shadow: 0 0 0 8px rgba(244, 63, 94, 0.16); }
-      .stage-bottom-slot { min-height: 46px; padding-top: 8px; }
+      .voice-stage { padding: 12px 14px 12px; --stage-gap: 10px; }
+      .catat-wallet-selector { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; width: calc(100% + 28px); }
       .bottom-dock-section, .dock-buttons { gap: 8px; }
       .dock-card { min-height: 48px; padding: 9px 10px; }
-      .dock-card:not(.shot-card) .dock-text small { display: none; }
-      .dock-card:not(.shot-card) { align-items: center; }
       .dock-icon { width: 30px; height: 30px; border-radius: 9px; }
       .shot-main { padding: 9px 10px; }
       .paste-pill { min-height: 38px; }
@@ -2546,12 +2555,6 @@
         <span class="brand-text" id="headerGreeting"></span>
       </div>
       <div class="top-actions">
-        <button type="button" class="icon-btn head-paste" data-action="clip-paste" data-i18n-aria="catat.pasteAria">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 13h6"/><path d="M9 17h4"/>
-          </svg>
-          <span data-i18n="catat.paste"></span>
-        </button>
         <button type="button" class="icon-btn" data-action="open-settings" data-i18n-aria="a11y.settings" data-i18n-title="a11y.settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
@@ -2637,32 +2640,23 @@
     <section id="viewCatat" class="view-pane" data-view="catat" aria-labelledby="tabBtnCatat">
       <div class="catat-studio">
         <div class="voice-stage stagger-1">
-          <div class="stage-top-bar">
-            <div class="stage-badge" aria-live="polite">
-              <span id="recDot" class="stage-badge-dot"></span>
-              <span id="recStatus"></span>
-            </div>
-            <button type="button" class="reset-pill" data-action="voice-reset">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                <path d="M3 3v5h5"/>
-              </svg>
-              <span data-i18n="catat.reset"></span>
-            </button>
-          </div>
-
           <div id="catatWallets" class="catat-wallet-selector" role="radiogroup" data-i18n-aria="catat.walletGroup"></div>
 
           <div class="caption-box">
-            <textarea id="captionInput" class="caption-input" rows="2" autocomplete="off" spellcheck="false" data-i18n-aria="catat.inputAria"></textarea>
+            <label class="caption-hit" for="captionInput">
+              <textarea id="captionInput" class="caption-input" rows="2" autocomplete="off" spellcheck="false" data-i18n-aria="catat.inputAria"></textarea>
+            </label>
+            <button type="button" id="captionClear" class="caption-clear" data-action="voice-reset" data-i18n-aria="catat.clearAria" data-i18n-title="catat.clearAria" hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
           </div>
 
           <div id="parsedPreview" class="live-parsed-preview" aria-live="polite"></div>
+          <label class="caption-rest" for="captionInput" aria-hidden="true"></label>
 
-          <div class="orb-center-wrap">
-            <div id="waveLeft" class="wave-bars" aria-hidden="true">
-              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
-            </div>
+          <div class="composer-foot">
+            <p id="catatHint" class="catat-hint" aria-live="polite"></p>
+            <button type="button" id="commitBtn" class="full-save-bar-btn" data-action="voice-commit" hidden></button>
             <button type="button" id="micBtn" class="voice-orb" data-action="voice-toggle" aria-pressed="false" data-i18n-aria="catat.micAria">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
@@ -2670,14 +2664,6 @@
                 <line x1="12" y1="19" x2="12" y2="22"/>
               </svg>
             </button>
-            <div id="waveRight" class="wave-bars" aria-hidden="true">
-              <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
-            </div>
-          </div>
-
-          <div class="stage-bottom-slot">
-            <div id="examples" class="sample-phrases"></div>
-            <button type="button" id="commitBtn" class="full-save-bar-btn" data-action="voice-commit" hidden></button>
           </div>
         </div>
 
@@ -2712,7 +2698,6 @@
               </span>
               <span class="dock-text">
                 <strong data-i18n="catat.manual"></strong>
-                <small data-i18n="catat.manualSub"></small>
               </span>
             </button>
 
@@ -2725,7 +2710,6 @@
               </span>
               <span class="dock-text">
                 <strong data-i18n="catat.scan"></strong>
-                <small data-i18n="catat.scanSub"></small>
               </span>
             </button>
           </div>
@@ -2781,8 +2765,7 @@
       <button type="button" class="tab-item" id="tabBtnCatat" data-action="tab" data-tab="catat">
         <span class="tab-center-pill">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <path d="M12 5.5v13"/><path d="M5.5 12h13"/>
           </svg>
         </span>
         <span data-i18n="nav.catat"></span>
@@ -5708,24 +5691,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'type.GOAL_IN': 'Setor target',
     'type.GOAL_OUT': 'Tarik target',
 
-    'catat.reset': 'Reset',
     'catat.walletGroup': 'Wallet default untuk mencatat',
-    'catat.placeholder': 'Ucapkan atau ketik, mis. “{example}”',
+    'catat.tip': 'Pisahkan dengan kata “dan” untuk beberapa transaksi',
+    'catat.clearAria': 'Hapus teks',
     'catat.inputAria': 'Teks transaksi',
     'catat.micAria': 'Mulai atau berhenti merekam suara',
     'catat.save': 'Simpan {n} transaksi · {total}',
+    'catat.saveShort': 'Simpan {n} · {total}',
     'catat.dropAria': 'Buang "{title}" dari daftar',
     'catat.hintAmount': 'Sebut nominalnya, mis. 25rb',
     'catat.needWallet': 'Tambah wallet dulu untuk mulai mencatat',
     'catat.addWallet': '+ Tambah wallet',
     'catat.manual': 'Input Manual',
-    'catat.manualSub': 'Ketik nominal',
     'catat.scan': 'Nota / Mutasi',
-    'catat.scanSub': 'Foto nota · mutasi',
     'catat.savedN': '{n} transaksi',
-    'voice.ready': 'Siap mendengarkan',
     'voice.listening': 'Mendengarkan…',
-    'voice.typeOnly': 'Suara tidak didukung · ketik saja',
     'voice.unsupported': 'Browser ini belum mendukung input suara. Ketik saja di kotak teks — hasilnya sama.',
     'voice.err.notAllowed': 'Akses mikrofon ditolak. Izinkan mikrofon untuk halaman ini di pengaturan browser.',
     'voice.err.network': 'Pengenalan suara di browser ini butuh internet. Ketik saja dulu.',
@@ -6021,7 +6001,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'catat.sumOut': 'Keluar {amount}',
     'catat.sumIn': 'Masuk {amount}',
     'catat.sumTr': 'Transfer {amount}',
-    'catat.placeholderType': 'Ketik, mis. “{example}”',
     'period.first': '{range} · periode pertama',
     'ob.proratedHint': 'Periode ini sudah berjalan, jadi budget periode pertama dihitung mulai hari ini.',
     'ob.restore': 'Sudah punya backup? Pulihkan',
@@ -6088,12 +6067,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'tips.s1Title': 'Pilih screenshot',
     'tips.s1': 'Habis bayar, screenshot bukti bayarnya. Buka {app} → Catat → Dari screenshot → pilih dari Foto (yang terbaru ada paling atas). Nominal, nama toko, tanggal, jam, dan wallet-nya langsung terisi — tinggal cek, lalu Simpan.',
     'tips.s2Title': 'Salin & tempel (galeri tetap bersih)',
-    'tips.s2': 'Habis screenshot, ketuk thumbnail di pojok kiri bawah → ketuk Selesai (✓) → pilih Salin dan Hapus. Buka {app} → ketuk Tempel (pojok kanan atas).',
+    'tips.s2': 'Habis screenshot, ketuk thumbnail di pojok kiri bawah → ketuk Selesai (✓) → pilih Salin dan Hapus. Buka {app} → Catat → Tempel.',
     'tips.s3Title': 'Otomatis dengan Pintasan (atur sekali)',
     'tips.s3': 'Setiap kamu menutup app bayar dan ada screenshot baru, iPhone membacanya sendiri lalu menyalin teksnya. Cara membuatnya:',
     'tips.s3a': 'Buka app Pintasan → tab Otomatisasi → + → App → pilih app bayarmu (mis. GoPay, OCBC, BCA, DANA) → centang “Ditutup” (Is Closed), hapus centang “Dibuka” → pilih “Jalankan Segera” (Run Immediately) → lanjut → Otomatisasi Kosong Baru.',
-    'tips.s3b': 'Tambahkan aksi berurutan: Dapatkan Jepretan Layar Terbaru (Get Latest Screenshots) → Dapatkan Detail Gambar: Tanggal Diambil (Get Details of Images: Date Taken) → Dapatkan Waktu di Antara Tanggal (Get Time Between Dates) dalam Menit → Jika (If) Waktu di Antara Tanggal “berada di antara” (is between) -3 dan 3: Ekstrak Teks dari Gambar (Extract Text from Image) — ketuk inputnya dan pilih Jepretan Layar Terbaru (Latest Screenshots) → Salin ke Papan Klip (Copy to Clipboard) → Tampilkan Pemberitahuan (Show Notification) “Bukti bayar terbaca, buka {app} lalu ketuk Tempel” → Akhiri Jika (End If). Izinkan akses Foto saat diminta.',
-    'tips.s3c': 'Pakainya: bayar → screenshot → tutup app bayar → notifikasi muncul → buka {app} → ketuk Tempel → cek → Simpan.',
+    'tips.s3b': 'Tambahkan aksi berurutan: Dapatkan Jepretan Layar Terbaru (Get Latest Screenshots) → Dapatkan Detail Gambar: Tanggal Diambil (Get Details of Images: Date Taken) → Dapatkan Waktu di Antara Tanggal (Get Time Between Dates) dalam Menit → Jika (If) Waktu di Antara Tanggal “berada di antara” (is between) -3 dan 3: Ekstrak Teks dari Gambar (Extract Text from Image) — ketuk inputnya dan pilih Jepretan Layar Terbaru (Latest Screenshots) → Salin ke Papan Klip (Copy to Clipboard) → Tampilkan Pemberitahuan (Show Notification) “Bukti bayar terbaca, buka {app} → Catat → Tempel” → Akhiri Jika (End If). Izinkan akses Foto saat diminta.',
+    'tips.s3c': 'Pakainya: bayar → screenshot → tutup app bayar → notifikasi muncul → buka {app} → Catat → Tempel → cek → Simpan.',
     'tips.privacy': 'Gambar dan teksnya dibaca di HP ini — tidak dikirim ke server dan tidak disimpan. Pembaca gambarnya diunduh sekali saat pertama dipakai (butuh internet).',
     'tips.try': 'Coba sekarang'
   };
@@ -6169,25 +6148,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'type.GOAL_IN': 'Goal deposit',
     'type.GOAL_OUT': 'Goal withdrawal',
 
-    'catat.reset': 'Reset',
     'catat.walletGroup': 'Default wallet for recording',
-    'catat.placeholder': 'Say or type, e.g. “{example}”',
+    'catat.tip': 'Use “and” to add several at once',
+    'catat.clearAria': 'Clear text',
     'catat.inputAria': 'Transaction text',
     'catat.micAria': 'Start or stop voice recording',
     'catat.save': 'Save {n} transactions · {total}',
     'catat.save_one': 'Save 1 transaction · {total}',
+    'catat.saveShort': 'Save {n} · {total}',
     'catat.dropAria': 'Remove "{title}" from the list',
     'catat.hintAmount': 'Say the amount, e.g. 25k',
     'catat.needWallet': 'Add a wallet first to start recording',
     'catat.addWallet': '+ Add wallet',
     'catat.manual': 'Manual input',
-    'catat.manualSub': 'Type the amount',
-    'catat.scan': 'Receipt / Statement',
-    'catat.scanSub': 'Receipt · statement',
+    'catat.scan': 'Receipts',
     'catat.savedN': '{n} transactions',
-    'voice.ready': 'Ready to listen',
     'voice.listening': 'Listening…',
-    'voice.typeOnly': 'Voice not supported · just type',
     'voice.unsupported': 'This browser does not support voice input yet. Just type in the text box — it works the same.',
     'voice.err.notAllowed': 'Microphone access was denied. Allow the microphone for this page in your browser settings.',
     'voice.err.network': 'Speech recognition in this browser needs internet. Type it for now.',
@@ -6486,7 +6462,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'catat.sumOut': 'Out {amount}',
     'catat.sumIn': 'In {amount}',
     'catat.sumTr': 'Transfer {amount}',
-    'catat.placeholderType': 'Type, e.g. “{example}”',
     'period.first': '{range} · first period',
     'ob.proratedHint': 'This period has already started, so the first period’s budget counts from today.',
     'ob.restore': 'Have a backup? Restore it',
@@ -6553,12 +6528,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'tips.s1Title': 'Choose the screenshot',
     'tips.s1': 'After paying, take a screenshot of the payment proof. Open {app} → Record → From screenshot → choose it in Photos (the newest is on top). Amount, merchant, date, time and wallet are filled in — just check and Save.',
     'tips.s2Title': 'Copy & paste (keeps your photos clean)',
-    'tips.s2': 'After the screenshot, tap the thumbnail in the bottom-left corner → tap Done (✓) → choose Copy and Delete. Open {app} → tap Paste (top right).',
+    'tips.s2': 'After the screenshot, tap the thumbnail in the bottom-left corner → tap Done (✓) → choose Copy and Delete. Open {app} → Record → Paste.',
     'tips.s3Title': 'Automatic with Shortcuts (set up once)',
     'tips.s3': 'Every time you close a payment app and there’s a new screenshot, your iPhone reads it and copies the text. To set it up:',
     'tips.s3a': 'Open Shortcuts → Automation tab → + → App → choose your payment apps (e.g. GoPay, OCBC, BCA, DANA) → tick “Is Closed”, untick “Is Opened” → choose “Run Immediately” → Next → New Blank Automation.',
-    'tips.s3b': 'Add these actions in order: Get Latest Screenshots → Get Details of Images: Date Taken → Get Time Between Dates in Minutes → If Time Between Dates “is between” -3 and 3: Extract Text from Image — tap its input and pick Latest Screenshots → Copy to Clipboard → Show Notification “Payment proof read, open {app} and tap Paste” → End If. Allow Photos access when asked.',
-    'tips.s3c': 'Day to day: pay → screenshot → close the payment app → the notification appears → open {app} → tap Paste → check → Save.',
+    'tips.s3b': 'Add these actions in order: Get Latest Screenshots → Get Details of Images: Date Taken → Get Time Between Dates in Minutes → If Time Between Dates “is between” -3 and 3: Extract Text from Image — tap its input and pick Latest Screenshots → Copy to Clipboard → Show Notification “Payment proof read, open {app} → Record → Paste” → End If. Allow Photos access when asked.',
+    'tips.s3c': 'Day to day: pay → screenshot → close the payment app → the notification appears → open {app} → Record → Paste → check → Save.',
     'tips.privacy': 'Images and text are read on this phone — never sent to a server and not stored. The image reader is downloaded once, the first time (needs internet).',
     'tips.try': 'Try it now'
   };
@@ -7190,7 +7165,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     const box = $('activityList');
     if (!list.length) {
       box.innerHTML = emptyState(filterW ? t('empty.walletTitle', { wallet: filterW.name }) : t('empty.title'), t('empty.body'),
-        '<button type="button" class="btn-secondary" data-action="tab" data-tab="catat">' + ICON.mic + '<span>' + T('empty.cta') + '</span></button>');
+        '<button type="button" class="btn-secondary" data-action="tab" data-tab="catat">' + ICON_PLUS + '<span>' + T('empty.cta') + '</span></button>');
       return;
     }
     const groups = safe(() => Core.groupByDay(list), []);
@@ -7240,37 +7215,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   }
 
   // ---------- Render: Catat ----------
-  function exampleTexts() {
-    const act = activeWallets();
-    const w1 = act[0] ? act[0].name : '';
-    const w2 = act[1] ? act[1].name : '';
+  // "+" (the Catat tab and the Home empty state): recording is more than voice now
+  const ICON_PLUS = svgIcon('<path d="M12 5.5v13"/><path d="M5.5 12h13"/>');
+  // The field's placeholder: one everyday entry naming the first wallet, so it doubles as the example.
+  function examplePlaceholder() {
+    const w = activeWallets()[0];
+    const n = w ? w.name : '';
     const en = lang() === 'en';
-    const idr = cur() === 'IDR';
-    const out = [];
-    if (idr) {
-      if (en) {
-        out.push(w1 ? 'Coffee 28k with ' + w1 : 'Coffee 28k');
-        out.push(w2 ? 'Lunch 35k using ' + w2 : 'Lunch 35k');
-        out.push('Parking 5k');
-        out.push(w1 ? 'Received 500k to ' + w1 : 'Received 500k');
-      } else {
-        out.push(w1 ? 'Kopi 28rb pakai ' + w1 : 'Kopi 28rb');
-        out.push(w2 ? 'Makan siang 35rb pakai ' + w2 : 'Makan siang 35rb');
-        out.push('Parkir 5rb');
-        out.push(w1 ? 'Gajian 5jt masuk ' + w1 : 'Gajian 5jt');
-        if (w1 && w2) out.push('Top up ' + w2 + ' 100rb dari ' + w1);
-        out.push('Kemarin bensin 30rb');
-      }
-    } else if (en) {
-      out.push(w1 ? 'Coffee 4.50 with ' + w1 : 'Coffee 4.50');
-      out.push(w2 ? 'Lunch 12 using ' + w2 : 'Lunch 12');
-      out.push(w1 ? 'Salary 2000 to ' + w1 : 'Salary 2000');
-    } else {
-      out.push(w1 ? 'Kopi 4.50 pakai ' + w1 : 'Kopi 4.50');
-      out.push(w2 ? 'Makan siang 12 pakai ' + w2 : 'Makan siang 12');
-      out.push(w1 ? 'Gajian 2000 masuk ' + w1 : 'Gajian 2000');
-    }
-    return out;
+    if (cur() === 'IDR') return en ? (n ? 'Coffee 28k with ' + n : 'Coffee 28k') : (n ? 'Kopi 28rb pakai ' + n : 'Kopi 28rb');
+    return en ? (n ? 'Coffee 4.50 with ' + n : 'Coffee 4.50') : (n ? 'Kopi 4.50 pakai ' + n : 'Kopi 4.50');
+  }
+  // The tip, its key word (“dan” / “and”) a step brighter.
+  function catatTipHtml() {
+    return T('catat.tip').replace(/“[^”]+”/, '<span class="tip-key">$&</span>');
   }
   function renderCatat() {
     const act = activeWallets();
@@ -7281,20 +7238,27 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       return '<button type="button" class="w-pill' + (on ? ' active' : '') + '" role="radio" aria-checked="' + on + '" data-action="catat-wallet" data-id="' + esc(w.id) + '">' +
         '<span class="wallet-dot" style="background:' + safeColor(w.color) + '"></span><span>' + esc(w.name) + '</span><span class="pill-sub' + (num(bal[w.id]) < 0 ? ' neg' : '') + '">' + esc(fmtC(num(bal[w.id]))) + '</span></button>';
     }).join('') : '<button type="button" class="w-pill add" data-action="wallet-add">' + T('catat.addWallet') + '</button>';
-    const ex = exampleTexts();
-    $('captionInput').setAttribute('placeholder', t(SR ? 'catat.placeholder' : 'catat.placeholderType', { example: ex[0] || '' }));
-    $('examples').innerHTML = ex.map((x) => '<button type="button" class="phrase-chip" data-action="example" data-text="' + esc(x) + '">“' + esc(x) + '”</button>').join('');
+    $('captionInput').setAttribute('placeholder', examplePlaceholder());
+    revealDefaultPill();
     setVoiceUI();
     updatePreview();
   }
+  // The default wallet's pill is always in view (the row scrolls sideways): with many wallets it may sit past the edge.
+  // Measured only while Catat shows (a hidden view has no size): switchTab calls this again.
+  function revealDefaultPill() {
+    const strip = $('catatWallets');
+    const a = strip && strip.querySelector('.w-pill.active');
+    if (!a || !strip.offsetParent) return;
+    const s = strip.getBoundingClientRect(), r = a.getBoundingClientRect(), edge = 16;
+    if (r.left >= s.left + edge - 1 && r.right <= s.right - edge + 1) return;
+    // not scrollIntoView: that would scroll the page as well
+    strip.scrollLeft = Math.max(0, strip.scrollLeft + (r.right > s.right - edge ? r.right - s.right + edge : r.left - s.left - edge));
+  }
   function setVoiceUI() {
-    const orb = $('micBtn'), dot = $('recDot');
+    const orb = $('micBtn');
     orb.classList.toggle('recording', ui.recording);
     orb.classList.toggle('unsupported', !SR);
     orb.setAttribute('aria-pressed', String(ui.recording));
-    dot.classList.toggle('rec', ui.recording);
-    dot.classList.toggle('off', !SR && !ui.recording);
-    $('recStatus').textContent = ui.recording ? t('voice.listening') : (SR ? t('voice.ready') : t('voice.typeOnly'));
   }
   function validParsed(p) {
     if (!p || !(num(p.amount) > 0)) return false;
@@ -7315,7 +7279,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     const amt = p.type === 'INCOME' ? fmtSigned(p.amount) : fmt(p.amount);
     const title = clampStr(p.title, 80) || (p.type === 'TRANSFER' ? t('type.TRANSFER') : catLabel(p.category));
     const day = isDayKey(p.dayKey) && p.dayKey !== today ? '<span class="pt-day">' + esc(dayLabel(p.dayKey)) + '</span>' : '';
-    return '<span class="parsed-tag"><span class="pt-text"><span class="pt-title">' + esc(title) + '</span><span class="pt-wallet">' + esc(who) + '</span></span>' + day +
+    // what was bought keeps the full width; wallet and day share the line under it (the wallet gives way first)
+    return '<span class="parsed-tag"><span class="pt-text"><span class="pt-title">' + esc(title) + '</span>' +
+      '<span class="pt-meta"><span class="pt-wallet">' + esc(who) + '</span>' + day + '</span></span>' +
       '<span class="pt-amt' + cls + '">' + esc(amt) + '</span>' +
       '<button type="button" class="chip-x" data-action="drop-parsed" data-idx="' + i + '" aria-label="' + T('catat.dropAria', { title }) + '">' + ICON.close + '</button></span>';
   }
@@ -7325,7 +7291,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     const amt = r.type === 'INCOME' ? fmtSigned(r.amount) : fmt(r.amount);
     const title = clampStr(r.title, 80);
     return '<span class="parsed-tag shot-tag"><span class="pt-icon" aria-hidden="true">' + ICON.shot + '</span>' +
-      '<span class="pt-text"><span class="pt-title">' + esc(title || t('catat.shotFound')) + '</span><span class="pt-wallet">' + T('catat.shotFound') + '</span></span>' +
+      '<span class="pt-text"><span class="pt-title">' + esc(title || t('catat.shotFound')) + '</span><span class="pt-meta"><span class="pt-wallet">' + T('catat.shotFound') + '</span></span></span>' +
       '<span class="pt-amt' + (r.type === 'INCOME' ? '' : (r.type === 'TRANSFER' ? ' mute' : ' exp')) + '">' + esc(amt) + '</span></span>';
   }
   function autoGrow(el) {
@@ -7334,45 +7300,119 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     el.style.height = 'auto';
     // scrollHeight leaves out the border; add it so the last line is never cut off
     el.style.height = Math.min(140, Math.max(el.scrollHeight + el.offsetHeight - el.clientHeight, 48)) + 'px';
+    markClipped(el);
+  }
+  // text taller than the field (capped height) fades at the cut instead of being sliced through a line
+  function markClipped(el) { el.classList.toggle('clipped', el.scrollHeight > el.clientHeight + 1); }
+  // The rows under the text, updated in place: a row that did not change keeps its node (no replayed entrance on
+  // every keystroke or voice result), a changed one is swapped without animation, only a new one at the end animates.
+  function setPreviewParts(parts) {
+    const box = $('parsedPreview');
+    const kids = Array.from(box.children);
+    const before = kids.length;
+    const tmp = document.createElement('div');
+    parts.forEach((h, i) => {
+      const old = kids[i];
+      if (old && old._h === h) return;
+      tmp.innerHTML = h;
+      const node = tmp.firstElementChild;
+      node._h = h;
+      // a row replacing a row stays still; one replacing the note ("Sebut nominalnya…") is new and comes in
+      if (old) { if (old.classList.contains('parsed-tag')) node.classList.add('no-anim'); box.replaceChild(node, old); } else box.appendChild(node);
+    });
+    for (let i = kids.length - 1; i >= parts.length; i--) kids[i].remove();
+    // keyboard up and the list scrolls: the row being typed (the last one) stays in view
+    if (parts.length > before || (parts.length && kids[parts.length - 1] !== box.lastElementChild)) ui.previewPinned = true;
+    if (ui.previewPinned) box.scrollTop = box.scrollHeight;
+    previewFades();
+  }
+  // Called when the list scrolls or changes size (the field above grows, the keyboard comes or goes): a list kept at
+  // its newest row stays there; one the user scrolled back stays where they put it.
+  function previewResized() {
+    const box = $('parsedPreview');
+    if (ui.previewPinned) box.scrollTop = box.scrollHeight;
+    previewFades();
+  }
+  function previewScrolled() {
+    const box = $('parsedPreview');
+    ui.previewPinned = box.scrollTop + box.clientHeight >= box.scrollHeight - 2;
+    previewFades();
+  }
+  // a faded edge where the rows list is cut (it only scrolls while the keyboard is up)
+  function previewFades() {
+    const box = $('parsedPreview');
+    // only while it is a scroller (keyboard up); a row's entrance offset alone is no overflow
+    const over = getComputedStyle(box).overflowY !== 'visible' && box.scrollHeight > box.clientHeight + 1;
+    box.classList.toggle('fade-top', over && box.scrollTop > 2);
+    box.classList.toggle('fade-bottom', over && box.scrollTop + box.clientHeight < box.scrollHeight - 2);
   }
   function updatePreview() {
-    const text = $('captionInput').value;
-    autoGrow($('captionInput'));
+    const input = $('captionInput');
+    const text = input.value;
     const shot = screenFromText(text, false);
     ui.shot = shot;
+    // a payment screen's text is only the source: smaller and quieter, its result row is what counts
+    input.closest('.caption-box').classList.toggle('is-shot', !!shot);
+    autoGrow(input);
     const items = shot ? [] : parseCaption(text);
     ui.parsed = items;
     const kept = items.filter((_, i) => !ui.dropped.has(i));
-    let html = '';
-    if (text.trim() && !activeWallets().length) html = '<span class="parsed-tag hint">' + T('catat.needWallet') + '</span>';
-    else if (shot) html = shotChipHtml(shot);
-    else if (text.trim() && !items.length) html = '<span class="parsed-tag hint">' + T('catat.hintAmount') + '</span>';
-    else html = items.map((p, i) => ui.dropped.has(i) ? '' : parsedChipHtml(p, i)).join('');
-    $('parsedPreview').innerHTML = html;
+    const typed = text.trim().length > 0;
+    // what is missing shows right under the text it is about; the foot row keeps the tip (or Save)
+    let parts = [], note = '';
+    if (typed && !activeWallets().length) note = 'catat.needWallet';
+    else if (shot) parts = [shotChipHtml(shot)];
+    else if (typed && !items.length) note = 'catat.hintAmount';
+    else parts = items.map((p, i) => ui.dropped.has(i) ? '' : parsedChipHtml(p, i)).filter(Boolean);
+    if (note) parts = ['<p class="parsed-note">' + T(note) + '</p>'];
+    setPreviewParts(parts);
     const commitBtn = $('commitBtn');
-    if (shot) {
-      commitBtn.textContent = ui.recording ? t('voice.listening') : t('catat.shotOpen', { amount: shot.type === 'INCOME' ? fmtSigned(shot.amount) : fmt(shot.amount) });
-      commitBtn.disabled = ui.recording;
-      commitBtn.classList.toggle('waiting', ui.recording);
+    // while listening the foot row says so (red dot); Save comes back once the words are in
+    if (shot && !ui.recording) {
+      commitBtn.innerHTML = saveLabelHtml('catat.shotOpen', 'amount', shot.type === 'INCOME' ? fmtSigned(shot.amount) : fmt(shot.amount));
       commitBtn.title = '';
       commitBtn.hidden = false;
-      $('examples').hidden = true;
-    } else if (kept.length) {
+    } else if (kept.length && !ui.recording) {
       // never add income, spending and transfers into one number
       const sum = parsedSummary(kept);
-      commitBtn.textContent = ui.recording ? t('voice.listening') : (sum.single ? t('catat.save', { n: kept.length, total: sum.single }) : t('catat.saveMixed', { n: kept.length }));
-      commitBtn.disabled = ui.recording;
-      commitBtn.classList.toggle('waiting', ui.recording);
+      commitBtn.innerHTML = sum.single ? saveLabelHtml('catat.save', 'total', sum.single, { n: kept.length }, 'catat.saveShort') : saveLabelHtml('catat.saveMixed', 'total', '', { n: kept.length });
       commitBtn.title = sum.single ? '' : sum.parts;
       commitBtn.hidden = false;
-      $('examples').hidden = true;
     } else {
       commitBtn.hidden = true;
-      $('examples').hidden = false;
     }
-    const waving = ui.recording || text.trim().length > 0;
-    $('waveLeft').classList.toggle('active', waving);
-    $('waveRight').classList.toggle('active', waving);
+    // foot row: Save when there is something to save, else one line: listening / the tip
+    const hint = $('catatHint');
+    hint.hidden = !commitBtn.hidden;
+    // rewritten only when it changes: it is a live region and this runs on every keystroke
+    const hintKey = (ui.recording ? 'rec' : 'tip') + ':' + lang();
+    if (hint.dataset.k !== hintKey) {
+      hint.dataset.k = hintKey;
+      hint.innerHTML = ui.recording ? '<span class="rec-dot" aria-hidden="true"></span>' + T('voice.listening') : catatTipHtml();
+    }
+    hint.classList.toggle('strong', ui.recording);
+    $('micBtn').classList.toggle('quiet', !commitBtn.hidden && !ui.recording);
+    $('captionClear').hidden = !typed;
+  }
+
+  // Save label in two parts: on a narrow screen the words may end in an ellipsis, the amount (with the " · " before it)
+  // never does. With shortKey a narrow screen (CSS, max-width 360px) shows the short words instead.
+  function saveLabelHtml(key, slot, amount, vars, shortKey) {
+    const MARK = '\u0001';
+    const split = (k) => {
+      const text = t(k, Object.assign({}, vars, { [slot]: MARK }));
+      const i = text.indexOf(MARK);
+      if (i < 0) return { text };
+      const head = text.slice(0, i), sep = (head.match(/\s*·\s*$/) || [''])[0];
+      return { head: head.slice(0, head.length - sep.length), tail: sep + amount + text.slice(i + 1) };
+    };
+    const a = split(key);
+    if (a.text != null) return '<span class="sv-label">' + esc(a.text) + '</span>';
+    const b = shortKey ? split(shortKey) : null;
+    const words = b && b.head != null && b.head !== a.head
+      ? '<span class="sv-long">' + esc(a.head) + '</span><span class="sv-short">' + esc(b.head) + '</span>'
+      : esc(a.head);
+    return '<span class="sv-label">' + words + '</span><span class="sv-total">' + esc(a.tail) + '</span>';
   }
 
   // Totals of parsed items per type: one signed figure when all share a type, else "Keluar X · Masuk Y".
@@ -8593,9 +8633,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   // ---------- History sheet ----------
   function openHistorySheet() {
     const h = { q: '', month: today.slice(0, 7), all: false, type: 'ALL', walletId: ui.walletFilter || null, limit: HISTORY_PAGE };
+    // The search row stays on top while the list scrolls under it; while typing in it (keyboard up) the filters
+    // and totals fold away, so the matching rows show right under the field.
     const body =
+      '<div class="hist-search"><div class="search-wrap">' + ICON.search + '<input id="hQ" class="ob-input" type="search" enterkeyhint="search" autocomplete="off" placeholder="' + T('history.searchPh') + '" aria-label="' + T('history.searchAria') + '"></div></div>' +
       '<div class="hist-controls">' +
-      '<div class="search-wrap">' + ICON.search + '<input id="hQ" class="ob-input" type="search" autocomplete="off" placeholder="' + T('history.searchPh') + '" aria-label="' + T('history.searchAria') + '"></div>' +
       '<div class="month-nav"><button type="button" class="icon-btn sm" data-action="h-prev" aria-label="' + T('history.prev') + '">' + ICON.chevL + '</button>' +
       '<button type="button" class="month-label" data-action="h-all" id="hMonth" aria-label=""></button>' +
       '<button type="button" class="icon-btn sm" data-action="h-next" aria-label="' + T('history.next') + '">' + ICON.chevR + '</button></div>' +
@@ -8617,7 +8659,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     });
     const qi = entry.q('#hQ');
     let timer = 0;
-    qi.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => { h.q = qi.value; h.limit = HISTORY_PAGE; draw(); }, 150); });
+    // a new search starts at the top of its results
+    qi.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => { h.q = qi.value; h.limit = HISTORY_PAGE; draw(); entry.body.scrollTop = 0; }, 150); });
+    qi.addEventListener('focus', () => { entry.body.scrollTop = 0; });
+    // the keyboard's Search key puts the keyboard away: results, filters and totals in full view
+    qi.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); qi.blur(); } });
 
     // future-dated (scheduled) rows must stay reachable: allow months up to the latest one used
     const lastMonth = () => state.transactions.reduce((m, x) => { const k = String(x.date || '').slice(0, 7); return k > m ? k : m; }, today.slice(0, 7));
@@ -9418,7 +9464,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     }
   }
   function resetCaption() {
-    stopVoice();
+    // still listening: drop what the recognizer has not delivered yet (stop() would still send a final result
+    // and write the cleared words back)
+    ui.commitAfterStop = false;
+    if (recog) { recog.saved = true; try { recog.abort(); } catch (_) { stopVoice(); } }
     $('captionInput').value = '';
     ui.dropped.clear();
     updatePreview();
@@ -9475,7 +9524,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     });
     const pane = document.querySelector('.view-pane[data-view="' + name + '"]');
     if (pane && changed) pane.scrollTop = 0;
-    if (name === 'catat') autoGrow($('captionInput'));
+    if (name === 'catat') { autoGrow($('captionInput')); revealDefaultPill(); }
   }
 
   function toggleNoSpend() {
@@ -9656,10 +9705,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'set-budget': () => openSettingsSheet({ focus: 'budget' }),
     'toggle-nospend': () => toggleNoSpend(),
     'catat-wallet': (el) => { if (walletById(el.dataset.id)) commit((s) => { s.settings.defaultWalletId = el.dataset.id; }); },
-    'example': (el) => { $('captionInput').value = el.dataset.text || ''; ui.dropped.clear(); updatePreview(); },
-    'drop-parsed': (el) => { ui.dropped.add(Number(el.dataset.idx)); updatePreview(); focusEl($('captionInput')); },
+    // the field keeps the keyboard only if it had it: a row dropped while reviewing does not bring the keyboard up
+    'drop-parsed': (el, e) => { const keep = captionHadFocus(e); ui.dropped.add(Number(el.dataset.idx)); updatePreview(); if (keep) focusEl($('captionInput')); },
     'voice-toggle': () => toggleVoice(),
-    'voice-reset': () => resetCaption(),
+    // like the clear button in an iOS field: typing goes on in the empty field
+    'voice-reset': (el, e) => { const keep = captionHadFocus(e); resetCaption(); if (keep) focusEl($('captionInput')); },
     'voice-commit': () => commitVoice(),
     'open-manual': () => openTxSheet({}),
     'open-scan': () => openScanSheet('photo'),
@@ -9705,6 +9755,30 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       focusEl($('obWName'));
     }
   };
+
+  // Was the Catat field being typed in when this tap began? (× and a row's × must not take its keyboard away, and
+  // must not bring one up when nobody was typing.) A keyboard-activated button (no pointer) hands focus back to it.
+  let capDown = { at: 0, had: false };
+  document.addEventListener('pointerdown', () => {
+    capDown = { at: performance.now(), had: document.activeElement === $('captionInput') };
+  }, { capture: true, passive: true });
+  // pressing × or a row's × while typing leaves the field focused (no blur, so no keyboard flicker)
+  document.addEventListener('mousedown', (e) => {
+    if (document.activeElement === $('captionInput') && e.target.closest && e.target.closest('#captionClear, #parsedPreview .chip-x')) e.preventDefault();
+  });
+  function captionHadFocus(e) {
+    if (document.activeElement === $('captionInput')) return true;
+    if (e && e.detail === 0) return true;
+    return capDown.had && performance.now() - capDown.at < 1500;
+  }
+  // the rows list under the Catat field scrolls while the keyboard is up: fade the edge where it is cut
+  $('parsedPreview').addEventListener('scroll', () => previewScrolled(), { passive: true });
+  $('parsedPreview').addEventListener('animationend', () => previewFades());
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => previewResized()).observe($('parsedPreview'));
+    // the field's cap changes with the keyboard (3 lines while typing): look again whether its text is cut
+    new ResizeObserver(() => markClipped($('captionInput'))).observe($('captionInput'));
+  }
 
   function sheetOf(el) {
     const layer = el.closest('.sheet-layer');
@@ -9820,11 +9894,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   });
 
   // ---------- Viewport guard (phones, iOS Home Screen app) ----------
-  // The shell is position:fixed, so a scrolled document can no longer drag it under the status bar. iOS
-  // still scrolls the document while the keyboard is up and does not always scroll it back: that is undone
-  // whenever nothing is being typed. While typing, sheets and the setup screen are fitted to the visible
-  // area above the keyboard (CSS: .app.kb-open with --kb and --vv-top).
+  // Two jobs. (1) Shell height: html, body and the shell (.app, position:fixed) cover the whole screen, even when
+  // iOS reports a layout viewport shorter than the screen (see fitShell). (2) Keyboard: while a field is edited,
+  // sheets and the setup screen are fitted to the part of the screen above the keyboard (CSS: .app.kb-open with
+  // --kb and --vv-top), the field is scrolled to the middle of its own scroller, and a pan iOS applied to the
+  // whole page is undone. A document scroll left over after typing is reset whenever nothing is being typed.
   const VV = window.visualViewport || null;
+  const rootEl = document.documentElement;
   // The framed shell (520px and wider) on a desktop has no on-screen keyboard; a phone on its side (or a tablet)
   // is framed too and does: fit sheets above its keyboard as in portrait.
   const framedMQ = window.matchMedia ? window.matchMedia('(min-width: 520px)') : null;
@@ -9837,62 +9913,141 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     return el.tagName === 'INPUT' && TEXT_INPUT.test(el.type || 'text');
   }
   const editing = () => isTextField(document.activeElement);
+  const unzoomed = (tol) => !VV || Math.abs(VV.scale - 1) < tol;
   function resetDocScroll() {
     const se = document.scrollingElement || document.documentElement;
     // the visible area left panned down after the keyboard closed (not a pinch zoom)
-    const panned = !!VV && Math.abs(VV.scale - 1) < 0.01 && VV.offsetTop > 0.5;
+    const panned = !!VV && unzoomed(0.01) && VV.offsetTop > 0.5;
     if (window.scrollX || window.scrollY || se.scrollTop || se.scrollLeft || panned) window.scrollTo(0, 0);
     if (document.body.scrollTop || document.body.scrollLeft) { document.body.scrollTop = 0; document.body.scrollLeft = 0; }
   }
-  // Keeps the focused field inside its (now shorter) scroller.
+
+  // (1) iOS Home Screen app (standalone, black-translucent status bar): WebKit sometimes lays the page out in a
+  // viewport that is shorter than the screen by about the status-bar inset (innerHeight, 100%, 100vh and
+  // clientHeight all short), while the page is still drawn from the top of the screen. A 100%-tall document then
+  // ends early and the rest of the screen shows a band of page background under the tab bar. Then html, body and
+  // the shell get the screen height (--app-h, px), and everything at the bottom keeps clear of the short part as
+  // well (--vp-gap, used as the bottom safe area): the tab bar and sheet buttons stay whole whether or not this
+  // iOS draws below the short viewport. Phones only, not while typing (the keyboard changes the viewport).
+  const shell = { h: 0, gap: 0 };
+  const iosHomeScreen = () => navigator.standalone === true ||
+    (/iPhone|iPod/.test(navigator.userAgent) && !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches));
+  function fitShell() {
+    if (editing() || appEl.classList.contains('kb-open')) return;
+    let h = 0, gap = 0;
+    if (iosHomeScreen() && !deskFramed() && unzoomed(0.01)) {
+      const sw = Math.min(screen.width, screen.height), sh = Math.max(screen.width, screen.height);
+      const cw = rootEl.clientWidth || window.innerWidth, ch = rootEl.clientHeight || window.innerHeight;
+      const portrait = ch >= cw;
+      const W = portrait ? sw : sh, H = portrait ? sh : sw;
+      const d = H - ch;
+      if (sw > 0 && sw < 520 && Math.abs(cw - W) <= 1 && d > 1 && d <= 120) { h = Math.round(H); gap = Math.round(d); }
+    }
+    if (h === shell.h && gap === shell.gap) return;
+    shell.h = h; shell.gap = gap;
+    if (h) {
+      rootEl.style.setProperty('--app-h', h + 'px');
+      rootEl.style.setProperty('--vp-gap', gap + 'px');
+    } else {
+      rootEl.style.removeProperty('--app-h');
+      rootEl.style.removeProperty('--vp-gap');
+    }
+    rootEl.classList.toggle('shell-fix', h > 0);
+  }
+
+  // (2) Keyboard. Measured in the shell's own box: its height (clientHeight) and how far the page is panned. iOS
+  // reports a pan as visualViewport.offsetTop, and may also shift client rects by it (the shell's rect then starts
+  // above 0): the two are the same pan and are not added up (adding them put the sheet behind the keyboard).
+  function shellBox() {
+    const fixed = getComputedStyle(appEl).position === 'fixed';
+    // a framed shell (tablet) moves with the document; the visual viewport's offset is relative to the layout viewport
+    const layoutScroll = VV ? (VV.pageTop - VV.offsetTop) : window.scrollY;
+    const top = fixed ? 0 : appEl.offsetTop + appEl.clientTop - layoutScroll;
+    const shift = Math.max(0, top - (appEl.getBoundingClientRect().top + appEl.clientTop));
+    return { top, shift, h: appEl.clientHeight || appEl.offsetHeight };
+  }
+  // Keeps the focused field in view inside its own scroller (a sheet's body, the setup screen): one that is cut off
+  // or near an edge goes to the middle; one already in view stays put, so moving between fields does not jump.
   function revealFocused() {
     const el = document.activeElement;
     const box = el && el.closest ? el.closest('.sheet-body, .ob-top') : null;
     if (!box || !isTextField(el)) return;
-    const a = el.getBoundingClientRect(), b = box.getBoundingClientRect(), pad = 16;
-    if (a.bottom > b.bottom - pad) box.scrollTop += Math.max(0, Math.min(a.bottom - b.bottom + pad, a.top - b.top - pad));
-    else if (a.top < b.top + pad) box.scrollTop -= b.top + pad - a.top;
+    const a = el.getBoundingClientRect(), b = box.getBoundingClientRect(), pad = 24;
+    if (a.top >= b.top + pad && a.bottom <= b.bottom - pad) return;
+    // a field taller than its scroller (a long text box) shows its top
+    const target = a.height > b.height - 2 * pad ? a.top - b.top - pad : (a.top + a.height / 2) - (b.top + b.height / 2);
+    const max = box.scrollHeight - box.clientHeight;
+    box.scrollTop = Math.max(0, Math.min(max, box.scrollTop + target));
   }
-  let kbKey = '0:0';
-  function syncViewport() {
-    let kb = 0, top = 0;
-    if (VV && editing() && !deskFramed() && Math.abs(VV.scale - 1) < 0.05) {
-      const r = appEl.getBoundingClientRect();
-      // a keyboard (or picker) hides a good part of the screen; small differences are toolbars or rounding
-      if (r.height - VV.height > 120) {
-        top = Math.max(0, Math.round(VV.offsetTop - r.top));
-        kb = Math.max(1, Math.round(r.bottom - (VV.offsetTop + VV.height)));
+  // The last keyboard measurements, for the screen info (Settings: press and hold the version line).
+  const kbLog = [];
+  function logKb(ev, kb, top) {
+    const d = new Date();
+    const p2 = (n) => String(n).padStart(2, '0');
+    kbLog.push(p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds()) + '.' + String(d.getMilliseconds()).padStart(3, '0') +
+      ' ' + ev + ' vv ' + (VV ? Math.round(VV.height) + ' top ' + Math.round(VV.offsetTop) : '-') + ' ih ' + window.innerHeight +
+      ' sy ' + Math.round(window.scrollY) + ' rect ' + Math.round(appEl.getBoundingClientRect().top) + ' → kb ' + kb + ' top ' + top);
+    if (kbLog.length > 5) kbLog.shift();
+  }
+  let kbKey = '0:0', panTries = 0, panQueued = false;
+  function syncViewport(e) {
+    let open = false, kb = 0, top = 0;
+    if (VV && editing() && !deskFramed() && unzoomed(0.05)) {
+      const box = shellBox();
+      const vTop = Math.max(VV.offsetTop - box.top, box.shift), vBottom = vTop + VV.height;
+      // a keyboard (or picker) hides a good part of the shell; small differences are toolbars or rounding.
+      // Judged by the visible height: a pan moves the visible area down, the keyboard is no smaller for it.
+      if (box.h - VV.height > 120) {
+        open = true;
+        top = Math.max(0, Math.round(vTop));
+        kb = Math.max(0, Math.round(box.h - vBottom));
       }
     }
-    const key = kb + ':' + top;
-    if (key !== kbKey) {
+    const key = open ? kb + ':' + top : '0:0';
+    const changed = key !== kbKey;
+    if (changed) {
       kbKey = key;
       appEl.style.setProperty('--kb', kb + 'px');
       appEl.style.setProperty('--vv-top', top + 'px');
-      appEl.classList.toggle('kb-open', kb > 0);
-      if (kb > 0) requestAnimationFrame(revealFocused);
+      appEl.classList.toggle('kb-open', open);
     }
-    if (!kb && !editing()) { resetDocScroll(); fitShell(); }
+    if (open && (changed || (e && e.type === 'focusin'))) requestAnimationFrame(() => { revealFocused(); undoPan(); });
+    if (VV && (changed || (e && (e.type === 'resize' || e.type === 'focusin')) && editing())) logKb(e ? e.type : '-', kb, top);
+    if (!open && !editing()) { panTries = 0; resetDocScroll(); fitShell(); }
   }
-  // iOS Home Screen app, portrait: the shell must reach the bottom edge of the screen. When WebKit reports a layout
-  // viewport shorter than the screen (seen once as a dark band under the tab bar), the shell is sized to the screen
-  // instead (a fixed box still paints past a short layout viewport). Never while typing, never in a normal tab.
-  let shellFix = 0;
-  function fitShell() {
-    let want = 0;
-    if (navigator.standalone === true && !(framedMQ && framedMQ.matches) && (!VV || Math.abs(VV.scale - 1) < 0.01)) {
-      const sw = Math.min(screen.width, screen.height), sh = Math.max(screen.width, screen.height);
-      const gap = sh - window.innerHeight;
-      if (window.innerHeight > window.innerWidth && Math.abs(window.innerWidth - sw) <= 1 && gap > 1 && gap <= 120) want = sh;
-    }
-    if (want === shellFix) return;
-    shellFix = want;
-    appEl.style.bottom = want ? 'auto' : '';
-    appEl.style.height = want ? want + 'px' : '';
+  // iOS pans the whole page up to show the field above the keyboard; the page behind the sheet then sits under the
+  // status bar. Once the field's container fits above the keyboard that pan is not needed: scroll back to the top,
+  // three times at most per field, so a pan iOS insists on is left alone (the sheet follows it: --vv-top).
+  function undoPan() {
+    if (panQueued || panTries >= 3 || !VV || !editing() || !appEl.classList.contains('kb-open')) return;
+    const el = document.activeElement;
+    const pan = Math.max(VV.offsetTop, window.scrollY, shellBox().shift);
+    if (pan < 1) return;
+    // where the field ends once the page is back at the top (sheets and the setup screen move up with it)
+    const app = appEl.getBoundingClientRect(), r = el.getBoundingClientRect();
+    const fitted = !!el.closest('.sheet-layer, .onboarding-screen');
+    const bottomAfter = r.bottom - app.top - (fitted ? (parseFloat(appEl.style.getPropertyValue('--vv-top')) || 0) : 0);
+    if (bottomAfter > VV.height - 4) return;
+    panQueued = true;
+    requestAnimationFrame(() => {
+      panQueued = false;
+      if (!editing()) return;
+      panTries++;
+      window.scrollTo(0, 0);
+      // where the browser takes the pan back at once, the sheet moves along in the same frame
+      syncViewport();
+    });
+  }
+  let syncQueued = false;
+  function syncSoon(e) {
+    if (syncQueued) return;
+    syncQueued = true;
+    requestAnimationFrame(() => { syncQueued = false; syncViewport(e); });
   }
 
   // ---------- Screen info (Settings: press and hold the version line) ----------
-  // Numbers to send when something on screen looks wrong on a phone: viewport, screen, safe areas, the shell.
+  // Numbers to send when something on screen looks wrong on a phone: viewport, screen, safe areas, the shell and the
+  // last keyboard measurements.
   function viewportInfo() {
     const r = appEl.getBoundingClientRect();
     const probe = document.createElement('div');
@@ -9903,15 +10058,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     probe.remove();
     const vv = VV ? Math.round(VV.width) + 'x' + Math.round(VV.height) + ' top ' + Math.round(VV.offsetTop) + ' scale ' + (Math.round(VV.scale * 100) / 100) : '-';
     const mq = (q) => !!(window.matchMedia && window.matchMedia(q).matches);
+    const tab = document.querySelector('.tab-bar'), tr = tab ? tab.getBoundingClientRect() : null;
     return [
-      'window ' + window.innerWidth + 'x' + window.innerHeight + ' · dpr ' + (window.devicePixelRatio || 1),
+      'window ' + window.innerWidth + 'x' + window.innerHeight + ' · client ' + rootEl.clientWidth + 'x' + rootEl.clientHeight + ' · dpr ' + (window.devicePixelRatio || 1),
       'visualViewport ' + vv,
       'screen ' + screen.width + 'x' + screen.height,
-      'app ' + Math.round(r.left) + ',' + Math.round(r.top) + ' → ' + Math.round(r.right) + ',' + Math.round(r.bottom) + ' (' + Math.round(r.height) + ')',
       'safe area t/r/b/l ' + inset,
-      'standalone ' + (navigator.standalone === true ? 'yes' : mq('(display-mode: standalone)') ? 'display-mode' : 'no') + ' · ' + (window.innerHeight > window.innerWidth ? 'portrait' : 'landscape'),
-      'framed ' + (framedMQ && framedMQ.matches ? 'yes' : 'no') + ' · keyboard ' + (appEl.classList.contains('kb-open') ? kbKey : 'no') + ' · shell fix ' + (shellFix || 'no'),
-      'scroll ' + Math.round(window.scrollX) + ',' + Math.round(window.scrollY),
+      'standalone ' + (navigator.standalone === true ? 'yes' : mq('(display-mode: standalone)') ? 'display-mode' : 'no') + ' · ' + (rootEl.clientHeight >= rootEl.clientWidth ? 'portrait' : 'landscape'),
+      'shell ' + (shell.h ? '--app-h ' + shell.h + ' gap ' + shell.gap : 'normal') + ' · html ' + Math.round(rootEl.getBoundingClientRect().height) + ' body ' + Math.round(document.body.getBoundingClientRect().height),
+      'app ' + Math.round(r.left) + ',' + Math.round(r.top) + ' → ' + Math.round(r.right) + ',' + Math.round(r.bottom) + ' (' + Math.round(r.height) + ')' + (tr ? ' · tab bar ' + Math.round(tr.top) + '–' + Math.round(tr.bottom) : ''),
+      'framed ' + (framedMQ && framedMQ.matches ? 'yes' : 'no') + ' · keyboard ' + (appEl.classList.contains('kb-open') ? kbKey : 'no') + ' · scroll ' + Math.round(window.scrollX) + ',' + Math.round(window.scrollY),
+      'keyboard log' + (kbLog.length ? ':\n  ' + kbLog.join('\n  ') : ' empty (tap a field, then open this again)'),
       'update ' + (upd.pending ? 'pending' : 'none') + ' · sw ' + ('serviceWorker' in navigator && navigator.serviceWorker.controller ? 'on' : 'off'),
       navigator.userAgent.replace(/^Mozilla\/5\.0 /, '')
     ].join('\n');
@@ -9943,20 +10100,31 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => el.addEventListener(ev, stop));
     el.addEventListener('contextmenu', (e) => { e.preventDefault(); stop(); fn(); });
   }
-  if (VV) { VV.addEventListener('resize', syncViewport); VV.addEventListener('scroll', syncViewport); }
-  window.addEventListener('resize', syncViewport);
-  document.addEventListener('focusin', (e) => { if (isTextField(e.target)) syncViewport(); });
+  if (VV) { VV.addEventListener('resize', syncSoon); VV.addEventListener('scroll', syncSoon); }
+  // (a browser that shrinks the whole page for its keyboard, e.g. Android Chrome: the field stays in view too)
+  window.addEventListener('resize', (e) => {
+    if (!editing()) fitShell(); else requestAnimationFrame(revealFocused);
+    syncSoon(e);
+  });
+  document.addEventListener('focusin', (e) => {
+    if (!isTextField(e.target)) return;
+    panTries = 0;
+    syncViewport(e);
+    // the keyboard may still be on its way: look again while it settles (no-ops once nothing changes)
+    [180, 420, 800].forEach((ms) => setTimeout(() => { if (document.activeElement === e.target) syncViewport({ type: 'settle' }); }, ms));
+  });
   // leaving a field: wait a moment, focus may just be moving on to the next field
   document.addEventListener('focusout', () => { setTimeout(() => { if (!editing()) syncViewport(); }, 80); });
   let docScrollQueued = false;
   window.addEventListener('scroll', () => {
     if (docScrollQueued) return;
     docScrollQueued = true;
-    requestAnimationFrame(() => { docScrollQueued = false; if (!editing()) resetDocScroll(); });
+    requestAnimationFrame(() => { docScrollQueued = false; if (!editing()) resetDocScroll(); else undoPan(); });
   }, { passive: true });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) syncViewport(); });
-  window.addEventListener('pageshow', syncViewport);
-  window.addEventListener('orientationchange', () => setTimeout(syncViewport, 300));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { fitShell(); syncViewport(); } });
+  window.addEventListener('pageshow', () => { fitShell(); syncViewport(); });
+  window.addEventListener('orientationchange', () => setTimeout(() => { fitShell(); syncViewport(); }, 300));
+  fitShell();
 
   // ---------- Day rollover & cross-tab sync ----------
   function refreshToday() {
@@ -10139,7 +10307,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     renderAll: () => renderAll(),
     reload: () => { load(); renderAll(); },
     // what holds back an automatic update reload (tests)
-    get updateState() { return { pending: upd.pending, manual: upd.manual, busyMs: busyLeft(), busy: Object.keys(busyUntil), sheets: sheets.length, sinceInput: Date.now() - ui.lastInput, canReload: canReloadNow() }; }
+    get updateState() { return { pending: upd.pending, manual: upd.manual, busyMs: busyLeft(), busy: Object.keys(busyUntil), sheets: sheets.length, sinceInput: Date.now() - ui.lastInput, canReload: canReloadNow() }; },
+    // shell height fix and keyboard state (tests, screen info)
+    get viewport() { return { appH: shell.h, gap: shell.gap, kb: kbKey, panTries, log: kbLog.slice(), info: viewportInfo() }; }
   };
 })();
 </script>
