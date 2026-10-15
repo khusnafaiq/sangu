@@ -2235,6 +2235,45 @@
     .type-toggle.inc { color: var(--positive); border-color: rgba(52, 211, 153, 0.35); }
     .dup-tag { color: var(--warning); font-weight: 600; }
 
+    /* CATAT: payments a notification brought ("Menunggu dicatat (n)", 09c_inbox.js), in the slot under the mic where
+       the tip is (Save takes the slot back while something typed can be saved), and their list */
+    .inbox-strip {
+      display: flex; align-items: center; gap: 8px; width: 100%; height: 42px; padding: 0 12px;
+      border-radius: 12px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.35);
+      color: var(--text-primary); font-size: 12.5px; font-weight: 700; cursor: pointer; text-align: left;
+    }
+    .inbox-strip[hidden] { display: none; }
+    .inbox-strip:active { transform: scale(0.98); }
+    .inbox-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rollover); flex-shrink: 0; }
+    .inbox-strip-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .inbox-strip svg { width: 15px; height: 15px; stroke-width: 2; color: var(--text-muted); flex-shrink: 0; }
+    .inbox-list { display: flex; flex-direction: column; gap: 8px; }
+    .inbox-row {
+      display: flex; align-items: center; gap: 10px; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: 12px; padding: 10px 8px 10px 12px;
+    }
+    .inbox-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .inbox-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+    .inbox-title { font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .inbox-amt { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .inbox-amt.none { color: var(--warning); font-weight: 600; font-size: 12px; }
+    .inbox-meta { display: flex; gap: 6px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-muted); }
+    .inbox-btns { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+    .inbox-btns .btn-secondary.sm { min-height: 40px; padding: 0 12px; font-size: 12.5px; }
+    .inbox-btns .icon-btn.sm { width: 40px; height: 40px; }
+    @media (max-width: 360px) {
+      /* a narrow phone: the amount goes under the merchant, whose name may take two lines */
+      .inbox-top { flex-direction: column; align-items: flex-start; gap: 2px; }
+      .inbox-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; max-width: 100%; }
+    }
+    .push-text-row {
+      width: 100%; align-items: flex-start; padding: 2px 0; text-align: left; color: inherit;
+      background: none; border: 0; font: inherit; cursor: pointer; border-radius: 10px;
+    }
+    .push-text-row .switch { margin-top: 2px; pointer-events: none; }
+    .push-text-row[aria-checked="true"] .switch { background: rgba(52, 211, 153, 0.3); border-color: rgba(52, 211, 153, 0.6); }
+    .push-text-row[aria-checked="true"] .switch::after { transform: translateX(20px); background: var(--positive); }
+
     /* Toasts */
     .toast-host {
       position: absolute;
@@ -3000,6 +3039,12 @@
           <div class="stage-bottom-slot">
             <p id="catatHint" class="catat-hint" aria-live="polite"></p>
             <button type="button" id="commitBtn" class="full-save-bar-btn" data-action="voice-commit" hidden></button>
+            <!-- in the tip's place: payments a notification brought (Settings → Notifikasi → Titip isi transaksi), 09c_inbox.js -->
+            <button type="button" id="inboxStrip" class="inbox-strip" data-action="inbox-open" hidden>
+              <span class="inbox-dot" aria-hidden="true"></span>
+              <span class="inbox-strip-text"></span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
           </div>
         </div>
 
@@ -4707,6 +4752,8 @@ const Core = (() => {
         const head = RC_HEADER.exec(up);
         if (head && up.slice(head[0].length).replace(/[^A-Z]/g, '').length < 3) continue;
         if (RC_SKIP.test(up) || /@|WWW\.|\.COM|HTTP/.test(up)) continue;
+        // a thanks or a greeting to the customer ("TERIMA KASIH, BUDI!", "Kepada BUDI") never names the shop
+        if (/^(?:TERIMA KASIH|TRIMA KASIH|THANK|THANKS|KEPADA|DEAR|HALO|HALLO|HAI|HI|HELLO|YTH|BAPAK|IBU|SDR|SDRI|PELANGGAN|NASABAH|UNTUK|SELAMAT(?! DATANG))\b/.test(up)) continue;
         if (!allowCompany && /^(PT|CV|UD|TBK)\b/.test(up)) continue;
         let t = p.line.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9)]+$/g, '').replace(/[^A-Za-z0-9 &'.\-]/g, ' ').replace(/\s+/g, ' ').trim();
         const th = RC_HEADER.exec(t.toUpperCase());
@@ -4729,7 +4776,8 @@ const Core = (() => {
     gopay: { name: 'GoPay', ewallet: true, keys: ['gopay', 'gopaysaldo', 'gopaycoins', 'gopaywallet'] },
     gopaylater: { name: 'GoPayLater', keys: ['gopaylater'] },
     ovo: { name: 'OVO', ewallet: true, keys: ['ovo', 'ovocash'] },
-    dana: { name: 'DANA', ewallet: true, keys: ['dana', 'saldodana'] },
+    // "DNID": DANA's virtual accounts in bank apps ("DNID 0812...", "DNID - BUDI")
+    dana: { name: 'DANA', ewallet: true, keys: ['dana', 'saldodana', 'dnid'] },
     shopeepay: { name: 'ShopeePay', ewallet: true, keys: ['shopeepay', 'shopepay'] },
     spaylater: { name: 'SPayLater', keys: ['spaylater', 'shopeepaylater'] },
     linkaja: { name: 'LinkAja', ewallet: true, keys: ['linkaja'] },
@@ -4770,7 +4818,7 @@ const Core = (() => {
       'total didebit', 'total dibayar', 'total yang dibayar', 'total payment', 'total amount', 'total paid', 'total top up', 'total topup', 'grand total',
       'jumlah dibayar', 'jumlah yang dibayar', 'jumlah pembayaran', 'jumlah bayar', 'amount paid', 'you paid', 'kamu bayar', 'anda bayar', 'total charged',
       'total debited', 'nominal dibayar', 'total penarikan', 'total isi saldo'],
-    ['nominal', 'nominal', 'nominal transaksi', 'nominal transfer', 'nominal pembayaran', 'nominal top up', 'nominal topup', 'nominal tagihan', 'nominal isi saldo',
+    ['nominal', 'nominal', 'refund amount', 'nominal transaksi', 'nominal transfer', 'nominal pembayaran', 'nominal top up', 'nominal topup', 'nominal tagihan', 'nominal isi saldo',
       'nominal penarikan', 'jumlah', 'jumlah transfer', 'jumlah uang', 'jumlah kirim', 'jumlah top up', 'jumlah topup', 'jumlah transaksi', 'jumlah tagihan',
       'jumlah penarikan', 'amount', 'transfer amount', 'transaction amount', 'payment amount', 'top up amount', 'harga', 'nilai', 'nilai transaksi', 'tagihan', 'price',
       // marketplace prices before discounts and shipping ("Total Harga (3 Barang)")
@@ -4786,22 +4834,26 @@ const Core = (() => {
       'ovo points', 'gopay coins', 'bonus'],
     ['merchant', 'nama merchant', 'merchant', 'merchant name', 'nama toko', 'toko', 'nama outlet', 'outlet', 'nama usaha', 'store', 'store name'],
     ['payee', 'penerima', 'nama penerima', 'recipient', 'recipient name', 'payee', 'bayar ke', 'dibayar ke', 'pembayaran ke', 'paid to', 'pay to', 'transfer ke',
-      'kirim ke', 'dikirim ke', 'sent to', 'transfer to', 'beneficiary', 'tujuan', 'nama tujuan', 'kepada', 'ke', 'to'],
+      'kirim ke', 'dikirim ke', 'sent to', 'transfer to', 'beneficiary', 'beneficiary name', 'beneficiary account name', 'tujuan', 'nama tujuan', 'kepada', 'ke', 'to',
+      'payment to'],
     ['toAcct', 'bank tujuan', 'rekening tujuan', 'no rekening tujuan', 'nomor rekening tujuan', 'nomor tujuan', 'no tujuan', 'bank penerima', 'rekening penerima',
       'akun tujuan', 'ke rekening', 'no rekening', 'nomor rekening', 'no rek', 'bank', 'account number', 'destination account', 'nomor hp tujuan',
-      'nomor ponsel tujuan', 'akun penerima', 'diterima di', 'masuk ke', 'received in', 'credited to', 'dikreditkan ke', 'ke akun'],
+      'nomor ponsel tujuan', 'akun penerima', 'diterima di', 'masuk ke', 'received in', 'credited to', 'dikreditkan ke', 'ke akun', 'beneficiary account',
+      'beneficiary account number', 'beneficiary account no', 'beneficiary bank', 'to account', 'destination bank', 'destination account number'],
     ['from', 'dari', 'from', 'pengirim', 'nama pengirim', 'diterima dari', 'received from', 'sender', 'sender name', 'dikirim oleh', 'sent by', 'dari akun'],
-    ['fromAcct', 'bank pengirim', 'rekening pengirim', 'rekening asal', 'dari rekening', 'sender bank', 'sender account', 'akun pengirim'],
+    ['fromAcct', 'bank pengirim', 'rekening pengirim', 'rekening asal', 'dari rekening', 'sender bank', 'sender account', 'akun pengirim', 'from account',
+      'sender account number'],
     ['src', 'metode pembayaran', 'metode bayar', 'metode', 'payment method', 'pay with', 'paid with', 'paid using', 'paid by', 'sumber dana', 'sumber',
       'source of funds', 'source of fund', 'source', 'rekening sumber', 'sumber rekening', 'akun sumber', 'debit dari', 'didebit dari', 'dibayar dengan',
-      'dibayar pakai', 'dibayar menggunakan', 'pembayaran dengan', 'pembayaran via', 'bayar pakai', 'bayar dengan', 'bayar via', 'kartu', 'card', 'rekening debet', 'rekening debit'],
+      'dibayar pakai', 'dibayar menggunakan', 'pembayaran dengan', 'pembayaran via', 'bayar pakai', 'bayar dengan', 'bayar via', 'kartu', 'card', 'rekening debet', 'rekening debit',
+      'rekening sumber dana'],
     ['ref', 'no ref', 'no referensi', 'nomor referensi', 'no reference', 'reference', 'reference no', 'reference number', 'ref', 'ref no', 'id referensi',
       'kode referensi', 'id transaksi', 'transaction id', 'no transaksi', 'nomor transaksi', 'kode transaksi', 'id transfer', 'rrn', 'order id', 'id order',
       'id pesanan', 'no pesanan', 'nomor pesanan', 'trx id', 'id trx', 'no invoice', 'invoice', 'id pembayaran', 'kode pembayaran', 'kode bayar', 'no resi',
-      'transaction no', 'transaction number', 'no ref transaksi', 'nomor ref'],
+      'transaction no', 'transaction number', 'no ref transaksi', 'nomor ref', 'reff no', 'reff'],
     ['date', 'tanggal', 'tgl', 'tanggal transaksi', 'tanggal waktu', 'tanggal dan waktu', 'tanggal jam', 'waktu', 'waktu transaksi', 'waktu pembayaran',
       'waktu transfer', 'tanggal pembayaran', 'tanggal transfer', 'jam', 'date', 'time', 'date time', 'transaction date', 'transaction time', 'payment date',
-      'payment time', 'dibayar pada', 'paid on', 'pukul'],
+      'payment time', 'dibayar pada', 'paid on', 'pukul', 'instruction date'],
     ['product', 'jenis transaksi', 'jenis pembayaran', 'tipe transaksi', 'produk', 'product', 'layanan', 'kategori', 'transaction type',
       'nama produk', 'jenis', 'tipe'],
     ['note', 'catatan', 'berita', 'keterangan', 'pesan', 'message', 'note', 'notes', 'deskripsi', 'description', 'remark', 'remarks', 'tujuan transaksi',
@@ -4811,7 +4863,10 @@ const Core = (() => {
       'acquirer', 'penerbit', 'issuer', 'status', 'nama pelanggan', 'id pelanggan', 'no pelanggan', 'nomor pelanggan', 'no meter', 'nomor meter', 'tarif daya',
       'tarif', 'daya', 'token', 'stroom', 'kwh', 'nomor hp', 'no hp', 'nomor ponsel', 'no ponsel', 'phone number', 'nomor telepon', 'transfer method',
       'jenis transfer', 'metode transfer', 'layanan transfer', 'nomor kartu', 'no kartu', 'periode', 'jatuh tempo', 'berlaku hingga', 'masa berlaku',
-      'kode voucher', 'customer name', 'nomor va', 'no va', 'virtual account']
+      'kode voucher', 'customer name', 'nomor va', 'no va', 'virtual account',
+      // bank e-mails: where the merchant is, the banks behind a QRIS payment, the account holder's own name
+      'merchant location', 'merchant city', 'kode pan pelanggan', 'pan pelanggan', 'id terminal', 'terminal no', 'acquirer name', 'nama penerbit',
+      'nama pengakuisisi', 'pengakuisisi', 'issuer name', 'nama sumber dana']
   ];
   const PAY_LABELS = new Map(); // first word -> [{ words, kind, phrase }], longest first
   PAY_LABEL_LIST.forEach(row => {
@@ -4840,15 +4895,47 @@ const Core = (() => {
   // an amount row that says "free" carries a zero, it is not a label waiting for its value
   const ZERO_VALUE_RE = /^(gratis|free|bebas biaya|tidak ada|none|nihil)\b/i;
   const KIND_ROLE = { merchant: 'to', payee: 'to', toAcct: 'to', from: 'from', fromAcct: 'from', src: 'src', product: 'product' };
+  // the banks behind a QRIS payment ("Acquirer : BRI", "Nama Pengakuisisi Mandiri") and the account holder's name:
+  // they never say which app or account paid
+  const NO_BRAND_ROWS = new Set(['acquirer', 'acquirer name', 'nama pengakuisisi', 'pengakuisisi', 'penerbit', 'nama penerbit', 'issuer', 'issuer name', 'nama sumber dana']);
   // rows whose value may wrap onto a second line ("SITI AMINAH" under "Ke 0987654321", "OCBC - 6938..." under "Nyala Tabungan")
   const CONT_KINDS = new Set(['merchant', 'payee', 'toAcct', 'from', 'fromAcct', 'src', 'name']);
   // labels whose value can be any text (a name, a note): a line under them is their value even when it starts like a label
   const WRAP_KINDS = new Set(['merchant', 'payee', 'name']);
   const TEXT_VALUE_KINDS = new Set(['merchant', 'payee', 'name', 'note', 'product', 'other', 'from', 'src', 'toAcct', 'fromAcct']);
   const GENERIC_PAYEE = new Set(['ke', 'to', 'kepada', 'tujuan', 'nama tujuan', 'transfer ke', 'kirim ke', 'transfer to', 'sent to', 'dikirim ke']);
+  // Where a title came from (fields.titleFrom), for the push Worker, which sends a title only from a source that names a
+  // shop: 'merchant' (Merchant, Nama Merchant, Toko, Outlet), 'payto' (Bayar ke, Pembayaran ke, Paid to), 'payee' (a
+  // plain Ke / To), 'person' (Penerima, Tujuan, Kepada, Recipient, Beneficiary, Transfer ke, Dikirim ke), 'name' (Nama),
+  // 'product' (Jenis Transaksi), 'from' (the sender of money received), 'headline' ("Pembayaran ke X berhasil"),
+  // 'caption' (a line next to the big amount), 'store' (a paper receipt's header), 'top' (the first line of text that
+  // is hardly a receipt) or 'own' (the parser's own words: "Top up GoPay", "Uang masuk", "Pembayaran QRIS").
+  const PAYTO_PHRASES = new Set(['bayar ke', 'dibayar ke', 'pembayaran ke', 'paid to', 'pay to', 'payment to']);
+  // ("Kepada BUDI" is as often a greeting as a payee: a name row)
+  const payeeSource = phrase => (PAYTO_PHRASES.has(phrase) ? 'payto' : phrase === 'ke' || phrase === 'to' ? 'payee' : phrase === 'kepada' ? 'name' : 'person');
+  // the sender of a transfer ("Pengirim", "Sender"); "Dari" / "From" also name the paying account of a payment
+  const SENDER_PHRASES = new Set(['pengirim', 'nama pengirim', 'sender', 'sender name', 'dikirim oleh', 'sent by', 'diterima dari', 'received from']);
+  // money sent between accounts or people ("Transfer Berhasil", "Kirim Uang", "Pengiriman Berhasil", "Uang berhasil
+  // dikirim", "Pindah Dana", "Fund Transfer", "Jenis Transaksi Transfer Bank Lain")
+  const PAY_XFER_RE = /\b(transfer|kirim|pengiriman|dikirim|terkirim|pindah dana|pindah buku|pemindahbukuan|send money|money sent|sent money|remittance|remitansi)\b/;
+  // "Pesanan berhasil diantar ke Jl. ...": a delivery, the place after "ke" is an address
+  const PAY_DELIVERY_RE = /\b(?:pesanan|paket|barang|order|parcel|package|kiriman)\b.*\b(?:diantar|diantarkan|dikirim|dikirimkan|delivered|shipped|sent)\s*$/i;
 
   const PAY_SUCCESS_RE = /\b(berhasil|sukses|successful|successfully|success|succeeded|completed|approved)\b|\b(transfer|transaksi|pembayaran|payment|top up|topup|isi saldo|penarikan|tarik tunai|kirim uang)\s+(selesai|done|complete)\b/;
-  const PAY_INCOME_RE = /\b(dana masuk|uang masuk|transfer masuk|saldo masuk|uang diterima|dana diterima|transfer diterima|kamu terima|kamu menerima|anda menerima|kamu dapat|kamu dapet|anda mendapat|terima uang|menerima uang|menerima dana|menerima transfer|money received|payment received|you received|you ve received|incoming transfer|incoming payment|transfer received|funds received|sudah bertambah|telah bertambah|saldo bertambah|diterima dari|received from|kiriman uang)\b/;
+  // "tidak berhasil", "not successful": never a success line
+  const PAY_NOT_SUCCESS_RE = /\b(tidak|not|belum|gagal)\s+(berhasil|sukses|successful|success|succeeded|completed|approved)\b/;
+  const isSuccessLine = norm => PAY_SUCCESS_RE.test(norm) && !PAY_NOT_SUCCESS_RE.test(norm);
+  // a transaction that did not go through ("Status : Failed", "Pembelian QRIS Gagal") or is still being processed
+  // ("Status : Pending", "Transfer sedang diproses"; an order being processed after payment is not); never a
+  // conditional note ("Jika transaksi gagal, dana dikembalikan")
+  const PAY_FAILED_RE = /\b(gagal|failed|unsuccessful|tidak berhasil|not successful|ditolak|rejected|dibatalkan|batal|cancelled|canceled|declined|expired|kedaluwarsa|kadaluarsa)\b/;
+  const PAY_PENDING_RE = /^status (pending|dalam proses|diproses|sedang diproses|processing|in process|menunggu)\b|\b(transaksi|pembayaran|transfer|payment|transaction|top up|topup)( kamu| anda)?( sedang| masih)? (dalam proses|diproses|pending|is pending|is processing|in process)\b|\bmenunggu (pembayaran|konfirmasi pembayaran)\b/;
+  const PAY_COND_RE = /\b(jika|apabila|bila|kalau|seandainya|if|when|should|in case)\b/;
+  const PAY_TX_WORD_RE = /^status\b|\b(transaksi|pembayaran|pembelian|transfer|payment|transaction|purchase|top up|topup|qris|qr|order|pesanan)\b/;
+  const PAY_INCOME_RE = /\b(dana masuk|uang masuk|transfer masuk|saldo masuk|uang diterima|dana diterima|transfer diterima|kamu terima|kamu menerima|anda menerima|kamu dapat|kamu dapet|anda mendapat|terima uang|menerima uang|menerima dana|menerima transfer|money received|payment received|you received|you ve received|incoming transfer|incoming payment|transfer received|funds received|sudah bertambah|telah bertambah|saldo bertambah|diterima dari|received from|kiriman uang|you have received|you have been credited|have been credited|has been credited|credited to your account|incoming funds? transfer|incoming funds?|funds? received|payment refund|qr payment refund|refund amount|refund berhasil|refund successful|refund received|refund diterima|refunded|dana refund|pengembalian dana|dana dikembalikan|dana telah dikembalikan|penerimaan dana|penerimaan transfer|penerimaan uang|mutasi masuk|mutasi kredit|transaksi kredit)\b/;
+  // a credit on the account: "CR Rp 415.000,00", "Rp 415.000,00 CR", "Kredit Rp 415.000", "Kredit" alone (a bank's mutation
+  // notice); never a credit card ("Credit Card Transaction", "Kartu Kredit")
+  const PAY_CREDIT_RE = /^(?:cr|kredit|credit)(?: (?:rp|idr)\b| \d|$)|\d (?:cr|kr)$/;
   const PAY_OUT_HEAD_RE = /\b(pembayaran|payment|pembelian|purchase|kirim uang|transfer keluar|transfer)\s+(\w+\s+)?(berhasil|sukses|successful|success|succeeded)\b|\bberhasil dibayar\b|\bpayment complete/;
   const PAY_REWARD_RE = /\b(coins?|koin|poin|points?|reward|stamp|xp)\b/;
   // "Kamu dapat cashback Rp2.300", "You received 120 points": a reward note, not money received
@@ -4898,7 +4985,10 @@ const Core = (() => {
       let ok = true;
       for (let i = 0; i < L.words.length; i++) if (runs[i].w !== L.words[i]) { ok = false; break; }
       if (!ok) continue;
-      const value = s.slice(runs[L.words.length - 1].end).replace(/^(?:[\s:;.=|>»~_*•·,'’"]|-(?=\s))+/, '').trim();
+      const rest = s.slice(runs[L.words.length - 1].end);
+      let value = rest.replace(/^(?:[\s:;.=|>»~_*•·,'’"]|-(?=\s))+/, '').trim();
+      // "Nomor Referensi : ***": a value the push Worker removed still fills its row
+      if (!value && /\*{3}/.test(rest)) value = '***';
       return { kind: L.kind, phrase: L.phrase, value };
     }
     return null;
@@ -4908,7 +4998,8 @@ const Core = (() => {
     const out = [];
     for (let i = 0; i < lines.length; i++) {
       const a = lines[i], b = lines[i + 1];
-      if (b && !/\d/.test(a)) {
+      // ("Nama ***": a row whose value the push Worker removed, not a label broken before "Sumber Dana")
+      if (b && !/\d|\*{3}/.test(a)) {
         const wa = wordRuns(a).map(r => r.w), wb = wordRuns(b).map(r => r.w);
         const list = wa.length && wa.length <= 3 ? PAY_LABELS.get(wa[0]) : null;
         const hit = list && list.some(L => L.words.length > wa.length && L.words.length - wa.length <= wb.length &&
@@ -4934,7 +5025,7 @@ const Core = (() => {
         else if (allowProd && hasOwn(PAY_PROD, key)) hit = { key: 'b:' + PAY_PROD[key], len };
       }
       if (!hit) continue;
-      if (hit.key === 'b:dana' && hit.len === 1) {
+      if (hit.key === 'b:dana' && hit.len === 1 && words[i].w === 'dana') {
         const prev = i > 0 ? words[i - 1].w : '', next = words[i + 1] ? words[i + 1].w : '';
         if (DANA_WORD_PREV.has(prev) || DANA_WORD_NEXT.has(next) || (words[i].orig !== 'DANA' && prev !== 'saldo')) continue;
       }
@@ -4989,7 +5080,7 @@ const Core = (() => {
 
   // Lines of a payment screen with labels, values, money and roles resolved.
   function payReadLines(text, env) {
-    let raw = String(text == null ? '' : text).replace(/\r/g, '').split('\n')
+    let raw = normBreaks(text).split('\n')
       .map(l => l.replace(/[−–—]/g, '-').replace(/[\t\u00A0]/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean);
     // iOS status bar: "20:41 .ull 5G 87", or a few unreadable icon glyphs
     let statusTime = null;
@@ -5005,8 +5096,9 @@ const Core = (() => {
       if (tm && !statusTime) statusTime = pad2(+tm[1]) + ':' + tm[2];
       raw.shift();
     }
+    // "***": a value the push Worker removed (a name, an account) still fills its row, so the rows after it pair up
     raw = raw.map(l => fixOcrLetters(fixOcrDigits(fixPayMoney(l))))
-      .filter(l => (l.match(/[A-Za-z0-9]/g) || []).length >= 2 || /^(ke|to)$/i.test(l));
+      .filter(l => (l.match(/[A-Za-z0-9]/g) || []).length >= 2 || /^(ke|to)$/i.test(l) || /^\*{3,}$/.test(l));
     // "Rp" in a small font on its own line above "25.000"
     for (let k = 0; k < raw.length - 1; k++) {
       if (/^(Rp|IDR)\.?$/i.test(raw[k]) && /^[-+]?\d/.test(raw[k + 1])) { raw.splice(k, 2, 'Rp ' + raw[k + 1]); }
@@ -5014,8 +5106,8 @@ const Core = (() => {
     raw = mergeBrokenLabels(raw);
     const lines = raw.map((text, i) => {
       const norm = normalizeText(text);
-      const income = PAY_INCOME_RE.test(norm) && !PAY_NOT_INCOME_RE.test(norm);
-      const success = PAY_SUCCESS_RE.test(norm);
+      const income = (PAY_INCOME_RE.test(norm) || PAY_CREDIT_RE.test(norm)) && !PAY_NOT_INCOME_RE.test(norm);
+      const success = isSuccessLine(norm);
       // "Promo -Rp5.000", "Potongan Promo -Rp10.000": a discount row of the bill, not a promo banner
       const discountRow = /^\W*(promo|potongan|diskon|discount|voucher|cashback|koin|coins?)\b.*(-\s?(rp|idr)?\s?\d|\(\s?(rp|idr)?\s?\d)/i.test(text);
       const promo = PAY_PROMO_RE.test(norm) && !income && !success && !discountRow;
@@ -5120,7 +5212,7 @@ const Core = (() => {
     let firstBody = lines.findIndex(L => L.headline || L.money.length || L.label || L.hasDate);
     if (firstBody < 0) firstBody = lines.length;
     lines.forEach(L => {
-      L.role = L.promo ? 'promo' : (L.of && hasOwn(KIND_ROLE, L.of)) ? KIND_ROLE[L.of] : L.i < firstBody ? 'head' : 'any';
+      L.role = L.promo ? 'promo' : (L.of && hasOwn(KIND_ROLE, L.of)) ? KIND_ROLE[L.of] : (L.of === 'other' && NO_BRAND_ROWS.has(L.ofPhrase)) ? 'none' : L.i < firstBody ? 'head' : 'any';
       L.topup = PAY_TOPUP_RE.test(L.norm) && !L.promo;
     });
     return { lines, statusTime };
@@ -5130,7 +5222,7 @@ const Core = (() => {
   function payBrandScores(lines, env) {
     const scores = {}; // key -> { src, from, to, head, product, topup, any }
     lines.forEach(L => {
-      if (L.role === 'promo') return;
+      if (L.role === 'promo' || L.role === 'none') return;
       const labelled = L.role === 'src' || L.role === 'from' || L.role === 'to';
       const src = L.of ? L.value : L.text;
       const topAt = L.topup ? wordRuns(src).findIndex(r => r.w === 'top' || r.w === 'topup' || r.w === 'isi' || r.w === 'tambah' || r.w === 'add') : -1;
@@ -5177,6 +5269,8 @@ const Core = (() => {
       if (named.length) parts = named;
     }
     out = parts.join(' - ').replace(/^[\s\-:,.;]+|[\s\-:,.;]+$/g, '').trim();
+    // "SOTO CAK AHMAD QR" (myBCA e-mails): the payment method tagged onto the merchant's name
+    out = out.replace(/^(.*[A-Za-z]{2}.*?)\s+QR(?:IS)?$/i, '$1');
     const letters = (out.match(/[A-Za-z]/g) || []).length;
     if (letters < 2) return '';
     if (!keepBrandOnly && out.split(' ').every(w => isBrand(w) || /^(bank|saldo|rekening|rek|tabungan|cash|wallet)$/i.test(w))) return '';
@@ -5223,7 +5317,15 @@ const Core = (() => {
     const scores = payBrandScores(lines, env);
     const live = lines.filter(L => !L.promo);
     const anyRe = re => live.some(L => re.test(L.norm));
-    const qris = anyRe(/\bqris\b/);
+    // OCBC calls a QRIS payment "QR Payment" ("Pembayaran QR" in Indonesian). A mention counts on a row, a status line, a
+    // line that only says so ("QRIS", "Pembayaran QRIS"), or a line above the first amount ("Kamu baru saja bayar pakai
+    // QRIS."); an ad below the payment ("Bayar apa aja pakai QRIS, praktis!", also wrapped) does not make a bank
+    // transfer a QRIS payment.
+    const firstMoney = live.find(L => L.money.length);
+    const qris = live.some(L => /\bqris\b|\bqr payment\b|\b(?:pembayaran|bayar) qr\b/.test(L.norm) &&
+      ((L.of && !L.cont) || L.label || L.headline || MAIL_KIND_LINE_RE.test(L.text.trim()) || !firstMoney || L.i < firstMoney.i));
+    // a transaction that failed or is still pending is read as usual, but says so (the UI asks for a check)
+    const status = txStatus(live.map(L => L.norm));
 
     // ---- amounts
     const lastVal = toks => { const nz = nonZero(toks); return nz.length ? nz[nz.length - 1].value : null; };
@@ -5342,27 +5444,29 @@ const Core = (() => {
     }
 
     // ---- counterparty / title
+    // (each with where it came from: fields.titleFrom, see PAYTO_PHRASES; raw: the text it was cleaned from)
     const cands = [];
-    const addCand = (val, prio, keepBrand) => { const c = cleanPayName(val, keepBrand); if (c) cands.push({ c, prio }); };
+    const addCand = (val, prio, keepBrand, from) => { const c = cleanPayName(val, keepBrand); if (c) cands.push({ c, prio, from, raw: val }); };
     live.forEach(L => {
       if (!L.of) return;
       const v = L.value;
       if (type === 'INCOME') {
-        if (L.of === 'from') addCand(v, L.cont ? 3 : 1);
-        else if (L.of === 'name') addCand(v, 7.5);
+        if (L.of === 'from') addCand(v, L.cont ? 3 : 1, false, 'from');
+        else if (L.of === 'name') addCand(v, 7.5, false, 'name');
       } else {
-        if (L.of === 'merchant') addCand(v, L.cont ? 6 : 1);
-        else if (L.of === 'payee') addCand(v, L.cont ? 4 : GENERIC_PAYEE.has(L.ofPhrase) ? 3 : 2);
-        else if (L.of === 'name') addCand(v, 7.5);
-        else if (L.of === 'product') addCand(v, 8, true);
+        if (L.of === 'merchant') addCand(v, L.cont ? 6 : 1, false, 'merchant');
+        else if (L.of === 'payee') addCand(v, L.cont ? 4 : GENERIC_PAYEE.has(L.ofPhrase) ? 3 : 2, false, payeeSource(L.ofPhrase));
+        else if (L.of === 'name') addCand(v, 7.5, false, 'name');
+        else if (L.of === 'product') addCand(v, 8, true, 'product');
       }
     });
     // "Pembayaran ke KOPI KENANGAN berhasil", "Kamu dapat Rp50.000 dari Budi"
     live.forEach(L => {
       if (L.of || !(L.headline || L === heroLine)) return;
       const m = (type === 'INCOME' ? /\b(?:dari|from)\s+(.{3,})$/i : /\b(?:ke|to|kepada|di|at)\s+(.{3,})$/i).exec(L.text);
+      if (m && type !== 'INCOME' && PAY_DELIVERY_RE.test(L.text.slice(0, m.index))) return;
       // a sentence ("... dari RIZKY ke rekening 0123", "... di WARUNG X berhasil"): keep the name only
-      if (m) addCand(m[1].replace(/\b(rp|idr)\s?[\d.,]+/gi, ' ').replace(/\s(?:ke|to|via|pakai|dengan|melalui|menggunakan|using|dari|from|sebesar|senilai|pada|on|di)\s.*$/i, ''), 3.5);
+      if (m) addCand(m[1].replace(/\b(rp|idr)\s?[\d.,]+/gi, ' ').replace(/\s(?:ke|to|via|pakai|dengan|melalui|menggunakan|using|dari|from|sebesar|senilai|pada|on|di)\s.*$/i, ''), 3.5, false, 'headline');
     });
     // a caption next to the big amount: "INDOMARET MARGONDA", "Pulsa Telkomsel 50.000"
     if (heroLine) {
@@ -5370,34 +5474,45 @@ const Core = (() => {
         const L = lines[j];
         if (!L || L.of || L.label || L.headline || L.promo || L.hasDate || L.moneyOnly || PAY_SYSTEM_RE.test(L.norm)) return;
         if (payMentions(L.text, env, false).length && wordRuns(L.text).length <= 3) return;
-        addCand(L.text.replace(/\b(rp|idr)\s?[\d.,]+/gi, ' '), 7);
+        addCand(L.text.replace(/\b(rp|idr)\s?[\d.,]+/gi, ' '), 7, false, 'caption');
       });
     }
     cands.sort((a, b) => a.prio - b.prio);
     const counterparty = cands.length ? cands[0].c : null;
+    // a counterparty's row whose name the push Worker removed ("Pengirim ***", "Dari" / "BCA - ***"): the party is
+    // known, only not named
+    const hiddenParty = !cands.length && live.find(L => /\*{3}/.test(L.value) && !cleanPayName(L.value) &&
+      (type === 'INCOME' ? L.of === 'from' : L.of === 'merchant' || L.of === 'payee'));
 
     const dstBrand = payKeyBrand(dstKey);
     const dstName = dstBrand ? PAY_BRANDS[dstBrand].name : (env.wallets.find(w => w.id === payKeyWallet(dstKey, env)) || {}).name || '';
     // own accounts: "Top up GoPay" into an e-wallet, "Transfer ke OCBC" into a bank account
     const ownTitle = () => (dstBrand && PAY_BRANDS[dstBrand].ewallet ? 'Top up ' : en ? 'Transfer to ' : 'Transfer ke ') + dstName;
-    let title;
+    let title, titleFrom = 'own', titleWallet = null;
     if (type === 'TRANSFER') {
       if (withdraw) title = en ? 'Cash withdrawal' : 'Tarik tunai';
       else if (ownTo && !topupLines.length) title = ownTitle();
       else title = 'Top up ' + dstName;
       title = title.trim();
     } else if (ownTo && dstName) title = ownTitle().trim();
-    else if (counterparty) title = counterparty;
+    else if (counterparty) {
+      title = counterparty;
+      titleFrom = cands[0].from;
+      // an e-wallet named with the account's holder ("OVO BUDI SANTOSO", "GOPAY-BUDI", "DANA - budi99", "DNID BUDI"):
+      // the wallet that was topped up (fields.titleWallet)
+      titleWallet = payMentions(cands[0].raw, env, true).map(x => payKeyBrand(x.key)).find(b => b && PAY_BRANDS[b].ewallet) || null;
+    }
     else if (type === 'INCOME') title = en ? 'Money received' : 'Uang masuk';
     else if (qris) title = en ? 'QRIS payment' : 'Pembayaran QRIS';
     else if (anyRe(/\b(transfer|kirim uang|sent)\b/)) title = 'Transfer';
     else title = en ? 'Payment' : 'Pembayaran';
 
     // ---- date & time
-    let dk = null, time = null, dateLine = null, timeFromStatusBar = false;
+    let dk = null, time = null, dateLine = null, timeFromStatusBar = false, dayRel = null;
     const maxDay = env.today ? addDays(env.today, 1) : null;
     // only date rows and free lines: never a note ("arisan 10/10"), a name or an id
-    const dateOrder = live.filter(L => L.hasDate && !PAY_SKIP_DATE_RE.test(L.norm) && (!L.of || L.of === 'date'))
+    // (nor a Gmail print's page header "10/5/26, 7:15 PM Gmail - ...": the printer's clock, its day in the browser's order)
+    const dateOrder = live.filter(L => L.hasDate && !PAY_SKIP_DATE_RE.test(L.norm) && (!L.of || L.of === 'date') && !/\bgmail -/i.test(L.text))
       .sort((a, b) => (a.of === 'date' ? 0 : 1) - (b.of === 'date' ? 0 : 1) || a.i - b.i);
     for (const L of dateOrder) {
       const k = L.ds.map(d => d.key).find(key => key && (!maxDay || key <= maxDay));
@@ -5421,11 +5536,17 @@ const Core = (() => {
       if (rel) {
         const src = rel.of ? rel.value : rel.text;
         const w = REL_DAY_RE.exec(normalizeText(src))[1];
-        dk = addDays(env.today, w === 'kemarin lusa' ? -2 : (w === 'kemarin' || w === 'kemaren' || w === 'yesterday') ? -1 : 0);
+        dayRel = w === 'kemarin lusa' ? -2 : (w === 'kemarin' || w === 'kemaren' || w === 'yesterday') ? -1 : 0;
+        dk = addDays(env.today, dayRel);
         const tm = payTimeIn(src.replace(/^[^\d]*?(hari ini|today|kemarin lusa|kemarin|kemaren|yesterday)/i, ' '), true);
         if (tm) time = tm;
         dateLine = rel;
       }
+    }
+    // OCBC's reference "MB202610151911213145" is MB + yyyymmddHHmm + 6 digits: its clock, when its day is the payment's
+    if (!time && dk) {
+      const mb = live.map(L => /(?:^|[^A-Za-z0-9])MB(20\d\d)(\d\d)(\d\d)([01]\d|2[0-3])([0-5]\d)\d{6}(?![A-Za-z0-9])/.exec(L.text)).find(Boolean);
+      if (mb && resolveDate(+mb[1], +mb[2], +mb[3], null) === dk) time = mb[4] + ':' + mb[5];
     }
     if (!time && statusTime && (!dk || dk === env.today)) { time = statusTime; timeFromStatusBar = true; }
 
@@ -5449,7 +5570,22 @@ const Core = (() => {
       if (ml) method = ml.value.replace(/[^A-Za-z0-9 .'’\-]/g, ' ').split(' ').filter(w => (w.match(/\d/g) || []).length < 4 && !/^\d+$/.test(w)).join(' ')
         .replace(/\s+/g, ' ').replace(/^[\s\-.]+|[\s\-.]+$/g, '').slice(0, 30) || null;
     }
-    const notes = live.filter(L => L.of === 'note' && L.value).map(L => L.value);
+    // The title's party may be a person, not a shop (fields.toPerson): money received, a transfer, BI-FAST, a payee
+    // whose value or wrapped line is an account ("Ke: BUDI" / "BCA ***"); unless a QRIS status line (or a QRIS payment's
+    // "Payment to" row) says a shop was paid: transfer words in a status line, a short line or the product row; and,
+    // with no QRIS and no merchant row, a recipient row (Penerima, Tujuan, Recipient), a destination account row (Bank
+    // Tujuan, No. Rekening), or a plain "Ke" row without a payment's status line ("Pembayaran berhasil").
+    const merchantRow = live.some(L => L.of === 'merchant' && L.value);
+    const accountPayee = live.some((L, k) => L.of === 'payee' && (/\d{6}|\*{3}|[•·]{2}/.test(L.value) || (L.cont && payMentions(L.text, env, true).length > 0) ||
+      live.slice(k + 1, k + 3).some(M => M.of === 'toAcct')));
+    const xferLine = live.some(L => (L.headline || L.of === 'product' || (!L.of && !L.label && wordRuns(L.text).length <= 6)) && PAY_XFER_RE.test(L.norm));
+    const payHead = live.some(L => L.headline && /\b(pembayaran|payment|bayar|dibayar|pembelian|purchase|paid)\b/.test(L.norm) && !PAY_XFER_RE.test(L.norm));
+    const personRow = !qris && !merchantRow && live.some(L => L.of === 'toAcct' ||
+      (L.of === 'payee' && (payeeSource(L.ofPhrase) === 'person' || (payeeSource(L.ofPhrase) === 'payee' && !payHead))));
+    const qrisHead = live.some(L => L.headline && /\bqris\b|\bqr payment\b|\b(?:pembayaran|bayar) qr\b/.test(L.norm) && !PAY_XFER_RE.test(L.norm));
+    const shopSure = qrisHead || (qris && titleFrom === 'payto');
+    const toPerson = type === 'INCOME' || type === 'TRANSFER' || method === 'BI-FAST' || accountPayee || (!shopSure && (xferLine || personRow));
+    const notes = live.filter(L => L.of === 'note' && /[A-Za-z0-9]/.test(L.value)).map(L => L.value);
     const products = live.filter(L => L.of === 'product' && L.value).map(L => L.value);
 
     // ---- category: counterparty and product first; other free text only when that says nothing
@@ -5473,11 +5609,13 @@ const Core = (() => {
     if (agrees) conf += 0.1;
     if (statusFound) conf += 0.2;
     if (counterparty || type === 'TRANSFER') conf += cands.length && cands[0].prio <= 4 ? 0.15 : 0.08;
+    else if (hiddenParty) conf += hiddenParty.cont ? 0.08 : 0.15;
     if (dk) conf += 0.1;
     if (time) conf += 0.03;
     if (walletHint) conf += 0.05;
     if (ref || qris) conf += 0.05;
     if (amount === null) conf = Math.min(conf, 0.3);
+    if (status) conf = Math.min(conf, status === 'failed' ? 0.4 : 0.6);
     conf = Math.round(Math.min(1, conf) * 100) / 100;
     const looksPayment = statusFound || qris || !!ref || live.some(L => L.of === 'src' || L.of === 'merchant' || L.of === 'payee' || L.of === 'from');
     return {
@@ -5488,11 +5626,24 @@ const Core = (() => {
         note: notes.length ? notes[0].slice(0, 80) : null,
         app: appBrand, appName: appBrand ? PAY_BRANDS[appBrand].name : null,
         toApp: payKeyBrand(dstKey), timeFromStatusBar,
+        // 'failed' | 'pending' | null: a failed transaction moved no money, a pending one may still fail
+        status,
         // where the amount came from ('total' | 'nominal' (price + fees - discounts) | 'hero' | 'sub' | 'loose' | null) and the
         // big amount on the screen (null when none): the UI asks for a check when they disagree
-        amountFrom, heroAmount: hero !== null && hero > 0 ? roundTo(hero, env.dec) : null
+        amountFrom, heroAmount: hero !== null && hero > 0 ? roundTo(hero, env.dec) : null,
+        // for the push Worker: where the title came from (PAYTO_PHRASES), the e-wallet named on that row with a person,
+        // money to or from a person, and the day as an offset from today when the screen says "Hari ini" / "Kemarin"
+        titleFrom, titleWallet, toPerson, dayRel
       }
     };
+  }
+
+  // 'failed' | 'pending' | null from a text's normalized lines: a status row or a short line about the transaction
+  function txStatus(norms) {
+    // "Status" then "Gagal" (Live Text's label column, then the value): read as one row
+    norms = norms.map((n, i) => (i > 0 && norms[i - 1] === 'status' ? 'status ' + n : n));
+    const hit = re => norms.some(n => n.length <= 80 && re.test(n) && !PAY_COND_RE.test(n) && PAY_TX_WORD_RE.test(n));
+    return hit(PAY_FAILED_RE) ? 'failed' : hit(PAY_PENDING_RE) ? 'pending' : null;
   }
 
   // Paper receipt vs payment-confirmation screen. Positive = screen.
@@ -5500,7 +5651,7 @@ const Core = (() => {
     const lines = String(text == null ? '' : text).replace(/\r/g, '').split('\n').map(l => normalizeText(l)).filter(Boolean);
     let pay = 0, rc = 0, itemLines = 0;
     const all = ' ' + lines.join(' | ') + ' ';
-    if (lines.some(l => PAY_SUCCESS_RE.test(l) || (PAY_INCOME_RE.test(l) && !PAY_NOT_INCOME_RE.test(l)))) pay += 3;
+    if (lines.some(l => isSuccessLine(l) || ((PAY_INCOME_RE.test(l) || PAY_CREDIT_RE.test(l)) && !PAY_NOT_INCOME_RE.test(l)))) pay += 3;
     if (/\bqris\b/.test(all)) pay += 1;
     [/\b(id transaksi|transaction id|no ref|no referensi|nomor referensi|reference|rrn|no transaksi)\b/, /\b(sumber dana|metode pembayaran|payment method|source of funds|rekening sumber)\b/,
       /\b(penerima|recipient|rekening tujuan|bank tujuan|nama merchant|paid to|pengirim)\b/, /\b(nmid|merchant pan|bi fast|virtual account)\b/,
@@ -5511,16 +5662,237 @@ const Core = (() => {
     lines.forEach(l => {
       if (/\b(kembali|kembalian|change|tunai|cash)\b/.test(l) && /\d/.test(l) && !/\b(tarik tunai|kembali ke)\b/.test(l)) rc += 1;
       if (/\b(kasir|cashier|npwp|ppn|pb1|pbjt|struk|nota|terima kasih|thank you|qty|jl|jln|jalan|telp|tlp|item|items)\b/.test(l)) rc += 1;
-      if (/[a-z]{3,}.*\s\d{1,3}(?:[.,]\d{3})+$/.test(l) && !/\b(total|nominal|biaya|saldo|jumlah|harga|bayar|subtotal|rp)\b/.test(l)) itemLines++;
+      // an item row ("es teh manis 5.000"): a word, then a grouped figure at the end. Two steps, not one pattern:
+      // /[a-z]{3,}.*\s\d.../ is cubic on a long run of letters (the push Worker parses text it is sent).
+      const item = /\s\d{1,3}(?:[.,]\d{3})+$/.exec(l);
+      if (item && /[a-z]{3}/.test(l.slice(0, item.index)) && !/\b(total|nominal|biaya|saldo|jumlah|harga|bayar|subtotal|rp)\b/.test(l)) itemLines++;
       if (/\b\d+\s?[x@]\s?\d/.test(l)) rc += 1;
     });
     if (itemLines >= 3) rc += 2;
     return { pay, receipt: rc };
   }
 
+  // ---------- bank e-mails (Apple Mail's body text from a Shortcut, or a copied e-mail) ----------
+  // Transaction e-mails (OCBC "Successful QR Payment", BRImo "Pembelian QRIS Berhasil", myBCA "Internet Transaction
+  // Journal") turned into text: table cells on their own lines or split by tabs, the value after a colon on the label's
+  // line or the next one, mail headers, a greeting with the account holder's name, a long footer. emailText() turns
+  // that into the label/value lines extractPayment reads, and reads the optional first line a Shortcut adds with the
+  // e-mail's received date ("Tanggal email: 15 Oktober 2026 pukul 19.11") for a payment that has no date or time.
+  const MAIL_DATE_LINE_RE = /^(?:(?:tanggal|tgl|waktu)\s+(?:e-?mail|surel)(?:\s+(?:diterima|masuk))?|e-?mail\s+(?:date|diterima|received)|date\s+received|received|diterima|date)\s*[:=]\s*(\S.*)$/i;
+  const MAIL_HEADER_RE = /^(from|to|cc|bcc|reply-to|subject|date|sent|dari|kepada|subjek|perihal|tanggal|dikirim|tembusan)\s*:\s*(.*)$/i;
+  const MAIL_ADDR_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}/;
+  const MAIL_GREETING_RE = /^(?:dear|halo|hallo|hello|hi|hai|yth\.?|yang terhormat)(?=[\s,.!]|$)/i;
+  const MAIL_SIGNAL_RE = /\b(?:this e-?mail is (?:generated|sent) automatically|e-?mail ini (?:dikirim|dibuat) (?:secara )?otomatis|do not (?:reply|send a response)|(?:tidak|jangan) membalas|thank you for using|terima kasih (?:sudah|telah) menggunakan|berikut (?:adalah )?(?:detail|rincian) transaksi|here are the details of your transaction|you just made a transaction|we inform you that|transaction journal|save this e-?mail)\b/i;
+  const MAIL_FOOTER_RE = /^(?:please save this e-?mail|if you do not recognize|if you did not (?:make|do)|best regards|kind regards|regards|yours (?:sincerely|faithfully|truly)|sincerely|hormat kami|salam(?: hangat)?,?$|terima kasih (?:sudah|telah|atas)|thank you for banking|informasi\s*:?$|butuh (?:info|bantuan)|please feel free to contact|for (?:inquiries|further information|more information)|this e-?mail is (?:generated|sent)|e-?mail ini (?:dikirim|dibuat)|mohon (?:untuk )?(?:tidak|jangan) membalas|semoga info|download aplikasi|hubungi kami|©|\(c\)\s|copyright)/i;
+  // what kind of payment a block is about ("TO" / "QR Payment" / merchant), never the merchant itself
+  const MAIL_KIND_LINE_RE = /^(?:qr payment|qris payment|qr|qris|pembayaran qris|pembayaran qr|bayar qr|qr bayar|qris bayar|bayar qris|payment|pembayaran|purchase|pembelian)$/i;
+  // "IDR 693813638592", "0409 **** **** 504", "IDR ***" (an account number, whole, masked or removed)
+  const isAcctLine = l => {
+    const v = l.replace(/^(?:idr|rp\.?)\s*/i, '');
+    return /^[\d*•xX\s-]+$/.test(v) && !/^\d{1,3}([.,]\d{3})+/.test(v) && ((v.match(/\d/g) || []).length >= 8 || /[*•]/.test(v));
+  };
+  // A body handed over as HTML (Shortcuts may pass an e-mail's content as an HTML file): cells become tabs, blocks
+  // and <br> lines, tags go, entities are decoded. The push Worker does the same before it redacts.
+  // Plain lines before the markup (the Shortcut's "Tanggal email: ..." line) stay lines of their own; runs of empty
+  // lines (spacer rows) become one line break.
+  const HTML_ENTITIES = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", commat: '@', ndash: '-', mdash: '-', hellip: '...', rsquo: "'", lsquo: "'",
+    zwnj: '', zwj: '', shy: '', zerowidthspace: '', lrm: '', rlm: '', copy: '\u00a9' };
+  const HTML_FIRST_TAG_RE = /<(?:!--|!doctype|\/?(?:html|head|body|meta|style|title|table|tbody|thead|tr|td|th|div|p|br|span|font|b|i|u|strong|em|center|a|img|ul|ol|li|h[1-6]|section|header|footer|hr)\b[^<>]*>)/i;
+  function markupToText(s) {
+    return s.replace(/<(script|style|head|title)\b[\s\S]*?<\/\1\s*>/gi, ' ').replace(/<!--[\s\S]*?-->/g, ' ').replace(/[\r\n]+/g, ' ')
+      .replace(/<br\s*\/?>/gi, '\n').replace(/<\/(?:td|th)\s*>/gi, '\t')
+      .replace(/<\/?(?:p|div|tr|table|tbody|thead|tfoot|li|ul|ol|h[1-6]|section|article|header|footer|center|blockquote|hr)\b[^>]*>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&(#x[0-9a-f]{1,6}|#\d{1,7}|[a-z]+);/gi, (m, e) => {
+        const k = e.toLowerCase();
+        if (k[0] !== '#') return hasOwn(HTML_ENTITIES, k) ? HTML_ENTITIES[k] : m;
+        const n = k[1] === 'x' ? parseInt(k.slice(2), 16) : parseInt(k.slice(1), 10);
+        return n > 0 && n <= 0x10ffff && !(n >= 0xd800 && n <= 0xdfff) ? String.fromCodePoint(n) : ' ';
+      })
+      .replace(/[ \t]*\n(?:[ \t]*\n)+/g, '\n');
+  }
+  function htmlToText(s) {
+    if (!/<(?:html|body|table|div|p|br|td|tr|span|font|b|strong|center)\b[^>]*>/i.test(s)) return s;
+    const at = s.search(HTML_FIRST_TAG_RE);
+    const cut = at > 0 ? s.lastIndexOf('\n', at) + 1 : 0;
+    return s.slice(0, cut) + markupToText(s.slice(cut));
+  }
+  // Line and paragraph separators (U+2028/2029 from rich text, NEL, VT, FF) are line breaks; zero-width characters go.
+  const LINE_SEP_RE = /\r\n?|[\u000b\u000c\u0085\u2028\u2029]/g;
+  const normBreaks = s => String(s == null ? '' : s).replace(LINE_SEP_RE, '\n');
+  // a received date: "15 Oktober 2026 pukul 19.11", "Tue, Oct 6, 2026 at 7:52 PM", "15/10/26 19.11", "Hari ini 19.11"
+  // "10/6/26, 7:52 PM" (Shortcuts' short date in English US): month first when the line has AM/PM, or when the second
+  // number cannot be a month ("10/15/26"); a clock with seconds ("19.11.05") is never a date.
+  const MAIL_NUM_DATE_RE = /(^|[^\d./-])(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})(?![\d/])/;
+  const MAIL_CLOCK_SEC_RE = /(^|[^\d.:])((?:[01]?\d|2[0-3])[.:][0-5]\d[.:][0-5]\d)(?![\d.:])/g;
+  function mailDateOf(s, today) {
+    s = String(s);
+    const num = MAIL_NUM_DATE_RE.exec(s);
+    if (num && +num[2] <= 12 && (+num[3] > 12 || /\d\s?[ap]\.?\s?m\b/i.test(s)) && +num[3] <= 31) {
+      s = s.slice(0, num.index) + num[1] + num[3] + '/' + num[2] + '/' + num[4] + s.slice(num.index + num[0].length);
+    }
+    const ds = findDates(s.replace(MAIL_CLOCK_SEC_RE, (m, p, c) => p + ' '.repeat(c.length)), today);
+    let day = ds.length ? ds[0].key : null;
+    let rest = ds.length ? stripRanges(s, ds) : s;
+    if (!day && today) {
+      const m = /\b(hari ini|today|kemarin|yesterday)\b/i.exec(s);
+      if (m) { day = addDays(today, /kemarin|yesterday/i.test(m[1]) ? -1 : 0); rest = s.replace(m[0], ' '); }
+    }
+    if (!day || (today && day > addDays(today, 1))) return null;
+    return { day, time: payTimeIn(rest, true) };
+  }
+  // A forwarded or quoted mail: the forwarded mail's own headers follow these markers (Gmail, Apple Mail, Outlook)
+  const MAIL_FORWARD_RE = /^(?:-{2,}\s*(?:forwarded message|original message|pesan (?:terusan|asli|yang diteruskan)|pesan diteruskan)\s*-{2,}|begin forwarded message\s*:?|awal pesan (?:yang )?diteruskan\s*:?|pesan yang diteruskan\s*:?|(?:on|pada)\s.{4,200}\s(?:wrote|menulis)\s*:?)$/i;
+  const moneyLine = l => findMoney(fixPayMoney(l)).some(t => (t.rp || t.formatted) && t.value > 0);
+  // -> { isEmail, text (cleaned when isEmail, else as given), receivedDay, receivedTime }
+  function emailText(text, today) {
+    const given = String(text == null ? '' : text);
+    const out = { isEmail: false, text: given, receivedDay: null, receivedTime: null };
+    let lines = [];
+    htmlToText(normBreaks(given.slice(0, 100000))).split('\n').forEach(l => {
+      // quote markers of a replied or forwarded mail ("> ", "> > ")
+      l.replace(/^[\s>]*>\s?/, '').split('\t').forEach(c => {
+        const v = c.replace(/[​-‍⁠﻿­]/g, '').replace(/[   ]/g, ' ').replace(/\s+/g, ' ').trim();
+        if (v) lines.push(v);
+      });
+    });
+    if (!lines.length) return out;
+    let received = null;
+    const first = MAIL_DATE_LINE_RE.exec(lines[0]);
+    if (first && (received = mailDateOf(first[1], today))) lines.shift();
+    // forwarded or quoted: the note before the marker goes (unless it holds money), the forwarded headers come next
+    const fwd = lines.findIndex(l => MAIL_FORWARD_RE.test(l));
+    if (fwd >= 0) lines = lines.slice(0, fwd).filter(moneyLine).concat(lines.slice(fwd + 1));
+    const head = lines.slice(0, 12);
+    const isEmail = !!received || fwd >= 0 || head.some(l => MAIL_GREETING_RE.test(l)) || lines.some(l => MAIL_SIGNAL_RE.test(l)) ||
+      head.filter(l => MAIL_HEADER_RE.test(l) && MAIL_ADDR_RE.test(l)).length > 0;
+    if (!isEmail) return out;
+
+    // mail headers at the top (or of the forwarded mail): the subject stays (it may name the merchant), a Date header is
+    // only a received date (the payment's own date rows win)
+    let subject = '';
+    while (lines.length) {
+      const h = MAIL_HEADER_RE.exec(lines[0]);
+      if (!h) break;
+      const key = h[1].toLowerCase();
+      if (/^(subject|subjek|perihal)$/.test(key)) subject = subject || h[2];
+      else if (/^(date|tanggal|sent|dikirim)$/.test(key)) { const d = mailDateOf(h[2], today); if (!d) break; received = received || d; }
+      else if (!MAIL_ADDR_RE.test(h[2]) && h[2]) break;
+      lines.shift();
+    }
+    if (subject) lines.unshift(subject);
+    const keep = [];
+    lines.forEach(l => {
+      if (MAIL_GREETING_RE.test(l)) return;
+      // addresses (a "From" line with the received date, a help-desk footer): the date may help, the line never does
+      if (MAIL_ADDR_RE.test(l)) { if (!received && /</.test(l)) received = mailDateOf(l.replace(MAIL_ADDR_RE, ' '), today); return; }
+      if (/^(?:https?:\/\/|www\.)\S+$/i.test(l)) return;
+      // "Status" then ": Successful" (or ":" and "Successful" as cells of their own): the value goes onto its label's line
+      const last = keep.length ? keep[keep.length - 1] : '';
+      if (/^:\s*\S/.test(l) && last && !/:\s*$/.test(last)) { keep[keep.length - 1] += ' : ' + l.replace(/^:\s*/, ''); return; }
+      if (l === ':' && last && !/:\s*$/.test(last)) { keep[keep.length - 1] += ' :'; return; }
+      if (/ :$/.test(last) && !payLabelOf(l)) { keep[keep.length - 1] += ' ' + l; return; }
+      // "Catatan" then "-": an empty value stays on its label's line
+      if (/^[-–—]$/.test(l) && last && payLabelOf(last) && !payLabelOf(last).value) { keep[keep.length - 1] += ' -'; return; }
+      keep.push(l);
+    });
+    lines = keep;
+
+    // the footer: from its first line after the payment's amount, unless an amount row still follows
+    const amountRow = l => { const lab = payLabelOf(l); return !!lab && (lab.kind === 'total' || lab.kind === 'nominal') && findMoney(lab.value).some(t => t.rp || t.formatted); };
+    const firstMoney = lines.findIndex(l => findMoney(fixPayMoney(l)).some(t => (t.rp || t.formatted) && t.value > 0));
+    if (firstMoney >= 0) {
+      for (let i = firstMoney + 1; i < lines.length; i++) {
+        if (MAIL_FOOTER_RE.test(lines[i]) && !lines.slice(i + 1).some(amountRow)) { lines = lines.slice(0, i); break; }
+      }
+    }
+
+    // OCBC: "FROM" (holder's name, account, product; "IDR" and the amount) then "TO" (what kind, Merchant PAN, the
+    // merchant, its city). The holder's name and the account go; the merchant gets its label. The cells of a row may
+    // run together ("FROM IDR", "BUDI SANTOSO IDR 104,500", "TO QR Payment"); Indonesian heads are DARI / KE.
+    lines = lines.flatMap(l => {
+      let m = /^(from|dari)\s+((?:idr|rp\.?)(?:\s?[\d.,]+)?)$/i.exec(l);
+      if (m) return [m[1], m[2]];
+      m = /^(to|ke|kepada)\s+(.+)$/i.exec(l);
+      return m && MAIL_KIND_LINE_RE.test(m[2]) ? [m[1], m[2]] : [l];
+    });
+    const iFrom = lines.findIndex(l => /^(?:from|dari)$/i.test(l));
+    const iTo = iFrom < 0 ? -1 : lines.findIndex((l, i) => i > iFrom && /^(?:to|ke|kepada)$/i.test(l));
+    if (iFrom >= 0 && iTo > iFrom) {
+      // money coming in ("You have received a transfer", a refund): FROM is the sender, TO the holder
+      const incoming = lines.some(l => { const n = normalizeText(l); return PAY_INCOME_RE.test(n) && !PAY_NOT_INCOME_RE.test(n); });
+      const from = [];
+      const sender = [];
+      let figures = false;
+      lines.slice(iFrom + 1, iTo).flatMap(l => {
+        const m = /^([A-Za-zÀ-ɏ' .,-]+?)\s+((?:idr|rp\.?)\s?\d[\d.,]*)$/i.exec(l);
+        return m ? [m[1], m[2]] : [l];
+      }).forEach(l => {
+        if (/^(?:idr|rp\.?)$/i.test(l)) return;
+        if (/\d|[*•]/.test(l)) figures = true;
+        else if (!figures) {
+          if (incoming && !payMentions(l, makePayEnv({}), true).length && !/^bank\b/i.test(l)) sender.push(l);
+          else if (incoming) from.push(l);
+          return;
+        }
+        if (!isAcctLine(l)) from.push(l);
+      });
+      if (sender.length) from.unshift('Sender: ' + sender.join(' '));
+      let j = iTo + 1, merchantish = false, name = '', place = '';
+      const pans = [];
+      for (; j < lines.length; j++) {
+        const l = lines[j];
+        const lab = payLabelOf(l);
+        if (lab && !/\bpan$/.test(lab.phrase)) break;
+        if (lab) { merchantish = true; pans.push(l); continue; }
+        if (MAIL_KIND_LINE_RE.test(l)) { if (/qr/i.test(l)) merchantish = true; continue; }
+        if (!/[A-Za-z]{2}/.test(l) || isAcctLine(l)) continue;
+        if (findMoney(fixPayMoney(l)).some(t => t.rp || t.formatted) || findDates(l, today).length) break;
+        if (!name) name = l;
+        else if (!place) place = l;
+        else break;
+      }
+      const to = pans.slice();
+      // an incoming transfer's TO is the holder's own name and account: neither is read
+      if (name && !(incoming && !merchantish)) to.push((merchantish ? 'Merchant: ' : 'Recipient: ') + name);
+      if (place && !(incoming && !merchantish)) to.push((merchantish ? 'Merchant Location: ' : '') + place);
+      lines = lines.slice(0, iFrom).concat(from, to, lines.slice(j));
+    }
+    out.isEmail = true;
+    out.text = lines.join('\n');
+    if (received) { out.receivedDay = received.day; out.receivedTime = received.time; }
+    return out;
+  }
+
+  // Nothing usable read
+  function unknownRead() {
+    return { kind: 'unknown', type: 'EXPENSE', title: '', amount: null, dayKey: null, time: null, category: 'other', walletHint: null, toWalletHint: null, confidence: 0,
+      fields: { merchant: null, ref: null, method: null, fee: null, tip: null, note: null, app: null, appName: null, toApp: null, timeFromStatusBar: false, amountFrom: null, heroAmount: null, status: null,
+        titleFrom: null, titleWallet: null, toPerson: false, dayRel: null } };
+  }
+  // A promotion ("Nikmati cashback hingga Rp50.000", "Min. transaksi Rp100.000"), or only a balance: every figure in it
+  // is an offer or a balance, none was paid
+  function promoOnly(text) {
+    const ls = String(text).split('\n').map(normalizeText);
+    const money = String(text).split('\n').filter(moneyLine);
+    return money.length > 0 && money.every(l => { const n = normalizeText(l); return PAY_PROMO_RE.test(n) || PAY_SKIP_LINE_RE.test(n); }) &&
+      !ls.some(n => isSuccessLine(n) || (PAY_INCOME_RE.test(n) && !PAY_NOT_INCOME_RE.test(n)));
+  }
   // Router for text read from a picture: success screens go to extractPayment, paper receipts to extractReceipt.
   function extractFromImageText(text, ctx) {
     ctx = ctx || {};
+    // U+2028 / U+2029 (rich text from Mail or Shortcuts), NEL, VT, FF: line breaks like any other
+    if (text != null) text = normBreaks(text);
+    // a bank e-mail: read its cleaned text; its received date fills in a missing date (and time, on that day)
+    const mail = emailText(text, ctx.today);
+    if (promoOnly(mail.isEmail ? mail.text : text)) return unknownRead();
+    if (!mail.isEmail) return routeImageText(text, ctx);
+    const r = routeImageText(mail.text, ctx);
+    if (!r.dayKey && mail.receivedDay && (!ctx.today || mail.receivedDay <= ctx.today)) r.dayKey = mail.receivedDay;
+    if (!r.time && mail.receivedTime && r.dayKey === mail.receivedDay) r.time = mail.receivedTime;
+    return r;
+  }
+  function routeImageText(text, ctx) {
     const sig = paymentSignals(text);
     const pay = extractPayment(text, ctx);
     if ((sig.pay >= 3 && sig.pay > sig.receipt) || (pay.kind === 'payment' && sig.pay >= 2 && sig.receipt <= 1)) {
@@ -5530,12 +5902,9 @@ const Core = (() => {
     const env = makePayEnv(ctx);
     const r = extractReceipt(text, ctx);
     if (r.amount === null && pay.amount !== null && sig.pay >= 2) { pay.kind = 'payment'; return pay; }
-    if (r.amount === null && !String(text == null ? '' : text).trim()) {
-      return { kind: 'unknown', type: 'EXPENSE', title: '', amount: null, dayKey: null, time: null, category: 'other', walletHint: null, toWalletHint: null, confidence: 0,
-        fields: { merchant: null, ref: null, method: null, fee: null, tip: null, note: null, app: null, appName: null, toApp: null, timeFromStatusBar: false, amountFrom: null, heroAmount: null } };
-    }
-    // paid how? "DEBIT BCA 50.000", "GOPAY 25.000", "QRIS", "TUNAI 100.000"
-    let hint = null, method = null;
+    if (r.amount === null && !String(text == null ? '' : text).trim()) return unknownRead();
+    // paid how? "DEBIT BCA 50.000", "GOPAY 25.000", "QRIS", "TUNAI 100.000" (app: the bank or app named there)
+    let hint = null, method = null, app = null;
     String(text).split('\n').forEach(line => {
       const up = line.toUpperCase();
       if (!/(DEBIT|DEBET|KREDIT|CREDIT|KARTU|CARD|EDC|QRIS|OVO|GOPAY|DANA|SHOPEEPAY|LINKAJA|NON TUNAI|E-?WALLET|TUNAI|CASH)/.test(up)) return;
@@ -5544,6 +5913,7 @@ const Core = (() => {
         const m = payMentions(line, env, false).find(x => payKeyWallet(x.key, env));
         if (m) hint = payKeyWallet(m.key, env);
       }
+      if (!app) app = payMentions(line, env, false).map(x => payKeyBrand(x.key)).find(Boolean) || null;
       if (!method && /(^|[^A-Z])(DEBIT|DEBET)([^A-Z]|$)/.test(up)) method = 'Debit';
       if (!method && /(^|[^A-Z])(KREDIT|CREDIT)([^A-Z]|$)/.test(up)) method = 'Credit';
     });
@@ -5555,16 +5925,20 @@ const Core = (() => {
       return !!rtime;
     });
     const fallbackTitle = r.title === 'Nota' || r.title === 'Receipt';
+    const status = txStatus(String(text).split('\n').map(normalizeText));
     let conf = r.amount !== null ? 0.45 : 0.1;
     if (r.dayKey) conf += 0.1;
     if (!fallbackTitle) conf += 0.1;
     if (sig.receipt >= 2) conf += 0.1;
+    if (status) conf = Math.min(conf, status === 'failed' ? 0.4 : 0.6);
     return {
       kind: r.amount === null && sig.receipt < 2 ? 'unknown' : 'receipt',
       type: 'EXPENSE', title: r.title, amount: r.amount, dayKey: r.dayKey, time: rtime, category: r.category,
       walletHint: hint, toWalletHint: null, confidence: Math.round(Math.min(conf, 0.85) * 100) / 100,
-      fields: { merchant: fallbackTitle ? null : r.title, ref: null, method, fee: null, tip: null, note: null, app: null, appName: null, toApp: null, timeFromStatusBar: false,
-        amountFrom: r.amount !== null ? 'receipt' : null, heroAmount: null }
+      fields: { merchant: fallbackTitle ? null : r.title, ref: null, method, fee: null, tip: null, note: null, app, appName: app ? PAY_BRANDS[app].name : null, toApp: null, timeFromStatusBar: false,
+        amountFrom: r.amount !== null ? 'receipt' : null, heroAmount: null, status,
+        // the header of a paper receipt ('store'), or the first line of a text that is hardly one ('top'); see PAYTO_PHRASES
+        titleFrom: fallbackTitle ? 'own' : sig.receipt >= 3 ? 'store' : 'top', titleWallet: null, toPerson: false, dayRel: null }
     };
   }
 
@@ -6024,6 +6398,20 @@ const Core = (() => {
     return '﻿' + rows.join('\r\n') + '\r\n';
   }
 
+  // ---------- possible duplicates: two titles for the same payment ----------
+  // "Kopi" vs "Kopi Kenangan Margonda": similar. A missing or generic title ("Pembayaran") compares as similar.
+  const DUP_STOP = new Set(['pembayaran', 'bayar', 'payment', 'transfer', 'transaksi', 'berhasil', 'sukses', 'qris', 'merchant', 'dari', 'untuk', 'via', 'and', 'dan', 'the', 'top']);
+  const dupNorm = s => String(s || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  const dupWords = s => s.split(' ').filter(w => w.length >= 3 && !DUP_STOP.has(w));
+  function titlesSimilar(a, b) {
+    const x = dupNorm(a), y = dupNorm(b);
+    const wx = dupWords(x), wy = dupWords(y);
+    if (!wx.length || !wy.length) return true;
+    if (x === y || x.includes(y) || y.includes(x)) return true;
+    const set = new Set(wx);
+    return wy.some(w => set.has(w) || wx.some(v => v.length >= 4 && w.length >= 4 && (v.startsWith(w) || w.startsWith(v))));
+  }
+
   // ---------- notifications (optional Web Push through Sangu's own push Worker) ----------
   // Pure helpers for the UI's "Notifikasi" section: which state to show, what an error means, the device record
   // kept in the browser (token, auth secret, notify URL, VAPID key) and base64url for VAPID keys.
@@ -6142,10 +6530,169 @@ const Core = (() => {
     const n = Math.max(0, Math.min(str.length, Math.trunc(Number(tailLen)) || 0));
     return { head: str.slice(0, str.length - n), tail: n ? str.slice(-n) : '' };
   }
+
+  // ---------- inbox: a payment a notification brought, as fields ----------
+  // With "Titip isi transaksi di notifikasi" on, a Shortcut sends the text of a bank e-mail or a screenshot to the push
+  // Worker. The Worker reads it with this file (vendored byte for byte: push-worker/src/vendor/core.cjs) and sends only
+  // these fields, never the text; the service worker keeps {n, f, receivedAt} per notification (IndexedDB
+  // 'moneyapp-inbox') and the app fills the transaction from f.
+  //   k  'payment' | 'receipt' | 'unknown'       ty  'EXPENSE' | 'INCOME' | 'TRANSFER'
+  //   a  amount                                  ti  title: a shop's name or the parser's own words (at most 40
+  //                                                  characters; the Worker sends no person's name: fields.titleFrom)
+  //   d  day 'YYYY-MM-DD'                         tm  time 'HH:mm'
+  //   dr the day as an offset from the day the push came (0, -1, -2), when the screen said "Hari ini" / "Kemarin" (the
+  //      Worker's clock is Asia/Jakarta; the phone may be in WITA or WIT): instead of d
+  //   c  category id                             ap  brand of the paying app or bank ('ocbc', 'gopay', ...; PAY_BRANDS)
+  //   ta brand the money went to (a top-up)      m   method ('QRIS', 'BI-FAST', 'GoPay Saldo', ...; at most 30)
+  //   fe fee                                     st  'failed' | 'pending'
+  //   cf confidence 0..1 (below 0.7 the amount is marked to check)
+  // Nothing read ('unknown', or no amount): at most {k, ap}; the app then points at Tempel (the clipboard has the text).
+  const INBOX_MAX = 20;
+  const INBOX_TTL_MS = 7 * DAY_MS;
+  const INBOX_ID_RE = /^[A-Za-z0-9_-]{8,32}$/;
+  const INBOX_FIELDS = Object.freeze(['k', 'ty', 'a', 'ti', 'd', 'dr', 'tm', 'c', 'ap', 'ta', 'm', 'fe', 'st', 'cf']);
+  const INBOX_TITLE_MAX = 40;
+  const INBOX_METHOD_MAX = 30;
+  const INBOX_TIME_RE = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+  const INBOX_CTRL_RE = /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/;
+  // At most `max` characters, cut between words
+  function cutWords(s, max) {
+    const chars = Array.from(s);
+    if (chars.length <= max) return s;
+    const head = chars.slice(0, max + 1).join('');
+    const sp = head.lastIndexOf(' ');
+    return (sp >= max / 2 ? head.slice(0, sp) : chars.slice(0, max).join('')).replace(/[\s\-.,:;/&(]+$/, '');
+  }
+  // The fields as the app takes them: known keys only, each one checked (a bad one is left out), in a fixed order.
+  // null when f is not an object.
+  function inboxFields(f) {
+    if (!isObj(f)) return null;
+    const out = {};
+    const text = (v, max) => {
+      if (typeof v !== 'string') return null;
+      const s = v.replace(/\s+/g, ' ').trim();
+      return s && !INBOX_CTRL_RE.test(s) && Array.from(s).length <= max ? s : null;
+    };
+    const money = v => (isFiniteNum(v) && v > 0 && v <= MAX_AMOUNT ? roundTo(v, STORE_DEC) : null);
+    const brand = v => (typeof v === 'string' && hasOwn(PAY_BRANDS, v) ? v : null);
+    const put = (k, v) => { if (v !== null && v !== undefined) out[k] = v; };
+    put('k', ['payment', 'receipt', 'unknown'].indexOf(f.k) >= 0 ? f.k : null);
+    put('ty', ['EXPENSE', 'INCOME', 'TRANSFER'].indexOf(f.ty) >= 0 ? f.ty : null);
+    put('a', money(f.a));
+    put('ti', text(f.ti, INBOX_TITLE_MAX));
+    put('d', isDayKey(f.d) ? f.d : null);
+    put('dr', !isDayKey(f.d) && (f.dr === 0 || f.dr === -1 || f.dr === -2) ? f.dr : null);
+    put('tm', typeof f.tm === 'string' && INBOX_TIME_RE.test(f.tm) ? f.tm : null);
+    put('c', typeof f.c === 'string' && hasOwn(CAT_INDEX, f.c) && f.c !== 'goal' ? f.c : null);
+    put('ap', brand(f.ap));
+    put('ta', brand(f.ta));
+    put('m', text(f.m, INBOX_METHOD_MAX));
+    put('fe', money(f.fe));
+    put('st', f.st === 'failed' || f.st === 'pending' ? f.st : null);
+    put('cf', isFiniteNum(f.cf) && f.cf >= 0 && f.cf <= 1 ? Math.round(f.cf * 100) / 100 : null);
+    return out;
+  }
+  // Fields worth a transaction sheet: an amount of a payment or a receipt
+  const inboxUsable = f => isObj(f) && f.a > 0 && (f.k === 'payment' || f.k === 'receipt');
+  // A reading (extractFromImageText) -> fields. The title and the method are taken as given: the push Worker checks
+  // them (redaction, the holder's name, numbers) before this. A weak amount (a loose figure, a subtotal, or another
+  // big figure on the screen that the fee or tip does not explain) gets a confidence below 0.7, so the app asks for a
+  // check as it does for a reading of its own.
+  function inboxFieldsOf(r) {
+    const fl = isObj(r) && isObj(r.fields) ? r.fields : {};
+    const amount = isObj(r) && isFiniteNum(r.amount) && r.amount > 0 ? r.amount : null;
+    if (!isObj(r) || r.kind === 'unknown' || amount === null) return inboxFields({ k: 'unknown', ap: fl.app });
+    let cf = isFiniteNum(r.confidence) ? r.confidence : 0;
+    const fee = isFiniteNum(fl.fee) && fl.fee > 0 ? fl.fee : 0, tip = isFiniteNum(fl.tip) && fl.tip > 0 ? fl.tip : 0;
+    const hero = isFiniteNum(fl.heroAmount) && fl.heroAmount > 0 ? fl.heroAmount : 0;
+    const gap = hero ? Math.abs(roundTo(hero - amount, STORE_DEC)) : 0;
+    const explained = !gap || [fee, tip, fee + tip].some(v => v > 0 && Math.abs(gap - v) < 0.005);
+    if (fl.amountFrom === 'loose' || fl.amountFrom === 'sub' || !explained) cf = Math.min(cf, 0.6);
+    const words = (v, max) => (typeof v === 'string' && v.trim() ? cutWords(v.replace(/\s+/g, ' ').trim(), max) : null);
+    const rel = fl.dayRel === 0 || fl.dayRel === -1 || fl.dayRel === -2;
+    return inboxFields({
+      k: r.kind, ty: r.type, a: amount, ti: words(r.title, INBOX_TITLE_MAX), d: rel ? null : r.dayKey, dr: rel ? fl.dayRel : null, tm: r.time, c: r.category,
+      ap: fl.app, ta: fl.toApp, m: words(fl.method, INBOX_METHOD_MAX), fe: fee || null, st: fl.status, cf
+    });
+  }
+  // Fields -> a reading in the shape extractFromImageText gives (what the transaction sheet is filled from). The
+  // wallets come from the brands, matched against the user's wallets the way a payment screen's brand is
+  // ("OCBC" -> the wallet "OCBC Nyala"; the plain one before "Kartu Kredit BCA"); paid in cash -> the cash wallet.
+  // A cash withdrawal goes to the cash wallet; money into an e-wallet the user tracks (a top-up the Worker could not
+  // tell was the user's own) is a transfer to it, as the app reads it itself with the user's wallets; the paying
+  // wallet found adds what it adds to the app's own reading of a payment screen (0.05).
+  // ctx: as for extractFromImageText (wallets), and receivedDay ('YYYY-MM-DD', the phone's day the push came; else
+  // ctx.today) for a relative day (dr).
+  function inboxReading(f, ctx) {
+    const x = inboxFields(f) || {};
+    const env = makePayEnv(isObj(ctx) ? ctx : {});
+    const wallet = b => (b ? payKeyWallet('b:' + b, env) : null);
+    let type = x.ty || 'EXPENSE';
+    let walletHint = wallet(x.ap);
+    if (!walletHint && /^(?:tunai|cash)$/i.test(x.m || '')) walletHint = env.cashId;
+    let toWalletHint = type === 'TRANSFER' ? wallet(x.ta) : null;
+    if (type === 'TRANSFER' && !x.ta && /^(?:tarik tunai|cash withdrawal)$/i.test(x.m || '')) toWalletHint = env.cashId;
+    if (type === 'EXPENSE' && x.ta && wallet(x.ta) && wallet(x.ta) !== walletHint) { type = 'TRANSFER'; toWalletHint = wallet(x.ta); }
+    const base = isObj(ctx) && isDayKey(ctx.receivedDay) ? ctx.receivedDay : env.today;
+    const dayKey = x.d || (x.dr !== undefined && isDayKey(base) ? addDays(base, x.dr) : null);
+    const cf = x.cf !== undefined ? x.cf : 0;
+    return {
+      kind: inboxUsable(x) ? x.k : 'unknown', type, title: x.ti || '', amount: x.a || null, dayKey, time: x.tm || null,
+      category: type === 'TRANSFER' ? 'transfer' : x.c || (type === 'INCOME' ? 'other_income' : 'other'),
+      walletHint, toWalletHint, confidence: walletHint && x.k === 'payment' ? Math.round(Math.min(1, cf + 0.05) * 100) / 100 : cf,
+      fields: { merchant: null, ref: null, method: x.m || null, fee: x.fe || null, tip: null, note: null, app: x.ap || null,
+        appName: x.ap ? PAY_BRANDS[x.ap].name : null, toApp: x.ta || null, timeFromStatusBar: false, amountFrom: null, heroAmount: null, status: x.st || null }
+    };
+  }
+  // Items worth keeping, newest first, one per id; with `now` (ms) nothing older than 7 days, at most 20. Their fields
+  // are cleaned (inboxFields); an item without fields (the text items of an earlier design) is not kept.
+  function inboxClean(list, now) {
+    const seen = new Set();
+    const ok = x => isObj(x) && typeof x.n === 'string' && INBOX_ID_RE.test(x.n) && isObj(x.f) &&
+      typeof x.receivedAt === 'number' && isFinite(x.receivedAt) && (typeof now !== 'number' || now - x.receivedAt < INBOX_TTL_MS);
+    return (Array.isArray(list) ? list : []).filter(ok)
+      .sort((a, b) => b.receivedAt - a.receivedAt)
+      .filter(x => (seen.has(x.n) ? false : (seen.add(x.n), true)))
+      .slice(0, INBOX_MAX)
+      .map(x => ({ n: x.n, f: inboxFields(x.f), receivedAt: x.receivedAt }));
+  }
+  // The ids of items to drop from storage: not usable, a repeated id, too old, beyond the newest 20.
+  function inboxExpired(list, now) {
+    const keep = new Set(inboxClean(list, now).map(x => x.n));
+    const out = [];
+    (Array.isArray(list) ? list : []).forEach(x => { const n = isObj(x) && typeof x.n === 'string' ? x.n : null; if (n !== null && !keep.has(n) && out.indexOf(n) < 0) out.push(n); });
+    return out;
+  }
+  // The transaction a pending item is surely recorded as already (saved with Tempel from the same e-mail, or typed with
+  // its time): same type and amount, same day, a similar title, the same clock time (within 2 minutes), recorded at or
+  // after `since` ('YYYY-MM-DDTHH:mm', shortly before the notification came). A second payment of the same amount at
+  // the same merchant that day has another time, so it is never taken for the first. Without a time on either side
+  // the match is not sure: null (the UI keeps the item and marks it "might already be recorded").
+  // c: { type, amount, day, time ('HH:mm' | null), title }; opts.exclude: ids of rows saved from other items.
+  const minutesOf = hm => (/^([01]\d|2[0-3]):([0-5]\d)/.test(String(hm || '')) ? +String(hm).slice(0, 2) * 60 + +String(hm).slice(3, 5) : null);
+  function inboxSavedAs(c, transactions, since, opts) {
+    if (!isObj(c) || !(c.amount > 0) || !isDayKey(c.day)) return null;
+    const want = minutesOf(c.time);
+    if (want === null) return null;
+    const exclude = new Set(isObj(opts) && Array.isArray(opts.exclude) ? opts.exclude : []);
+    const hits = (Array.isArray(transactions) ? transactions : []).filter(x => {
+      if (!isObj(x) || exclude.has(x.id) || x.type !== c.type || !(Math.abs(Number(x.amount) - c.amount) < 0.005)) return false;
+      const got = minutesOf(String(x.date).slice(11, 16));
+      return String(x.date).slice(0, 10) === c.day && got !== null && Math.abs(got - want) <= 2 &&
+        (!since || String(x.createdAt || '') >= since) && titlesSimilar(x.title, c.title);
+    });
+    hits.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+    return hits[0] || null;
+  }
+
   const push = {
     b64uToBytes, bytesToB64u, validToken: pushValidToken, validKey: pushValidKey, notifyUrl: pushNotifyUrl,
     saved: pushSaved, view: pushView, keyChanged: pushKeyChanged, errorKind: pushErrorKind, splitMiddle, KINDS: PUSH_KINDS,
-    hasNotifyUrl: pushHasNotifyUrl
+    hasNotifyUrl: pushHasNotifyUrl,
+    inboxClean, inboxExpired, inboxSavedAs, inboxFields, inboxFieldsOf, inboxReading, inboxUsable,
+    // a brand key's name ('gopay' -> 'GoPay'), null for an unknown key
+    brandName: b => (typeof b === 'string' && hasOwn(PAY_BRANDS, b) ? PAY_BRANDS[b].name : null),
+    INBOX_MAX, INBOX_TTL_MS, INBOX_FIELDS, INBOX_TITLE_MAX, INBOX_METHOD_MAX, validInboxId: n => typeof n === 'string' && INBOX_ID_RE.test(n)
   };
 
   return {
@@ -6153,10 +6700,10 @@ const Core = (() => {
     uid, pad2, dayKey, addDays, diffDays, daysInMonth, isDayKey,
     formatMoney, formatCompact, parseAmountInput, liveAmountInput, roundMoney, normalizeText,
     categoryById, categorize,
-    parseEntry, parseStatement, extractReceipt, extractPayment, extractFromImageText,
+    parseEntry, parseStatement, extractReceipt, extractPayment, extractFromImageText, emailText,
     defaultState, sanitizeState, validateBackup,
     walletBalances, goalBalances, deleteGoal, periodRange, budgetStats, streak, MAX_AMOUNT,
-    groupByDay, filterTransactions, toCSV, push
+    groupByDay, filterTransactions, toCSV, push, titlesSimilar
   };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = Core;
@@ -6622,9 +7169,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'clip.empty': 'Clipboard kosong. Salin dulu screenshot atau teks bukti bayarnya.',
     'clip.failed': 'Clipboard gagal dibaca. Coba lagi, atau pilih screenshot dari galeri.',
     'tips.item': 'Tips: catat dari screenshot',
-    'tips.itemSub': 'Cara cepat dari bukti QRIS & transfer',
+    'tips.itemSub': 'Dari screenshot, Pintasan & email bank',
     'tips.title': 'Catat dari screenshot',
-    'tips.honest': 'Jujur dulu ya: iPhone tidak mengizinkan app web seperti {app} memantau screenshot atau galeri kamu. Tapi app Pintasan (Shortcuts) bawaan iPhone bisa melakukannya — lihat cara 3. Ini 3 caranya:',
+    'tips.honest': 'Jujur dulu ya: iPhone tidak mengizinkan app web seperti {app} memantau screenshot atau galeri kamu. Tapi app Pintasan (Shortcuts) bawaan iPhone bisa melakukannya — lihat cara 3. Ini 4 caranya:',
     'tips.s1Title': 'Pilih screenshot',
     'tips.s1': 'Habis bayar, screenshot bukti bayarnya. Buka {app} → Catat → Dari screenshot → pilih dari Foto (yang terbaru ada paling atas). Nominal, nama toko, tanggal, jam, dan wallet-nya langsung terisi — tinggal cek, lalu Simpan.',
     'tips.s2Title': 'Salin & tempel (galeri tetap bersih)',
@@ -6634,7 +7181,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'tips.s3a': 'Buka app Pintasan → tab Otomatisasi → + → App → pilih app bayarmu (mis. GoPay, OCBC, BCA, DANA) → centang “Ditutup” (Is Closed), hapus centang “Dibuka” → pilih “Jalankan Segera” (Run Immediately) → lanjut → Otomatisasi Kosong Baru.',
     'tips.s3b': 'Tambahkan aksi berurutan: Dapatkan Jepretan Layar Terbaru (Get Latest Screenshots) → Dapatkan Detail Gambar: Tanggal Diambil (Get Details of Images: Date Taken) → Dapatkan Waktu di Antara Tanggal (Get Time Between Dates) dalam Menit → Jika (If) Waktu di Antara Tanggal “berada di antara” (is between) -3 dan 3: Ekstrak Teks dari Gambar (Extract Text from Image) — ketuk inputnya dan pilih Jepretan Layar Terbaru (Latest Screenshots) → Salin ke Papan Klip (Copy to Clipboard) → Tampilkan Pemberitahuan (Show Notification) “Bukti bayar baru, buka {app} → Catat → Tempel” → Akhiri Jika (End If). Izinkan akses Foto saat diminta.',
     'tips.s3c': 'Pakainya: bayar → screenshot → tutup app bayar → notifikasi muncul → buka {app} → Catat → Tempel → cek → Simpan.',
-    'tips.privacy': 'Gambar dan teksnya dibaca di HP ini — tidak dikirim ke server dan tidak disimpan. Pembaca gambarnya diunduh sekali saat pertama dipakai (butuh internet). Notifikasi itu opsional: kalau dinyalakan, yang dikirim cuma nominal & nama app untuk teks notifnya.',
+    'tips.privacy': 'Gambar dan teksnya dibaca di HP ini — tidak dikirim ke server dan tidak disimpan. Pembaca gambarnya diunduh sekali saat pertama dipakai (butuh internet). Notifikasi itu opsional: kalau dinyalakan, yang dikirim cuma nominal & nama app untuk teks notifnya — plus teks bukti bayar kalau Titip isi transaksi nyala: server cuma membacanya, lalu yang diteruskan ke HP ini hanya nominal, nama toko, tanggal & jam, kategori, dan bank. Tidak ada yang disimpan.',
     'tips.try': 'Coba sekarang',
     'catat.pasteHint': 'Ketuk Tempel untuk isi otomatis',
     'tips.s3d': 'Mau notifnya bisa diketuk untuk langsung membuka {app}? Nyalakan Notifikasi {app} di Pengaturan, lalu ikuti “Cara pasang di Pintasan”.',
@@ -6667,7 +7214,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'push.offConfirm': 'Ketuk lagi untuk mematikan',
     'push.disabling': 'Mematikan…',
     'push.disabled': 'Notifikasi dimatikan. URL lamanya sudah tidak berlaku.',
-    'push.privacy': 'Notifikasi lewat server kecil milik {app} (Cloudflare). Yang dikirim Pintasan cuma nama app (dan nominal kalau kamu isi) untuk teks notif, dan tidak disimpan. Isi bukti bayar tetap di HP.',
+    'push.privacy': 'Notifikasi lewat server kecil milik {app} (Cloudflare). Yang dikirim Pintasan cuma nama app (dan nominal kalau kamu isi) untuk teks notif — plus teks bukti bayar kalau Titip isi transaksi nyala, yang di server cuma dibaca: ke HP ini hanya diteruskan nominal, nama toko, tanggal & jam, kategori, dan bank. Tidak ada yang disimpan di server.',
     'push.howTitle': 'Cara pasang di Pintasan',
     'push.howApp': 'Buka app Pintasan → Otomatisasi → otomatisasi bukti bayar kamu (lihat Tips: catat dari screenshot → cara 3).',
     'push.howDelete': 'Hapus aksi Tampilkan Pemberitahuan (Show Notification). Aksi Salin ke Papan Klip (Copy to Clipboard) sebelumnya biarkan saja.',
@@ -6691,7 +7238,40 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'push.errSubscribe': 'HP ini gagal mendaftar notifikasi. Coba lagi, atau tutup lalu buka lagi {app} dari Layar Utama.',
     'push.errSw': '{app} belum siap untuk notifikasi. Tutup lalu buka lagi {app}, lalu coba lagi.',
     'push.errStorage': 'Penyimpanan browser penuh, jadi URL notifikasinya nggak bisa disimpan. Backup data dulu, kosongkan ruang penyimpanan, lalu coba lagi.',
-    'push.errDismissed': 'Izin notifikasi belum diberikan. Ketuk tombolnya lagi, lalu pilih Izinkan.'
+    'push.errDismissed': 'Izin notifikasi belum diberikan. Ketuk tombolnya lagi, lalu pilih Izinkan.',
+    'push.textToggle': 'Titip isi transaksi di notifikasi',
+    'push.textToggleSub': 'Teks email atau screenshot bukti bayar dikirim ke server notifikasi {app} cuma untuk dibaca. Yang sampai ke HP ini hanya nominal, nama toko, tanggal & jam, kategori, dan bank (nama orang, misalnya penerima transfer, tidak ikut), jadi {app} langsung isi transaksinya tanpa Tempel. Teksnya tidak diteruskan dan tidak disimpan, dan Apple tidak bisa membaca notifnya.',
+    'push.textOn': 'Nyala. Tambahkan field text di Pintasan — lihat Cara pasang di Pintasan.',
+    'push.textOff': 'Mati. Transaksi yang menunggu di HP ini sudah dihapus.',
+    'push.howText': 'Kalau Titip isi transaksi nyala: tambah field Teks {keyText} berisi Teks dari Gambar (Text from Image) di otomatisasi screenshot, atau isi email di otomatisasi email (lihat Tips → cara 4). Aksi Salin ke Papan Klip tetap biarkan: kalau nominalnya tidak terbaca, notifnya mengarahkan ke Tempel.',
+    'inbox.strip': 'Menunggu dicatat ({n})',
+    'inbox.stripAria': 'Buka bukti bayar dari notifikasi, {n} menunggu dicatat',
+    'inbox.title': 'Menunggu dicatat',
+    'inbox.lead': 'Dari notifikasi. Cek satu per satu, lalu Simpan. Yang nggak perlu, hapus saja.',
+    'inbox.check': 'Cek',
+    'inbox.checkAria': 'Cek {title}',
+    'inbox.removeAria': 'Hapus {title} dari daftar',
+    'inbox.removed': 'Dihapus dari daftar.',
+    'inbox.removedLast': 'Dihapus. Daftarnya sudah kosong.',
+    'inbox.noAmount': 'Nominal belum kebaca',
+    'inbox.unknownTitle': 'Bukti bayar',
+    'inbox.at': 'Masuk {time}',
+    'inbox.alreadySaved': 'Bukti bayar dari notif ini sudah tercatat, jadi tidak dibuka lagi.',
+    'inbox.alreadyRemoved': 'Bukti bayar dari notif ini sudah kamu hapus dari daftar.',
+    'shot.noAmountNotif': 'Nominalnya belum ketemu. Lihat email atau notif bank-nya, lalu ketik di sini.',
+    'shot.failedTx': 'Sepertinya transaksinya gagal. Cek dulu sebelum simpan, ya.',
+    'shot.pendingTx': 'Transaksinya masih diproses. Cek dulu sebelum simpan, ya.',
+    'shot.fromNotif': 'Dari notifikasi · cek lagi ya',
+    'shot.fromEmail': 'Dibaca dari email · cek lagi ya',
+    'tips.s4Title': 'Otomatis dari email bank (OCBC, BRI, BCA)',
+    'tips.s4': 'Bank mengirim email tiap kamu bertransaksi. Pintasan bisa membaca email itu begitu masuk ke app Mail, lalu meneruskannya ke {app}. Atur sekali:',
+    'tips.s4a': 'Buka Pintasan → Otomatisasi → + → Email. Di Pengirim (Sender), tambahkan alamat bank kamu: OCBC notifikasi@ocbc.id, BRI BankBRI@bri.co.id, BCA bca@bca.co.id. Opsional, Subjek Berisi (Subject Contains): OCBC “Successful”, BRI “Berhasil”, BCA “Transaction Journal” — semua isian harus cocok, jadi kalau pakai Subjek, buat satu otomatisasi per bank.',
+    'tips.s4b': 'Pilih Jalankan Segera (Run Immediately) → Berikutnya → Otomatisasi Kosong Baru.',
+    'tips.s4c': 'Tambah aksi Teks (Text). Ketik “Tanggal email: ”, sisipkan variabel Tanggal Saat Ini (Current Date) lalu ketuk dan pilih Format Tanggal: Sedang (Medium), pindah baris, lalu sisipkan Input Pintasan (Shortcut Input) dan ketuk untuk memilih Konten (Content) — itu isi emailnya.',
+    'tips.s4d': 'Tambah aksi Salin ke Papan Klip (Copy to Clipboard) dengan input Teks tadi — cadangan untuk Tempel.',
+    'tips.s4e': 'Tambah aksi Dapatkan Konten URL (Get Contents of URL): URL notifikasi kamu (Pengaturan → Notifikasi {app} → Salin URL). Ketuk Tampilkan Lainnya: Metode POST, Minta Isi (Request Body) JSON. Tambah field Teks text berisi Teks tadi, dan kalau mau, field Teks app berisi nama bank (mis. OCBC).',
+    'tips.s4f': 'Nyalakan Titip isi transaksi di notifikasi (Pengaturan → Notifikasi {app}). Pakainya: bayar → email bank masuk → notif “Bukti bayar baru” → ketuk → {app} membuka transaksi yang sudah terisi → cek → Simpan.',
+    'tips.s4note': 'Penting: emailnya harus masuk ke app Mail bawaan iPhone — email yang cuma ada di app Gmail tidak memicu Pintasan, jadi tambahkan akun Gmail kamu di Pengaturan → App → Mail → Akun Mail (iOS 17: Pengaturan → Mail → Akun). Gmail di app Mail diambil berkala, bukan langsung (di Akun Mail, atur Ambil Data Baru → tiap 15 menit), jadi notifnya bisa telat; email BCA kadang juga datang belakangan. Tanggal & jamnya diambil dari isi email, jadi tetap pas. iPhone bisa menampilkan banner tiap otomatisasinya jalan.'
   };
 
   I18N.en = {
@@ -7140,9 +7720,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'clip.empty': 'The clipboard is empty. Copy the screenshot or the payment text first.',
     'clip.failed': 'Couldn’t read the clipboard. Try again, or choose the screenshot from your photos.',
     'tips.item': 'Tips: record from screenshots',
-    'tips.itemSub': 'Quick ways from QRIS & transfer proofs',
+    'tips.itemSub': 'From screenshots, Shortcuts & bank e-mails',
     'tips.title': 'Record from screenshots',
-    'tips.honest': 'To be upfront: iPhone doesn’t let web apps like {app} watch your screenshots or photo library. But the built-in Shortcuts app can — see way 3. Here are 3 ways:',
+    'tips.honest': 'To be upfront: iPhone doesn’t let web apps like {app} watch your screenshots or photo library. But the built-in Shortcuts app can — see way 3. Here are 4 ways:',
     'tips.s1Title': 'Choose the screenshot',
     'tips.s1': 'After paying, take a screenshot of the payment proof. Open {app} → Record → From screenshot → choose it in Photos (the newest is on top). Amount, merchant, date, time and wallet are filled in — just check and Save.',
     'tips.s2Title': 'Copy & paste (keeps your photos clean)',
@@ -7152,7 +7732,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'tips.s3a': 'Open Shortcuts → Automation tab → + → App → choose your payment apps (e.g. GoPay, OCBC, BCA, DANA) → tick “Is Closed”, untick “Is Opened” → choose “Run Immediately” → Next → New Blank Automation.',
     'tips.s3b': 'Add these actions in order: Get Latest Screenshots → Get Details of Images: Date Taken → Get Time Between Dates in Minutes → If Time Between Dates “is between” -3 and 3: Extract Text from Image — tap its input and pick Latest Screenshots → Copy to Clipboard → Show Notification “New payment proof, open {app} → Record → Paste” → End If. Allow Photos access when asked.',
     'tips.s3c': 'Day to day: pay → screenshot → close the payment app → the notification appears → open {app} → Record → Paste → check → Save.',
-    'tips.privacy': 'Images and text are read on this phone — never sent to a server and not stored. The image reader is downloaded once, the first time (needs internet). Notifications are optional: if you turn them on, only the amount and app name are sent, for the notification text.',
+    'tips.privacy': 'Images and text are read on this phone — never sent to a server and not stored. The image reader is downloaded once, the first time (needs internet). Notifications are optional: if you turn them on, only the amount and app name are sent, for the notification text — plus the payment text if Fill in payments from notifications is on: the server only reads it and passes on just the amount, merchant name, date & time, category and bank to this phone. Nothing is stored.',
     'tips.try': 'Try it now',
     'catat.pasteHint': 'Tap Paste to fill it in automatically',
     'tips.s3d': 'Want a notification you can tap to open {app} right away? Turn on {app} notifications in Settings, then follow “How to set it up in Shortcuts”.',
@@ -7185,7 +7765,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'push.offConfirm': 'Tap again to turn off',
     'push.disabling': 'Turning off…',
     'push.disabled': 'Notifications are off. The old URL no longer works.',
-    'push.privacy': 'Notifications go through a small server run by {app} (Cloudflare). Your Shortcut only sends the app name (and the amount, if you add it) for the notification text, and it isn’t stored. The payment proof itself stays on your phone.',
+    'push.privacy': 'Notifications go through a small server run by {app} (Cloudflare). Your Shortcut only sends the app name (and the amount, if you add it) for the notification text — plus the payment text if Fill in payments from notifications is on, which the server only reads: just the amount, merchant name, date & time, category and bank are passed on to this phone. Nothing is stored on the server.',
     'push.howTitle': 'How to set it up in Shortcuts',
     'push.howApp': 'Open the Shortcuts app → Automation → your payment-proof automation (see Tips: record from screenshots → way 3).',
     'push.howDelete': 'Delete the Show Notification action. Keep the Copy to Clipboard action before it.',
@@ -7209,7 +7789,40 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'push.errSubscribe': 'This phone couldn’t sign up for notifications. Try again, or close and reopen {app} from the Home Screen.',
     'push.errSw': '{app} isn’t ready for notifications yet. Close and reopen {app}, then try again.',
     'push.errStorage': 'Browser storage is full, so the notification URL can’t be saved. Back up your data, free some space, then try again.',
-    'push.errDismissed': 'Notification permission wasn’t given. Tap the button again, then choose Allow.'
+    'push.errDismissed': 'Notification permission wasn’t given. Tap the button again, then choose Allow.',
+    'push.textToggle': 'Fill in payments from notifications',
+    'push.textToggleSub': 'The text of the payment e-mail or screenshot is sent to {app}’s notification server only to be read. Only the amount, merchant name, date & time, category and bank reach this phone (no person’s name, such as a transfer’s recipient), so {app} fills in the transaction without Paste. The text itself is not passed on or stored, and Apple can’t read the notification.',
+    'push.textOn': 'On. Add the text field in your Shortcut — see How to set it up in Shortcuts.',
+    'push.textOff': 'Off. The payments waiting on this phone were deleted.',
+    'push.howText': 'If Fill in payments from notifications is on: add a Text field {keyText} holding Text from Image in the screenshot automation, or the e-mail’s content in the e-mail automation (see Tips → way 4). Keep the Copy to Clipboard action: if the amount can’t be read, the notification points you to Paste.',
+    'inbox.strip': 'Waiting to be saved ({n})',
+    'inbox.stripAria': 'Open payment proofs from notifications, {n} waiting to be saved',
+    'inbox.title': 'Waiting to be saved',
+    'inbox.lead': 'From notifications. Check them one by one, then Save. Delete the ones you don’t need.',
+    'inbox.check': 'Check',
+    'inbox.checkAria': 'Check {title}',
+    'inbox.removeAria': 'Delete {title} from the list',
+    'inbox.removed': 'Deleted from the list.',
+    'inbox.removedLast': 'Deleted. The list is empty now.',
+    'inbox.noAmount': 'Amount not read',
+    'inbox.unknownTitle': 'Payment proof',
+    'inbox.at': 'Arrived {time}',
+    'inbox.alreadySaved': 'The payment from this notification is already saved, so it isn’t opened again.',
+    'inbox.alreadyRemoved': 'You already deleted the payment from this notification from the list.',
+    'shot.noAmountNotif': 'Amount not found. Check the bank’s e-mail or notification, then type it here.',
+    'shot.failedTx': 'This looks like a failed transaction. Check it before you save.',
+    'shot.pendingTx': 'This transaction is still being processed. Check it before you save.',
+    'shot.fromNotif': 'From a notification · please double-check',
+    'shot.fromEmail': 'Read from an e-mail · please double-check',
+    'tips.s4Title': 'Automatic from bank e-mails (OCBC, BRI, BCA)',
+    'tips.s4': 'Your bank e-mails you after every transaction. Shortcuts can read that e-mail as soon as it reaches the Mail app and pass it to {app}. Set it up once:',
+    'tips.s4a': 'Open Shortcuts → Automation → + → Email. Under Sender, add your bank’s address: OCBC notifikasi@ocbc.id, BRI BankBRI@bri.co.id, BCA bca@bca.co.id. Optional, Subject Contains: OCBC “Successful”, BRI “Berhasil”, BCA “Transaction Journal” — every field you fill in must match, so with a subject, make one automation per bank.',
+    'tips.s4b': 'Choose Run Immediately → Next → New Blank Automation.',
+    'tips.s4c': 'Add a Text action. Type “Tanggal email: ”, insert the Current Date variable, then tap it and choose Date Format: Medium, start a new line, then insert Shortcut Input and tap it to choose Content — that’s the e-mail’s body.',
+    'tips.s4d': 'Add Copy to Clipboard with that Text as input — a fallback for Paste.',
+    'tips.s4e': 'Add Get Contents of URL: your notification URL (Settings → {app} notifications → Copy URL). Tap Show More: Method POST, Request Body JSON. Add a Text field text holding that Text and, if you like, a Text field app with the bank’s name (e.g. OCBC).',
+    'tips.s4f': 'Turn on Fill in payments from notifications (Settings → {app} notifications). Day to day: pay → the bank’s e-mail arrives → the “Bukti bayar baru” notification → tap it → {app} opens the transaction already filled in → check → Save.',
+    'tips.s4note': 'Important: the e-mail has to arrive in iPhone’s own Mail app — e-mail that only reaches the Gmail app doesn’t trigger Shortcuts, so add your Gmail account in Settings → Apps → Mail → Mail Accounts (iOS 17: Settings → Mail → Accounts). Mail checks Gmail every so often rather than instantly (in Mail Accounts, set Fetch New Data → every 15 minutes), so the notification can be late; BCA e-mails sometimes arrive late too. The date and time come from the e-mail itself, so they stay right. Your iPhone may show a banner each time the automation runs.'
   };
 
   // ---------- Constants & icons ----------
@@ -7548,6 +8161,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       ok = false;
     }
     renderAll();
+    // payments waiting in "Menunggu dicatat" that this save records go at once (09c_inbox.js)
+    if (ok) { try { inboxAfterCommit(); } catch (_) { /* the inbox is not set up yet */ } }
     return ok;
   }
   function requestPersist() {
@@ -7907,6 +8522,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     revealDefaultPill();
     setVoiceUI();
     updatePreview();
+    // "Menunggu dicatat (n)" (09c_inbox.js), in the current language
+    inboxRender();
   }
   // The default wallet's pill is always in view (the row scrolls sideways): with many wallets it may sit past the edge.
   // Measured only while Catat shows (a hidden view has no size): switchTab calls this again.
@@ -8125,6 +8742,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     hint.classList.toggle('strong', ui.recording);
     // the mic steps back once Save is the next step; its wave bars move only while it listens
     $('micBtn').classList.toggle('quiet', !commitBtn.hidden && !ui.recording);
+    // or, in the tip's place, what notifications brought (09c_inbox.js)
+    syncInboxStrip();
     $('waveLeft').classList.toggle('active', ui.recording);
     $('waveRight').classList.toggle('active', ui.recording);
     $('captionClear').hidden = !typed;
@@ -8456,18 +9075,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   }
 
   // ---------- Possible duplicates (rows read from a screenshot, receipt or pasted text) ----------
-  const DUP_STOP = new Set(['pembayaran', 'bayar', 'payment', 'transfer', 'transaksi', 'berhasil', 'sukses', 'qris', 'merchant', 'dari', 'untuk', 'via', 'and', 'dan', 'the', 'top']);
-  const normTitle = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
-  const titleWords = (s) => s.split(' ').filter((w) => w.length >= 3 && !DUP_STOP.has(w));
-  // "Kopi" vs "Kopi Kenangan Margonda": similar. A missing or generic title ("Pembayaran") compares as similar.
-  function titlesSimilar(a, b) {
-    const x = normTitle(a), y = normTitle(b);
-    const wx = titleWords(x), wy = titleWords(y);
-    if (!wx.length || !wy.length) return true;
-    if (x === y || x.includes(y) || y.includes(x)) return true;
-    const set = new Set(wx);
-    return wy.some((w) => set.has(w) || wx.some((v) => v.length >= 4 && w.length >= 4 && (v.startsWith(w) || w.startsWith(v))));
-  }
+  // "Kopi" vs "Kopi Kenangan Margonda": similar (Core.titlesSimilar: the notification inbox uses the same rule)
+  const titlesSimilar = (a, b) => safe(() => Core.titlesSimilar(a, b), true);
   // Same type, same amount, same day and a similar title (or the same category when the saved row has no own title).
   function findDuplicate(c, exceptId) {
     if (!(num(c.amount) > 0) || !isDayKey(c.day)) return null;
@@ -9223,8 +9832,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         const keepLang = lang();
         stopVoice();
         closeAllSheets();
-        // notifications are turned off too (this phone's token is deleted at the push Worker)
+        // notifications are turned off too (this phone's token is deleted at the push Worker), and text a
+        // notification left here is deleted
         pushForget();
+        inboxForget();
         // every key of this app goes, including kept copies of unreadable data
         try {
           const keys = [];
@@ -9276,7 +9887,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         'push-enable': () => pushEnable(),
         'push-copy': () => pushCopy(),
         'push-test': () => pushTest(),
-        'push-off': (el) => pushDisable(el)
+        'push-off': (el) => pushDisable(el),
+        'push-text': () => inboxToggle()
       }
     });
     function html() {
@@ -9638,7 +10250,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   // Is this text a payment screen (or, when pasted, a receipt)? Returns Core's reading, or null.
   // Short entries ("kopi 25rb pakai GoPay") never get here: a screen's text has many lines.
   function screenFromText(text, pasted) {
-    const s = String(text == null ? '' : text).replace(/\r\n?/g, '\n').trim();
+    const s = String(text == null ? '' : text).replace(/\r\n?|[\u2028\u2029\u0085]/g, '\n').trim();
     if (!s || !activeWallets().length || looksLikeStatement(s)) return null;
     const lines = s.split('\n').filter((l) => l.trim()).length;
     if (pasted ? (lines < 3 && s.length < 100) : (lines < 4 && s.length < 120)) return null;
@@ -9663,13 +10275,23 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   }
   const READ_FAIL = {
     photo: { failed: 'scan.failed', offline: 'scan.offline', timeout: 'scan.timeout', skip: 'scan.noAmount', none: 'scan.noAmount' },
-    shot: { failed: 'shot.failed', offline: 'shot.offline', timeout: 'shot.timeout', skip: 'shot.noAmount', none: 'shot.noAmount' }
+    shot: { failed: 'shot.failed', offline: 'shot.offline', timeout: 'shot.timeout', skip: 'shot.noAmount', none: 'shot.noAmount' },
+    // text a notification brought: there is no picture to look at, the bank's e-mail or notification has the amount
+    notif: { failed: 'shot.noAmountNotif', offline: 'shot.noAmountNotif', timeout: 'shot.noAmountNotif', skip: 'shot.noAmountNotif', none: 'shot.noAmountNotif' }
   };
   const GENERIC_TITLE = /^(pembayaran|payment|transfer|transaksi|transaction|nota|receipt|struk)$/i;
-  // o: { text, result?, failKey?, previewUrl?, origin: 'screenshot' | 'photo' | 'text', onSaved? }
+  // o: { text, result?, failKey?, previewUrl?, origin: 'screenshot' | 'photo' | 'text' | 'notif', onSaved?, receivedAt? }
+  //   notif: the fields a notification brought, as a reading (09c_inbox.js: result, no text); receivedAt (ms): when it
+  //   came, the date and time to start from when the fields have none (still marked to check)
   function openFromRead(o) {
     const photo = o.origin === 'photo';
     const text = String(o.text || '');
+    let arrived = null;
+    if (o.origin === 'notif' && typeof o.receivedAt === 'number' && isFinite(o.receivedAt)) {
+      const d = new Date(o.receivedAt);
+      arrived = { day: Core.dayKey(d.getFullYear(), d.getMonth() + 1, d.getDate()), time: Core.pad2(d.getHours()) + ':' + Core.pad2(d.getMinutes()) };
+      if (!isDayKey(arrived.day) || arrived.day > today) arrived = null;
+    }
     // a screenshot of a mutasi / history list: review its rows in the statement reader
     if (!o.result && !o.failKey && looksLikeStatement(text)) {
       revokeUrl(o.previewUrl);
@@ -9680,7 +10302,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     const r = o.result || (!o.failKey && text.trim() ? safe(() => Core.extractFromImageText(text, coreCtx()), null) : null);
     const kind = r ? r.kind : 'unknown';
     const prefill = { type: 'EXPENSE', source: kind === 'payment' ? 'SCREENSHOT' : ((kind === 'receipt' || photo) ? 'RECEIPT' : 'SCREENSHOT') };
-    const fails = READ_FAIL[photo ? 'photo' : 'shot'];
+    const fails = READ_FAIL[photo ? 'photo' : o.origin === 'notif' ? 'notif' : 'shot'];
     const read = { thumbKey: photo ? 'tx.receiptAlt' : 'shot.thumbAria', unsure: [] };
     const unsure = read.unsure;
     if (r && kind !== 'unknown') {
@@ -9712,8 +10334,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         if (r.category) prefill.category = r.category;
         if (from) prefill.walletId = from; else unsure.push('wallet');
       }
-      if (isDayKey(r.dayKey) && r.dayKey <= today) prefill.day = r.dayKey; else unsure.push('date');
-      if (isTime(r.time)) prefill.time = r.time; else unsure.push('time');
+      if (isDayKey(r.dayKey) && r.dayKey <= today) prefill.day = r.dayKey;
+      else { unsure.push('date'); if (arrived) prefill.day = arrived.day; }
+      if (isTime(r.time)) prefill.time = r.time;
+      else { unsure.push('time'); if (arrived && (prefill.day || today) === arrived.day) prefill.time = arrived.time; }
       // Ask for a check of the amount when the reading is weak, came from a loose figure, or the big amount on the
       // screen says something else (a difference of exactly the fee or tip is explained by those rows).
       const amt = num(r.amount), hero = num(fields.heroAmount);
@@ -9736,13 +10360,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       // "GoPay · QRIS", or just "GoPay Saldo" when the method already names the app
       const app = clampStr(fields.appName, 30), method = clampStr(fields.method, 40);
       read.sub = app && method && normName(method).indexOf(normName(app)) >= 0 ? method : [app, method].filter(Boolean).join(' · ');
-      if (prefill.amount) read.head = t(o.origin === 'text' ? 'shot.fromText' : (photo && kind !== 'payment' ? 'shot.fromPhoto' : 'shot.fromShot'));
+      // pasted or brought by a notification: a bank e-mail says so
+      const headKey = o.origin === 'notif' ? 'shot.fromNotif'
+        : o.origin === 'text' ? (safe(() => Core.emailText(text, today).isEmail, false) ? 'shot.fromEmail' : 'shot.fromText')
+          : (photo && kind !== 'payment' ? 'shot.fromPhoto' : 'shot.fromShot');
+      if (prefill.amount) read.head = t(headKey);
       else { read.head = t(fails.none); read.failed = true; }
+      // a failed transaction moved no money; a pending one may still fail: said first, the amount marked to check
+      if (fields.status === 'failed' || fields.status === 'pending') {
+        read.head = t(fields.status === 'failed' ? 'shot.failedTx' : 'shot.pendingTx');
+        read.failed = true;
+        if (unsure.indexOf('amount') < 0) unsure.push('amount');
+      }
     } else {
       // nothing usable: say what happened, keep the picture to type from
       read.head = t(fails[o.failKey] || fails.none);
       read.failed = true;
       unsure.push('amount');
+      if (arrived) { prefill.day = arrived.day; prefill.time = arrived.time; unsure.push('date', 'time'); }
     }
     return openTxSheet({
       prefill, previewUrl: o.previewUrl || null, read, dupCheck: true,
@@ -9860,7 +10495,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     // Text from the clipboard: a payment screen opens the transaction sheet, anything else is read as a statement.
     // In the statement tab it always fills the statement box.
     function takeText(text) {
-      const clean = String(text == null ? '' : text).replace(/\r\n?/g, '\n').trim();
+      const clean = String(text == null ? '' : text).replace(/\r\n?|[\u2028\u2029\u0085]/g, '\n').trim();
       if (sc.mode !== 'statement') {
         const r = screenFromText(clean, true);
         if (r || shotMode) {
@@ -9939,6 +10574,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       closeSheet(entry);
       switchTab('home');
       celebrate(t('stmt.saved', { n: txs.length }), w.name);
+      if (typeof opts.onSaved === 'function') { try { opts.onSaved(txs); } catch (e) { console.error(e); } }
     }
 
     entry.layer.addEventListener('change', (e) => {
@@ -9991,7 +10627,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   // Text arriving in the Catat tab (Tempel): a payment screen -> transaction sheet; a bank statement -> the
   // Mutasi reader; anything else goes into the Catat box like typed text.
   function routeText(text) {
-    const clean = String(text == null ? '' : text).replace(/\r\n?/g, '\n').trim();
+    const clean = String(text == null ? '' : text).replace(/\r\n?|[\u2028\u2029\u0085]/g, '\n').trim();
     if (!clean) return;
     const r = screenFromText(clean, true);
     if (r) { openFromRead({ text: clean, origin: 'text', result: r }); return; }
@@ -10150,6 +10786,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       step(1, T('tips.s1Title'), '<p>' + T('tips.s1') + '</p>') +
       step(2, T('tips.s2Title'), '<p>' + T('tips.s2') + '</p>') +
       step(3, T('tips.s3Title'), '<p>' + T('tips.s3') + '</p><ol class="tip-steps"><li>' + T('tips.s3a') + '</li><li>' + T('tips.s3b') + '</li><li>' + T('tips.s3c') + '</li></ol><p>' + T('tips.s3d') + '</p>') +
+      // bank e-mails through a Mail automation (with "Titip isi transaksi di notifikasi", no Tempel needed)
+      step(4, T('tips.s4Title'), '<p>' + T('tips.s4') + '</p><ol class="tip-steps">' +
+        [T('tips.s4a'), T('tips.s4b'), T('tips.s4c'), T('tips.s4d'), T('tips.s4e'), T('tips.s4f')].map((h) => '<li>' + h + '</li>').join('') + '</ol>' +
+        '<p class="field-hint">' + T('tips.s4note') + '</p>') +
       '</ol>' +
       '<p class="field-hint">' + T('tips.privacy') + '</p>';
     const entry = openSheet({
@@ -10840,8 +11480,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     }
     // the Shortcut's field names and values are typed exactly as shown
     const code = (x) => '<code>' + esc(x) + '</code>';
-    const keys = { keyAmount: code('amount'), keyApp: code('app'), post: code('POST'), json: code('JSON') };
+    const keys = { keyAmount: code('amount'), keyApp: code('app'), keyText: code('text'), post: code('POST'), json: code('JSON') };
     const step = (k) => '<li>' + tHtml(k, keys) + '</li>';
+    // "Titip isi transaksi di notifikasi" (09c_inbox.js): only where the app can keep it (IndexedDB)
+    const textOn = inboxOptIn();
+    // the whole row is the switch (a big target)
+    const textRow = inboxSupported()
+      ? '<button type="button" class="settings-row push-text-row" role="switch" aria-checked="' + textOn + '" aria-labelledby="pushTextL" aria-describedby="pushTextD" data-action="push-text">' +
+        '<span class="sr-text"><strong id="pushTextL">' + T('push.textToggle') + '</strong><small id="pushTextD">' + T('push.textToggleSub') + '</small></span>' +
+        '<span class="switch" aria-hidden="true"></span></button>'
+      : '';
     return '<div class="push-status"><span class="push-dot" aria-hidden="true"></span><span>' + T('push.onStatus') + since + '</span></div>' +
       '<div class="field"><span class="field-label" id="pushUrlL">' + T('push.urlLabel') + '</span>' +
       '<p class="push-url" id="pushUrl" aria-labelledby="pushUrlL pushUrl">' +
@@ -10851,9 +11499,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       '<button type="button" class="btn-secondary" data-action="push-copy">' + ICON.copy + '<span>' + T('push.copy') + '</span></button>' +
       '<button type="button" class="btn-secondary" data-action="push-test"' + (busy ? ' aria-disabled="true"' : '') + (busy === 'test' ? ' aria-busy="true"' : '') + '>' +
       (busy === 'test' ? spinner + '<span>' + T('push.testing') + '</span>' : ICON.send + '<span>' + T('push.test') + '</span>') + '</button></div>' +
-      err +
+      err + textRow +
       '<details class="push-howto"' + (pushUi.howOpen ? ' open' : '') + '><summary><span>' + T('push.howTitle') + '</span>' + ICON.chevR + '</summary>' +
-      '<ol class="tip-steps">' + ['push.howApp', 'push.howDelete', 'push.howAdd', 'push.howMethod', 'push.howFields', 'push.howTest', 'push.howDone'].map(step).join('') + '</ol>' +
+      '<ol class="tip-steps">' + ['push.howApp', 'push.howDelete', 'push.howAdd', 'push.howMethod', 'push.howFields', 'push.howText', 'push.howTest', 'push.howDone'].map(step).join('') + '</ol>' +
       '<p class="field-hint push-how-note">' + tHtml('push.howNote', keys) + '</p></details>' +
       '<button type="button" class="btn-danger push-off' + (pushUi.armed ? ' armed' : '') + '" data-action="push-off"' + (busy ? ' aria-disabled="true"' : '') + '>' +
       (busy === 'off' ? spinner + '<span>' + T('push.disabling') + '</span>' : '<span>' + T(pushUi.armed ? 'push.offConfirm' : 'push.off') + '</span>') + '</button>' +
@@ -10886,12 +11534,20 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
 
   // ---------- Opened from a notification: Catat, with Tempel pointed out ----------
   // Views with nothing typed in them are closed; a form being filled in stays on top (Catat waits behind it).
-  const CLOSE_FOR_CATAT = ['settings', 'tips', 'diag', 'rollover', 'history', 'confirm'];
+  const CLOSE_FOR_CATAT = ['settings', 'tips', 'diag', 'rollover', 'history', 'confirm', 'inbox'];
   let pasteHintTimer = 0;
-  function openCatatFromNotification() {
+  // n: the id of the text the notification left (09c_inbox.js); without one, or with the setting off, Tempel is
+  // pointed out as before
+  function openCatatFromNotification(n) {
     if (!state || !S().onboarded || !$('onboarding').hidden) return;
     sheets.slice().forEach((sh) => { if (CLOSE_FOR_CATAT.indexOf(sh.id) >= 0) closeSheet(sh, true); });
     switchTab('catat');
+    if (inboxOptIn() && inboxSupported()) {
+      // no update reload while the inbox is read
+      setBusy('notif-open', PASTE_HINT_MS);
+      inboxCheck('open', n).then((handled) => { if (!handled) pointAtPaste(); }, () => pointAtPaste());
+      return;
+    }
     pointAtPaste();
   }
   function pointAtPaste() {
@@ -10930,19 +11586,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   function clearCatatHash() {
     try { history.replaceState(history.state, '', location.pathname + location.search); } catch (_) { /* file:// */ }
   }
+  // '#catat', or '#catat=<id>' (a cold start from a notification that left text): null for anything else
+  function catatHash(h) {
+    const m = /^#catat(?:=([A-Za-z0-9_-]{8,32}))?$/.exec(String(h || ''));
+    return m ? { n: m[1] || '' } : null;
+  }
   const isCatatUrl = (u) => {
-    try { return new URL(String(u || ''), location.href).hash === '#catat'; } catch (_) { return false; }
+    try { return !!catatHash(new URL(String(u || ''), location.href).hash); } catch (_) { return false; }
   };
   window.addEventListener('hashchange', () => {
-    if (location.hash !== '#catat') return;
+    const c = catatHash(location.hash);
+    if (!c) return;
     clearCatatHash();
-    openCatatFromNotification();
+    openCatatFromNotification(c.n);
   });
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (e) => {
       const d = e.data;
       if (!d || typeof d !== 'object') return;
-      if (d.type === 'sangu-open' && isCatatUrl(d.url)) openCatatFromNotification();
+      if (d.type === 'sangu-open' && isCatatUrl(d.url)) openCatatFromNotification(PC.validInboxId(d.n) ? d.n : '');
+      else if (d.type === 'sangu-inbox') inboxCheck('push');
       else if (d.type === 'sangu-push-resync') pushAutoSync('sw');
     });
   }
@@ -10953,6 +11616,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     setBusy('resume', 1500);
     pushRender();
     pushAutoSync('foreground');
+    inboxCheck('foreground');
   });
   window.addEventListener('online', () => { if (pushUi.retryOnline) pushAutoSync('online'); });
   window.addEventListener('storage', (e) => { if (e.key === PUSH_KEY || e.key === null) pushRender(); });
@@ -10961,9 +11625,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   // then the start sync.
   function pushBoot() {
     let route = '';
+    let n = '';
     try { route = sessionStorage.getItem(ROUTE_KEY) || ''; sessionStorage.removeItem(ROUTE_KEY); } catch (_) { route = ''; }
-    if (location.hash === '#catat') { clearCatatHash(); route = 'catat-hint'; }
-    if (route === 'catat-hint') openCatatFromNotification();
+    const c = catatHash(location.hash);
+    if (c) { clearCatatHash(); route = 'catat-hint'; n = c.n; }
+    // the setting's copy for the service worker; waiting text opens unless a notification tap handles it below
+    inboxBoot(route === 'catat-hint');
+    if (route === 'catat-hint') openCatatFromNotification(n);
     else if (route === 'catat' && state && S().onboarded && $('onboarding').hidden) switchTab('catat');
     pushAutoSync('start');
   }
@@ -10974,6 +11642,347 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       else if (ui.tab === 'catat') sessionStorage.setItem(ROUTE_KEY, 'catat');
       else sessionStorage.removeItem(ROUTE_KEY);
     } catch (_) { /* ignore */ }
+  }
+  // ---------- Inbox: a payment a notification brought (Settings → Notifikasi → "Titip isi transaksi di notifikasi") ----------
+  // The Shortcut may send the text of a bank e-mail or a screenshot with its notification; the push Worker reads it
+  // (with this app's own parser) and sends only its fields: amount, merchant, date, time, category, bank, method, fee,
+  // status (Core.push.inboxFields), never the text. The service worker keeps them in IndexedDB 'moneyapp-inbox' (items
+  // {n, f, receivedAt}, at most 20, 7 days) before the notification shows. Here they become a prefilled transaction (the
+  // wallet: the user's wallet of that bank or app): one item opens the transaction sheet ("Dari notifikasi · cek lagi
+  // ya"), several wait in Catat under "Menunggu dicatat (n)". Fields with no amount (nothing was read) open nothing:
+  // the tap points at Tempel, which reads the text the Shortcut left on the clipboard. Simpan removes an item;
+  // one that was surely saved already with Tempel (same payment, same clock time) is dropped by itself, and any save
+  // re-checks the list at once. An item saved or deleted here is remembered for a while (moneyapp.pushText.handled), so
+  // a later tap on its notification says so instead of opening something else, and its notification is closed.
+  // Off (the default): the service worker keeps nothing and what is left here is deleted.
+  // The setting belongs to this phone (like the notify URL): localStorage moneyapp.pushText.v1, mirrored into the
+  // database ('kv' optin) for the service worker; never in the data or backups. Pure helpers: Core.push.inbox*.
+  const INBOX_DB = 'moneyapp-inbox';
+  const INBOX_OPTIN_KEY = 'moneyapp.pushText.v1';
+  const INBOX_SEEN_KEY = 'moneyapp.pushText.seen';   // ids already shown once (not opened again by themselves)
+  // items saved or deleted here: [{ n, tx (the row it became, or null), how: 'saved' | 'removed', at (ms) }]
+  const INBOX_HANDLED_KEY = 'moneyapp.pushText.handled';
+  const INBOX_HANDLED_MS = 8 * 24 * 60 * 60 * 1000;  // a little longer than an item lives (7 days)
+  const INBOX_SINCE_MS = 15 * 60 * 1000;            // a row saved from 15 min before the notification is that payment
+  const IDB_WAIT_MS = 4000;
+  const inbox = { items: [], entry: null, openN: '', queue: Promise.resolve(false), listEntry: null, purged: false, recheck: 0 };
+
+  function inboxSupported() {
+    try { return !!window.indexedDB && pushSupported(); } catch (_) { return false; }
+  }
+  function inboxOptIn() { try { return localStorage.getItem(INBOX_OPTIN_KEY) === '1'; } catch (_) { return false; } }
+  function seenIds() {
+    try { const v = JSON.parse(localStorage.getItem(INBOX_SEEN_KEY) || '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []; } catch (_) { return []; }
+  }
+  function markSeen(n) {
+    const ids = seenIds().filter((x) => x !== n && inbox.items.some((i) => i.n === x));
+    ids.push(n);
+    try { localStorage.setItem(INBOX_SEEN_KEY, JSON.stringify(ids.slice(-40))); } catch (_) { /* storage full: shown again later */ }
+  }
+  function handledList() {
+    try {
+      const v = JSON.parse(localStorage.getItem(INBOX_HANDLED_KEY) || '[]');
+      const now = Date.now();
+      return Array.isArray(v) ? v.filter((x) => x && PC.validInboxId(x.n) && typeof x.at === 'number' && now - x.at < INBOX_HANDLED_MS && now - x.at > -60000) : [];
+    } catch (_) { return []; }
+  }
+  const handledOf = (n) => handledList().find((x) => x.n === n) || null;
+  function markHandled(ids, tx, how) {
+    const list = [].concat(ids).filter(Boolean);
+    if (!list.length) return;
+    const keep = handledList().filter((x) => list.indexOf(x.n) < 0);
+    list.forEach((n) => keep.push({ n, tx: typeof tx === 'string' ? tx : null, how: how === 'removed' ? 'removed' : 'saved', at: Date.now() }));
+    try { localStorage.setItem(INBOX_HANDLED_KEY, JSON.stringify(keep.slice(-60))); } catch (_) { /* storage full: a later tap opens Catat */ }
+  }
+  function unmarkHandled(n) {
+    try { localStorage.setItem(INBOX_HANDLED_KEY, JSON.stringify(handledList().filter((x) => x.n !== n))); } catch (_) { /* ignore */ }
+  }
+  // The notification of an item that was saved or deleted goes from Notification Center (best effort)
+  function closeNotifsFor(ids) {
+    const list = [].concat(ids).filter(Boolean);
+    if (!list.length) return;
+    try {
+      if (!('serviceWorker' in navigator) || !navigator.serviceWorker.getRegistration) return;
+      navigator.serviceWorker.getRegistration().then((reg) => (reg && reg.getNotifications ? reg.getNotifications() : []))
+        .then((ns) => ns.forEach((x) => { if (x.data && list.indexOf(x.data.n) >= 0) x.close(); }), () => {});
+    } catch (_) { /* no service worker here */ }
+  }
+
+  // ---------- Database ----------
+  function idbOpen() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(INBOX_DB, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('items')) db.createObjectStore('items', { keyPath: 'n' });
+        if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error('idb'));
+      req.onblocked = () => reject(new Error('blocked'));
+    });
+  }
+  // fn(items, kv) runs in one transaction; its return value (or, if a function, what that returns once the
+  // transaction completed) is the result
+  function idbRun(mode, fn) {
+    if (!inboxSupported()) return Promise.reject(new Error('unsupported'));
+    let timer = 0;
+    const work = idbOpen().then((db) => new Promise((resolve, reject) => {
+      let out;
+      let tx;
+      try {
+        tx = db.transaction(['items', 'kv'], mode);
+        out = fn(tx.objectStore('items'), tx.objectStore('kv'));
+      } catch (e) { db.close(); reject(e); return; }
+      tx.oncomplete = () => { db.close(); try { resolve(typeof out === 'function' ? out() : out); } catch (e) { reject(e); } };
+      tx.onerror = () => { db.close(); reject(tx.error || new Error('idb')); };
+      tx.onabort = () => { db.close(); reject(tx.error || new Error('idb')); };
+    }));
+    const late = new Promise((resolve, reject) => { timer = setTimeout(() => reject(new Error('timeout')), IDB_WAIT_MS); });
+    return Promise.race([work, late]).then((v) => { clearTimeout(timer); return v; }, (e) => { clearTimeout(timer); throw e; });
+  }
+  // the service worker keeps fields only while this says yes; "no" also empties the inbox
+  function inboxWriteFlag(on) {
+    return idbRun('readwrite', (items, kv) => { kv.put(on === true, 'optin'); if (on !== true) items.clear(); });
+  }
+  // the usable items, newest first; expired and broken ones are deleted
+  function inboxLoad() {
+    return idbRun('readwrite', (items) => {
+      const req = items.getAll();
+      let list = [];
+      req.onsuccess = () => {
+        const all = req.result || [];
+        PC.inboxExpired(all, Date.now()).forEach((n) => items.delete(n));
+        list = PC.inboxClean(all, Date.now());
+      };
+      return () => list;
+    });
+  }
+  function inboxDelete(ids) {
+    const list = [].concat(ids).filter(Boolean);
+    inbox.items = inbox.items.filter((x) => list.indexOf(x.n) < 0);
+    inboxRender();
+    if (!list.length) return Promise.resolve();
+    return idbRun('readwrite', (items) => { list.forEach((n) => items.delete(n)); }).catch(() => {});
+  }
+
+  // ---------- Reading an item ----------
+  function stampOf(ms) {
+    const d = new Date(ms);
+    return Core.dayKey(d.getFullYear(), d.getMonth() + 1, d.getDate()) + 'T' + Core.pad2(d.getHours()) + ':' + Core.pad2(d.getMinutes());
+  }
+  // { item, r (the reading its fields make), title, amount, day, savedAs (surely recorded after it came), dup (a similar
+  // row) }. Rows saved from another item (another notification) never count as this one's, unless they have its time.
+  // "Hari ini" / "Kemarin" on the screen count from the day the push came on this phone (receivedDay).
+  const readingOf = (item) => safe(() => PC.inboxReading(item.f, Object.assign(coreCtx(), { receivedDay: stampOf(item.receivedAt).slice(0, 10) })), null);
+  function inboxView(item, handled) {
+    const r = readingOf(item) || {};
+    const amount = num(r.amount) > 0 ? roundAmt(r.amount) : 0;
+    const type = ['EXPENSE', 'INCOME', 'TRANSFER'].indexOf(r.type) >= 0 ? r.type : 'EXPENSE';
+    const day = isDayKey(r.dayKey) ? r.dayKey : stampOf(item.receivedAt).slice(0, 10);
+    const time = isTime(r.time) ? r.time : null;
+    const title = clampStr(r.title, 80);
+    const c = { type, amount, day, time, title, category: type === 'TRANSFER' ? 'transfer' : r.category };
+    const others = (handled || handledList()).filter((x) => x.n !== item.n && x.tx).map((x) => x.tx);
+    const savedAs = amount ? safe(() => PC.inboxSavedAs(c, state.transactions, stampOf(item.receivedAt - INBOX_SINCE_MS), { exclude: others }), null) : null;
+    let dup = amount ? findDuplicate(c) : null;
+    const mins = (hm) => (isTime(hm) ? Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5)) : null);
+    if (dup && time && others.indexOf(dup.id) >= 0 && Math.abs(mins(String(dup.date).slice(11, 16)) - mins(time)) > 2) dup = null;
+    return { item, r, title, amount, type, day, savedAs, dup };
+  }
+
+  // ---------- Catat: "Menunggu dicatat (n)" ----------
+  // In the slot under the mic, in the tip's place: not while Save is there or the mic listens.
+  function syncInboxStrip() {
+    const strip = $('inboxStrip'), commit = $('commitBtn'), hint = $('catatHint');
+    if (!strip || !commit || !hint) return;
+    const show = inbox.items.length > 0 && commit.hidden && !ui.recording;
+    strip.hidden = !show;
+    hint.hidden = !commit.hidden || show;
+  }
+  function inboxRender() {
+    const strip = $('inboxStrip');
+    if (strip) {
+      const n = inbox.items.length;
+      syncInboxStrip();
+      if (n) {
+        const label = t('inbox.strip', { n });
+        const span = strip.querySelector('.inbox-strip-text');
+        if (span && span.textContent !== label) span.textContent = label;
+        strip.setAttribute('aria-label', t('inbox.stripAria', { n }));
+      }
+    }
+    const list = inbox.listEntry;
+    if (list && !list.closed) {
+      if (!inbox.items.length) closeSheet(list);
+      else list.draw();
+    }
+  }
+  function inboxRowHtml(v) {
+    const time = stampOf(v.item.receivedAt);
+    const when = (time.slice(0, 10) === today ? '' : dayLabel(time.slice(0, 10)) + ' ') + time.slice(11, 16);
+    const title = v.title || t('inbox.unknownTitle');
+    const amt = v.amount ? (v.type === 'INCOME' ? fmtSigned(v.amount) : fmt(v.amount)) : t('inbox.noAmount');
+    return '<div class="inbox-row" data-n="' + esc(v.item.n) + '">' +
+      '<div class="inbox-main"><div class="inbox-top"><span class="inbox-title">' + esc(title) + '</span>' +
+      '<span class="inbox-amt' + (v.amount ? '' : ' none') + '">' + esc(amt) + '</span></div>' +
+      '<div class="inbox-meta"><span>' + T('inbox.at', { time: when }) + '</span>' + (v.dup ? '<span class="dup-tag">' + T('shot.dup') + '</span>' : '') + '</div></div>' +
+      '<div class="inbox-btns"><button type="button" class="btn-secondary sm" data-action="inbox-check" data-n="' + esc(v.item.n) + '" aria-label="' + T('inbox.checkAria', { title }) + '">' + T('inbox.check') + '</button>' +
+      '<button type="button" class="icon-btn sm" data-action="inbox-remove" data-n="' + esc(v.item.n) + '" aria-label="' + T('inbox.removeAria', { title }) + '">' + ICON.trash + '</button></div></div>';
+  }
+  function openInboxList() {
+    if (!inbox.items.length) return null;
+    const entry = openSheet({
+      id: 'inbox', title: t('inbox.title'), body: '', foot: '',
+      onClose: () => { if (inbox.listEntry === entry) inbox.listEntry = null; },
+      update: () => entry.draw(),
+      actions: {
+        'inbox-check': (el) => { const n = el.dataset.n; closeSheet(entry, true); inboxOpenItem(n, { fromList: true }); },
+        'inbox-remove': (el) => {
+          const n = el.dataset.n;
+          const item = inbox.items.find((x) => x.n === n);
+          if (!item) return;
+          markHandled(n, null, 'removed');
+          closeNotifsFor(n);
+          inboxDelete(n);
+          // like a deleted transaction: Urungkan puts it back
+          toast(inbox.items.length ? t('inbox.removed') : t('inbox.removedLast'), { duration: 5000, action: { label: t('undo'), fn: () => inboxRestore(item) } });
+          announce(t('inbox.removed'));
+        }
+      }
+    });
+    entry.draw = () => {
+      const handled = handledList();
+      const rows = inbox.items.map((x) => inboxView(x, handled));
+      entry.titleEl.textContent = t('inbox.title') + ' (' + rows.length + ')';
+      entry.body.innerHTML = '<p class="field-hint">' + T('inbox.lead') + '</p><div class="inbox-list" role="list">' +
+        rows.map((v) => inboxRowHtml(v).replace('<div class="inbox-row"', '<div class="inbox-row" role="listitem"')).join('') + '</div>';
+    };
+    entry.draw();
+    inbox.listEntry = entry;
+    inbox.items.forEach((x) => markSeen(x.n));
+    return entry;
+  }
+  // Opens one item in the transaction sheet (a statement in the Mutasi reader). Simpan removes it.
+  function inboxOpenItem(n, opts) {
+    opts = opts || {};
+    const item = inbox.items.find((x) => x.n === n);
+    if (!item) return null;
+    markSeen(n);
+    const done = (rec) => { markHandled(n, rec && rec.id, 'saved'); closeNotifsFor(n); inboxDelete(n); };
+    const entry = openFromRead({
+      text: '', result: readingOf(item), origin: 'notif', receivedAt: item.receivedAt,
+      onSaved: (rec) => {
+        done(rec);
+        // the next one, after the check mark
+        if (opts.fromList && inbox.items.length) {
+          setTimeout(() => { if (!topSheet() && $('onboarding').hidden && inbox.items.length) { switchTab('catat'); openInboxList(); } }, 1150);
+        }
+      }
+    });
+    inbox.entry = entry;
+    inbox.openN = n;
+    return entry;
+  }
+  // The strip in Catat: one item opens straight away, several open the list.
+  function inboxOpenFromStrip() {
+    if (inbox.items.length === 1) inboxOpenItem(inbox.items[0].n);
+    else openInboxList();
+  }
+
+  // ---------- When to look ----------
+  // reason: 'open' (a notification was tapped; preferN its item), 'start', 'foreground', 'push' (one came in while
+  // the app is open: the strip only). Resolves true when items are waiting (so no Tempel hint is needed).
+  function inboxCheck(reason, preferN) {
+    inbox.queue = inbox.queue.then(() => inboxRun(reason, preferN), () => inboxRun(reason, preferN));
+    return inbox.queue;
+  }
+  function inboxRun(reason, preferN) {
+    if (!inboxSupported()) return Promise.resolve(false);
+    if (!inboxOptIn()) {
+      inbox.items = [];
+      inboxRender();
+      // privacy: anything kept while the setting was on goes, once per start
+      if (!inbox.purged) { inbox.purged = true; return inboxWriteFlag(false).then(() => false, () => false); }
+      return Promise.resolve(false);
+    }
+    return inboxLoad().then((loaded) => {
+      // fields with no amount (nothing was read) fill no sheet: they wait only for their notification's tap, which
+      // removes them and points at Tempel (Tempel reads the text itself); otherwise they go after 7 days
+      const items = loaded.filter((x) => PC.inboxUsable(x.f));
+      const tappedUnread = reason === 'open' && !!preferN && loaded.some((x) => x.n === preferN && !PC.inboxUsable(x.f));
+      if (tappedUnread) idbRun('readwrite', (st) => { st.delete(preferN); }).catch(() => {});
+      inbox.items = items;
+      if (tappedUnread || !state || !Array.isArray(state.transactions)) { inboxRender(); return !tappedUnread && items.length > 0; }
+      // surely saved already (Tempel from the same e-mail, or typed in with its time): dropped quietly
+      const handled = handledList();
+      const saved = items.map((x) => inboxView(x, handled)).filter((v) => v.savedAs);
+      saved.forEach((v) => markHandled(v.item.n, v.savedAs.id, 'saved'));
+      if (saved.length) { closeNotifsFor(saved.map((v) => v.item.n)); inboxDelete(saved.map((v) => v.item.n)); }
+      inboxRender();
+      // tapped the notification of an item saved or deleted already (now, or earlier): say so, open nothing else
+      const was = reason === 'open' && preferN && !inbox.items.some((x) => x.n === preferN) ? handledOf(preferN) : null;
+      if (was) toast(was.how === 'removed' ? t('inbox.alreadyRemoved') : t('inbox.alreadySaved'));
+      const left = inbox.items;
+      if (!left.length || was) return !!was || left.length > 0;
+      // a tapped notification that left no item here (nothing read, nothing kept, or gone): its body said Tempel, so
+      // Tempel it is (resolves false); the strip still shows what waits
+      if (reason === 'open' && !left.some((x) => x.n === preferN)) return false;
+      if (reason === 'push' || !state || !S().onboarded || !$('onboarding').hidden) return true;
+      // the item's own sheet is already open
+      if (inbox.entry && !inbox.entry.closed && left.some((x) => x.n === inbox.openN)) return true;
+      const seen = seenIds();
+      const fresh = left.filter((x) => seen.indexOf(x.n) < 0);
+      if (reason !== 'open' && !fresh.length) return true;
+      // views with nothing typed in them make way; a form being filled in stays (the strip waits in Catat)
+      sheets.slice().forEach((sh) => { if (CLOSE_FOR_CATAT.indexOf(sh.id) >= 0) closeSheet(sh, true); });
+      if (topSheet()) return true;
+      switchTab('catat');
+      // the tapped item; at start or back in the app, the only item; else the list
+      const target = reason === 'open' ? left.find((x) => x.n === preferN) : (left.length === 1 ? left[0] : null);
+      if (target) inboxOpenItem(target.n); else openInboxList();
+      return true;
+    }, () => false);
+  }
+  // Any transaction saved (Tempel, typed, a statement): items it surely records go at once, the strip follows
+  function inboxAfterCommit() {
+    if (!inbox.items.length || !inboxOptIn()) return;
+    clearTimeout(inbox.recheck);
+    inbox.recheck = setTimeout(() => { inboxCheck('push'); }, 250);
+  }
+  // Urungkan after a delete in the list: the item comes back (its notification does not)
+  function inboxRestore(item) {
+    unmarkHandled(item.n);
+    if (!inboxOptIn() || !inboxSupported()) return;
+    idbRun('readwrite', (items) => { items.put({ n: item.n, f: item.f, receivedAt: item.receivedAt }); })
+      .then(() => inboxCheck('push'), () => {});
+  }
+
+  // ---------- Settings: the switch ----------
+  function inboxToggle() {
+    const on = !inboxOptIn();
+    try { if (on) localStorage.setItem(INBOX_OPTIN_KEY, '1'); else localStorage.removeItem(INBOX_OPTIN_KEY); } catch (_) {
+      toast(t('push.errStorage'), { type: 'error' });
+      return;
+    }
+    inbox.purged = false;
+    inboxWriteFlag(on).catch(() => {});
+    if (!on) { inbox.items = []; inboxRender(); }
+    pushRender('push-text');
+    toast(t(on ? 'push.textOn' : 'push.textOff'), { duration: on ? 6000 : 3200 });
+  }
+  // "Hapus semua data": the setting (a moneyapp.* key, removed with the others) and the kept text go
+  function inboxForget() {
+    inbox.items = [];
+    inbox.purged = true;
+    inboxRender();
+    if (inboxSupported()) inboxWriteFlag(false).catch(() => {});
+  }
+  // App start: the service worker's copy of the setting follows this phone's
+  function inboxBoot(open) {
+    if (!inboxSupported()) return;
+    if (inboxOptIn()) inboxWriteFlag(true).catch(() => {});
+    if (!open) inboxCheck('start');
   }
 
   // ---------- Event delegation ----------
@@ -11004,6 +12013,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'open-manual': () => openTxSheet({}),
     'open-scan': () => openScanSheet('photo'),
     'clip-paste': () => pasteFromClipboard(null),
+    // "Menunggu dicatat (n)": text notifications brought (09c_inbox.js)
+    'inbox-open': () => inboxOpenFromStrip(),
     // the label opens the picker by itself; without a wallet there is nothing to record into yet
     'shot-pick': (el, e) => {
       if (activeWallets().length) return;
@@ -11628,7 +12639,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     // shell height fix and keyboard state (tests, screen info)
     get viewport() { return { appH: shell.h, gap: shell.gap, kb: kbKey, panTries, log: kbLog.slice(), info: viewportInfo() }; },
     // notifications: what Settings shows and what runs (tests)
-    get push() { return { view: pushState(), busy: pushUi.busy, err: pushUi.err && pushUi.err.kind, saved: pushSaved(), lastSync: pushUi.lastSync, hint: pasteHintShown() }; }
+    get push() { return { view: pushState(), busy: pushUi.busy, err: pushUi.err && pushUi.err.kind, saved: pushSaved(), lastSync: pushUi.lastSync, hint: pasteHintShown() }; },
+    // the notification inbox (tests): waiting ids, the setting, and a way to wait for the reads in flight
+    get inbox() { return { ids: inbox.items.map((x) => x.n), optIn: inboxOptIn(), openN: inbox.entry && !inbox.entry.closed ? inbox.openN : '' }; },
+    inboxSettled: () => inbox.queue.then(() => true, () => true)
   };
 })();
 </script>
