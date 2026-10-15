@@ -1203,9 +1203,12 @@
     .empty-state .btn-secondary { margin-top: 4px; }
 
     /* VIEW 2: CATAT
-       One composer card: default-wallet pills, the text field, what was understood from it (rows, or a note on what is
-       missing) right under the text, then free space (a tap there types too) and a foot row in the thumb zone with
-       one quiet line of guidance (or Save) beside the mic. */
+       One centred composer card, like a voice recorder: the default-wallet pills on top, the text (a short example as
+       placeholder, on a dashed line), what was understood from it (receipt rows, or a note on what is missing), then
+       the big round mic between its wave bars and, under a hairline, one slot: a quiet tip, "Mendengarkan…" while
+       listening, or Save. The card fills the space above the dock and never grows with the words or the rows, so the
+       slot, the dock and the mic stay put: the mic has ONE place, right above the slot, whether the card is empty,
+       holds rows or is listening (with the keyboard up it is smaller, and again has one place there). */
     .catat-studio {
       flex: 1;
       display: flex;
@@ -1216,17 +1219,27 @@
 
     .voice-stage {
       --stage-gap: 12px;
+      --halo: 6px;                  /* the mic's soft ring: part of its shape, so it counts in the spacing */
+      --orb: 66px;
+      --gap-a: 14px;                /* at least this much between the last row and the ring */
+      --gap-b: 2px;                 /* extra, on top of --stage-gap, between the ring and the hairline */
+      --cap-gap: 6px;               /* between the words and their rows */
+      --cap-line: calc(1.35 * 17px + 5px);  /* the words at their least: one line, its padding and the dashed line */
+      --row-h: 40px;
       flex: 1 0 auto;
       background: var(--surface-1);
       border: 1px solid var(--border);
       border-radius: var(--radius-xl);
-      padding: 14px 16px 16px;
+      padding: 12px 16px 12px;
       display: flex;
       flex-direction: column;
+      text-align: center;
       gap: var(--stage-gap);
       transition: border-color 0.2s ease;
     }
     .voice-stage:has(.caption-input:focus) { border-color: var(--border-hover); }
+    /* a little more air between the pills and the words (not while typing: see the keyboard rules) */
+    .voice-stage > .catat-wallet-selector { margin-bottom: 2px; }
 
     .catat-wallet-selector {
       display: flex;
@@ -1265,35 +1278,46 @@
     .w-pill.active .pill-sub { color: #3F3F46; }
     .w-pill .pill-sub.neg { color: var(--negative); opacity: 1; }
 
+    /* the words: they grow with the text (up to 4 lines) and, only when a row would not fit otherwise, give way down
+       to one line (the cut fades), never less: the box holds that line, so nothing under it ("+2 lainnya", a row)
+       is ever drawn over the words (fitRows then shows fewer rows instead); never by pushing the mic */
     .caption-box {
-      flex: 0 0 auto;
+      flex: 0 1 auto;
+      min-height: var(--cap-line);
       position: relative;
       display: flex;
       flex-direction: column;
-      min-height: 52px;
+      margin-bottom: var(--cap-gap);
     }
-    .caption-hit { flex: 1; display: block; cursor: text; }
-    /* the card's free space between the rows and the foot row: a tap there types (it labels the field) */
-    .caption-rest { flex: 1 1 auto; min-height: 0; margin-top: calc(-1 * var(--stage-gap)); cursor: text; }
+    .caption-hit { display: flex; flex-direction: column; min-height: var(--cap-line); cursor: text; }
     .caption-input {
       display: block;
+      flex: 0 1 auto;
+      min-height: var(--cap-line);
       width: 100%;
       margin: 0;
-      padding: 0 34px 0 0;
+      /* even sides keep the words centred, the × sits in the right one */
+      padding: 0 24px 4px;
       background: transparent;
       border: 0;
+      border-bottom: 1px dashed transparent;
+      border-radius: 0;
       outline: none;
       resize: none;
-      text-align: left;
+      text-align: center;
       font-size: 17px;
-      font-weight: 500;
-      line-height: 1.45;
-      letter-spacing: -0.01em;
+      font-weight: 650;
+      line-height: 1.35;
+      letter-spacing: -0.02em;
       color: var(--text-primary);
       caret-color: var(--positive);
+      max-height: calc(4 * 1.35em + 5px);
+      transition: border-color 0.18s ease;
     }
-    .caption-input::placeholder { color: var(--text-muted); font-weight: 500; opacity: 1; }
-    /* clear: only while there is text, iOS-style small filled circle in the field's corner */
+    /* empty: a short example in a quiet voice, on a dashed line that says "write here" */
+    .caption-input::placeholder { color: var(--text-muted); font-weight: 500; letter-spacing: -0.01em; opacity: 1; }
+    .caption-input:placeholder-shown { padding-bottom: 9px; border-bottom-color: var(--border-hover); }
+    /* clear: only while there is text, iOS-style small filled circle at the end of the first line */
     .caption-clear {
       position: absolute;
       top: -8px;
@@ -1312,17 +1336,68 @@
     .caption-clear svg { width: 20px; height: 20px; padding: 5px; border-radius: 50%; background: var(--surface-3); stroke-width: 2.6; }
     .caption-clear:hover { color: var(--text-primary); }
 
-    .live-parsed-preview {
+    /* Between the pills and the hairline: the words, their rows, then the mic, always at the bottom, right above the
+       hairline. The room left between the rows and the mic is empty (a tap there types too: it labels the field).
+       Its content never sizes the card (zero basis, size containment) and its minimum is the same in every state,
+       so the card, the slot and the mic never move: the rows fill the room down to the mic and then scroll, a whole
+       row at a time, with "+2 lainnya" on top saying how many are out of view (JS: fitRows); with rows the words
+       give way down to one line so a row always shows, except while typing: then Save and the mic above the
+       keyboard come first. */
+    .stage-middle {
+      --orb-block: calc(var(--gap-a) + 2 * var(--halo) + var(--orb) + var(--gap-b));
+      /* one line of words, a row and the peeking edges of a stack over it, the mic (fitRows never sizes this) */
+      flex: 1 1 0px;
+      min-height: calc(var(--cap-line) + var(--cap-gap) + 6px + var(--row-h) + var(--orb-block));
+      contain: size;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      width: 100%;
     }
+    .app.kb-open .stage-middle { min-height: calc(var(--cap-line) + var(--cap-gap) + var(--orb-block)); }
+    .caption-rest { flex: 1 1 0px; min-height: var(--gap-a); cursor: text; }
+    /* "+2 lainnya": rows scrolled out of view above the ones shown */
+    .parsed-more {
+      flex: none;
+      margin: 0 0 4px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 14px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .live-parsed-preview {
+      /* gives way first (before the words) */
+      flex: 0 1000 auto;
+      min-height: 0;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+      text-align: left;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+      /* the cut always falls between rows */
+      scroll-snap-type: y mandatory;
+    }
+    /* one row always shows (the words give way for it), except while typing: Save and the mic come first then */
+    .app:not(.kb-open) .stage-middle:has(.parsed-tag) > .live-parsed-preview { min-height: var(--row-h); }
+    /* and so does the note on what is missing, whole (it is never taller than the room kept for a row) */
+    .app:not(.kb-open) .stage-middle:has(.parsed-note) > .live-parsed-preview { min-height: min-content; }
+    /* no room for "+2 lainnya" (the smallest phones while typing): the edges of the rows behind the one shown peek
+       out above it, like a stack of receipts (outer shadows: drawn only outside the box) */
+    .live-parsed-preview.stacked {
+      margin-top: 6px;
+      border-radius: 12px;
+      box-shadow: 0 -8px 0 -5px #2F2F36, 0 -16px 0 -10px #222228;
+    }
+    .live-parsed-preview::-webkit-scrollbar { display: none; }
     .live-parsed-preview:empty { display: none; }
     .live-parsed-preview > * { flex-shrink: 0; }
     /* what is missing ("Sebut nominalnya…"), right under the words it is about */
     .parsed-note {
       margin: -2px 0 0;
+      text-align: center;
       font-size: 12.5px;
       font-weight: 500;
       line-height: 1.45;
@@ -1333,10 +1408,10 @@
     /* one row per entry, like the rows on Ringkasan: what, then wallet · day under it; amount and × on the right */
     .parsed-tag {
       width: 100%;
-      min-height: 42px;
+      min-height: var(--row-h);
       background: var(--surface-2);
       border: 1px solid var(--border);
-      padding: 4px 4px 4px 12px;
+      padding: 3px 4px 3px 12px;
       border-radius: 12px;
       font-size: 13px;
       font-weight: 600;
@@ -1344,13 +1419,14 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      scroll-snap-align: end;
       animation: fadeSlideUp 0.22s var(--spring);
     }
     /* a row that only changed (or moved up) while typing stays still; only a new one comes in */
     .parsed-tag.no-anim { animation: none; }
     .parsed-tag .pt-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-    .parsed-tag .pt-title { line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .parsed-tag .pt-meta { display: flex; min-width: 0; font-size: 11px; font-weight: 500; line-height: 1.3; color: var(--text-secondary); white-space: nowrap; }
+    .parsed-tag .pt-title { line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .parsed-tag .pt-meta { display: flex; min-width: 0; font-size: 11px; font-weight: 500; line-height: 15px; color: var(--text-secondary); white-space: nowrap; }
     .parsed-tag .pt-wallet { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .parsed-tag .pt-day { flex-shrink: 0; color: var(--warning); }
     .parsed-tag .pt-day::before { content: '\00a0\00b7\00a0'; color: var(--text-muted); }
@@ -1366,24 +1442,57 @@
     .chip-x svg { width: 12px; height: 12px; stroke-width: 2.4; }
     .chip-x:hover { color: var(--text-primary); }
 
-    .composer-foot {
+    /* the mic, centred between its wave bars (they ripple out from it while listening); the margins hold its ring */
+    .orb-center-wrap {
+      flex-shrink: 0;
       display: flex;
       align-items: center;
-      gap: 10px;
-      min-height: 48px;
+      justify-content: center;
+      gap: 14px;
+      margin-top: var(--halo);
+      margin-bottom: calc(var(--halo) + var(--gap-b));
+    }
+    .wave-bars {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 24px;
+      opacity: 0.25;
+      transition: opacity 0.2s ease;
+    }
+    .wave-bars.active { opacity: 1; }
+    .wave-bar { width: 3px; height: 8px; border-radius: 3px; background: var(--text-primary); }
+    .wave-bars.active .wave-bar { animation: soundWave 0.7s ease-in-out infinite; }
+    .wave-bars.active .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+    #waveLeft.active .wave-bar:first-child, #waveRight.active .wave-bar:last-child { animation-delay: 0.3s; }
+    @keyframes soundWave {
+      0%, 100% { height: 6px; }
+      50% { height: 22px; background: var(--positive); }
+    }
+
+    /* under a hairline, one slot: the tip, "Mendengarkan…" while listening, or Save (one height for all three, so the
+       mic above it never moves) */
+    .stage-bottom-slot {
+      flex-shrink: 0;
+      height: 55px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .catat-hint {
-      flex: 1;
       min-width: 0;
       margin: 0;
+      padding: 0 6px;
       font-size: 12px;
       font-weight: 500;
       line-height: 1.45;
       color: var(--text-muted);
-      text-wrap: pretty;
+      text-wrap: balance;
     }
     .catat-hint .tip-key { color: var(--text-secondary); font-weight: 600; }
-    .catat-hint.strong { color: var(--text-secondary); }
+    .catat-hint.strong { color: var(--text-secondary); font-weight: 600; }
     .rec-dot {
       display: inline-block;
       width: 7px;
@@ -1396,11 +1505,12 @@
     }
     @keyframes recBlink { 50% { opacity: 0.35; } }
 
-    /* mic: the bright one while it is the next step; quiet once there is something to save */
+    /* the mic: big, round and bright while it is the next step; quiet once Save is there; red and breathing while
+       listening. The soft halo (--halo) is part of the shape. */
     .voice-orb {
       position: relative;
-      width: 48px;
-      height: 48px;
+      width: var(--orb);
+      height: var(--orb);
       border-radius: 50%;
       background: var(--text-primary);
       color: var(--bg-app);
@@ -1410,47 +1520,49 @@
       justify-content: center;
       cursor: pointer;
       flex-shrink: 0;
-      transition: background-color 0.2s ease, color 0.2s ease, transform 0.25s var(--spring);
+      box-shadow: 0 0 0 var(--halo) rgba(255, 255, 255, 0.05);
+      transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.25s ease, width 0.28s var(--spring), height 0.28s var(--spring);
     }
-    .voice-orb svg { width: 21px; height: 21px; stroke-width: 2; }
-    .voice-orb.quiet { background: var(--surface-3); color: var(--text-primary); }
-    .voice-orb.recording { background: var(--negative); color: #FFFFFF; }
-    .voice-orb.recording::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      border: 2px solid var(--negative);
-      animation: micRing 1.5s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
-      pointer-events: none;
+    .voice-orb svg { width: 22px; height: 22px; stroke-width: 2; }
+    /* quiet = a secondary button next to the white Save: lifted grey with a fine ring, never the grey of the row × */
+    .voice-orb.quiet { background: #2E2E35; color: var(--text-primary); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 0 0 var(--halo) rgba(255, 255, 255, 0.05); }
+    .voice-orb.recording {
+      background: var(--negative);
+      color: #FFFFFF;
+      box-shadow: 0 0 0 calc(var(--halo) + 4px) rgba(251, 93, 120, 0.16);
+      animation: pulseOrb 1.3s ease-in-out infinite;
     }
-    @keyframes micRing {
-      from { transform: scale(1); opacity: 0.6; }
-      to { transform: scale(1.6); opacity: 0; }
-    }
-    .voice-orb.unsupported { background: var(--surface-3); color: var(--text-muted); }
+    @keyframes pulseOrb { 50% { transform: scale(1.06); } }
+    .voice-orb.unsupported { background: var(--surface-3); color: var(--text-muted); box-shadow: none; }
+    .voice-stage > :not(.stage-middle) { flex-shrink: 0; }
 
-    /* Typing in Catat (keyboard up, --kb from the viewport guard): the composer fits the area above the keyboard,
-       so its foot row (Save, mic) rides just above it; the other ways to record would be under the keyboard anyway.
-       The text gets at most 3 lines and the rows list gives way (it scrolls, faded at a cut edge), so however many
-       entries are typed, the text and the foot row both stay in view. */
+    /* Typing in Catat (keyboard up, --kb from the viewport guard): the card fits the area above the keyboard, so the
+       mic and Save ride just above it; the other ways to record would be under the keyboard anyway. The card
+       tightens (smaller mic, slimmer pills, no hairline), the text gets at most 3 lines and the rows area gives way,
+       so however many entries are typed, the text, the mic and Save stay in view. (A phone on its side has too little
+       room above the keyboard even for that: there the view scrolls.) */
     #viewCatat { transition: padding-bottom 0.28s var(--spring); }
     .app.kb-open #viewCatat { padding-bottom: max(12px, calc(var(--kb) - var(--tabbar-h) - var(--safe-bottom) + 12px)); }
     .app.kb-open #viewCatat .bottom-dock-section { display: none; }
-    .app.kb-open .caption-input { max-height: 76px; }
+    .app.kb-open .voice-stage { --stage-gap: 6px; --halo: 4px; --orb: 40px; --gap-a: 8px; --gap-b: 2px; --cap-gap: 2px; padding-top: 8px; padding-bottom: 8px; }
+    .app.kb-open .voice-stage > .catat-wallet-selector { margin-bottom: 0; }
+    .app.kb-open .catat-wallet-selector > .w-pill { min-height: 32px; }
+    .app.kb-open .caption-input { max-height: calc(3 * 1.35em + 5px); }
+    .app.kb-open .orb-center-wrap { gap: 10px; }
+    .app.kb-open .voice-orb svg { width: 18px; height: 18px; }
+    .app.kb-open .stage-bottom-slot { height: 42px; padding-top: 0; border-top: 0; }
+    .app.kb-open .full-save-bar-btn { height: 42px; }
     /* a payment screen's text (pasted, Live Text, a Shortcut) is only the source: smaller, quieter, 4 lines at most;
        the row it produced and "Cek & simpan" are what counts */
-    .caption-box.is-shot .caption-input { font-size: 13px; line-height: 1.4; font-weight: 500; color: var(--text-secondary); max-height: calc(4 * 1.4em); }
-    /* text cut off at the field's height fades out instead of being sliced through a line (not while editing it) */
-    .caption-input.clipped:not(:focus) { -webkit-mask-image: linear-gradient(#000 calc(100% - 20px), transparent); mask-image: linear-gradient(#000 calc(100% - 20px), transparent); }
-    /* (a phone on its side has too little room above the keyboard for this: there the view scrolls instead) */
-    @media (min-height: 501px) {
-      .app.kb-open .catat-studio { min-height: 0; }
-      .app.kb-open .voice-stage { flex: 1 1 auto; min-height: 0; }
-      .app.kb-open .voice-stage > * { flex-shrink: 0; }
-      .app.kb-open .voice-stage > .live-parsed-preview { flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
-      .app.kb-open .voice-stage > .live-parsed-preview::-webkit-scrollbar { display: none; }
-    }
+    .caption-box.is-shot { --cap-line: calc(1.4 * 13px + 1px); }
+    .caption-box.is-shot .caption-input { padding-top: 0; padding-bottom: 0; text-align: left; font-size: 13px; line-height: 1.4; font-weight: 500; letter-spacing: 0; color: var(--text-secondary); min-height: var(--cap-line); max-height: calc(4 * 1.4em + 1px); }
+    /* listening into an empty field: the example steps back, so the words heard (bold, white) clearly replace it */
+    .voice-stage:has(.voice-orb.recording) .caption-input::placeholder { opacity: 0.35; }
+    /* text cut off at the field's height fades out instead of being sliced through a line (not while editing it; a
+       field cut to one line fades less, so that line still reads) */
+    .caption-input.clipped:not(:focus) { -webkit-mask-image: linear-gradient(#000 calc(100% - min(20px, 45%)), transparent); mask-image: linear-gradient(#000 calc(100% - min(20px, 45%)), transparent); }
+    /* while listening it shows its end (fitRows): the cut is above, so the fade is too (short: no padding there) */
+    .caption-input.clipped.tail:not(:focus) { -webkit-mask-image: linear-gradient(transparent, #000 min(12px, 18%)); mask-image: linear-gradient(transparent, #000 min(12px, 18%)); }
     .live-parsed-preview.fade-bottom { -webkit-mask-image: linear-gradient(#000 calc(100% - 22px), transparent); mask-image: linear-gradient(#000 calc(100% - 22px), transparent); }
     .live-parsed-preview.fade-top { -webkit-mask-image: linear-gradient(transparent, #000 22px); mask-image: linear-gradient(transparent, #000 22px); }
     .live-parsed-preview.fade-top.fade-bottom { -webkit-mask-image: linear-gradient(transparent, #000 22px, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(transparent, #000 22px, #000 calc(100% - 22px), transparent); }
@@ -1458,7 +1570,7 @@
     .full-save-bar-btn {
       flex: 1;
       min-width: 0;
-      height: 48px;
+      height: 44px;
       border-radius: 12px;
       display: flex;
       align-items: center;
@@ -2223,24 +2335,18 @@
     .recap-chip .recap-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .recap-chip em { min-width: 34px; text-align: right; }
 
-    /* Catat: one left-aligned scrolling row of quiet wallet pills (32px to the eye, 40px to the finger) */
-    .catat-wallet-selector { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; margin: -4px -16px 0; padding: 4px 16px; width: calc(100% + 32px); }
+    /* Catat: one scrolling row of wallet pills, centred while they fit; the default one is the bright one */
+    .catat-wallet-selector { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px; width: calc(100% + 32px); }
     .catat-wallet-selector::-webkit-scrollbar { display: none; }
     .catat-wallet-selector {
       -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
       mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
     }
-    .catat-wallet-selector > .w-pill {
-      flex-shrink: 0; position: relative; overflow: visible;
-      min-height: 32px; height: 32px; padding: 0 11px;
-      background: transparent; border-color: var(--border); color: var(--text-secondary);
-    }
-    .catat-wallet-selector > .w-pill::after { content: ''; position: absolute; inset: -4px 0; }
+    .catat-wallet-selector > .w-pill { flex-shrink: 0; transition: min-height 0.28s var(--spring); }
+    .catat-wallet-selector > :first-child { margin-left: auto; }
+    .catat-wallet-selector > :last-child { margin-right: auto; }
     .catat-wallet-selector > .w-pill > span:nth-child(2) { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
-    .catat-wallet-selector > .w-pill.active { background: var(--surface-3); border-color: var(--border-hover); color: var(--text-primary); }
-    .catat-wallet-selector .pill-sub { font-weight: 500; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-    .catat-wallet-selector .w-pill.active .pill-sub { color: var(--text-secondary); }
-    .catat-wallet-selector .w-pill.add { border-color: rgba(52, 211, 153, 0.4); color: var(--positive); }
+    .catat-wallet-selector .pill-sub { font-variant-numeric: tabular-nums; }
     .w-pill { min-height: 40px; }
     .chip-x { width: 32px; height: 32px; }
 
@@ -2486,6 +2592,63 @@
     .tip-steps li { padding-left: 2px; }
     .tip-steps li::marker { color: var(--text-muted); font-weight: 700; }
 
+    /* Settings: Notifikasi (optional Web Push). Busy buttons keep focus (aria-disabled) and show a spinner. */
+    .push-box { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    .push-lead { font-size: 12.5px; line-height: 1.5; color: var(--text-secondary); }
+    .push-note { font-size: 12.5px; line-height: 1.5; }
+    .push-status { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+    .push-status small { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+    .push-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--positive); box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.18); flex-shrink: 0; }
+    /* the notify URL in one line, cut in the middle: the head ends in an ellipsis, the token's tail always shows */
+    .push-url {
+      display: flex; align-items: center; min-width: 0; min-height: 44px; padding: 0 12px;
+      border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border);
+      font: 600 12.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text-primary);
+      -webkit-user-select: all; user-select: all;
+    }
+    .push-url .pu-head { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .push-url .pu-tail { flex: 0 0 auto; white-space: nowrap; }
+    .push-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .push-actions .btn-secondary { min-height: 46px; min-width: 0; padding: 0 10px; font-size: 12.5px; }
+    .push-actions .btn-secondary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .push-box [aria-disabled="true"] { opacity: 0.72; cursor: progress; }
+    .push-howto { border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+    .push-howto > summary {
+      list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      min-height: 46px; padding: 0 12px; border-radius: 12px;
+      font-size: 13px; font-weight: 600; color: var(--text-primary); cursor: pointer;
+    }
+    .push-howto > summary::-webkit-details-marker { display: none; }
+    .push-howto > summary svg { width: 16px; height: 16px; stroke-width: 2; color: var(--text-muted); flex-shrink: 0; transition: transform 0.2s var(--spring); }
+    .push-howto[open] > summary svg { transform: rotate(90deg); }
+    .push-howto > summary:focus-visible { outline: 2px solid var(--positive); outline-offset: 2px; }
+    .push-howto .tip-steps { margin: 0; padding: 0 14px 0 32px; font-size: 12.5px; line-height: 1.55; color: var(--text-secondary); }
+    .push-how-note { padding: 10px 14px 14px; }
+    .push-howto code { font: 600 11.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text-primary); background: var(--surface-3); padding: 1px 5px; border-radius: 6px; white-space: nowrap; }
+    .push-off { align-self: flex-start; }
+    /* Safari tab on iPhone: move to the Home Screen app (backup first, in the Data group right below) */
+    .push-install .tip-steps { margin-top: 8px; gap: 5px; }
+    .push-install .tip-steps li::marker { color: inherit; }
+    .btn-spin { width: 15px; height: 15px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: btnSpin 0.7s linear infinite; flex-shrink: 0; }
+    @keyframes btnSpin { to { transform: rotate(360deg); } }
+
+    /* CATAT opened from a notification: Tempel pulses and the card's text says what to do. The hint is laid over the
+       title and the second line (same grid area, those two only fade out), so the card keeps its height: the dock
+       and the mic above it do not move for its 12 s. (In place of the second line alone it grew the card wherever
+       it wraps to more lines than that line: 2 against 1 on 360-375 pt phones.) */
+    .paste-pill.pulse { animation: pastePulse 0.9s var(--spring) 3; }
+    @keyframes pastePulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); transform: scale(1); }
+      35% { box-shadow: 0 0 0 5px rgba(52, 211, 153, 0.4); transform: scale(1.05); border-color: rgba(52, 211, 153, 0.85); }
+    }
+    .shot-card.hinting { border-color: rgba(52, 211, 153, 0.55); }
+    .shot-main .dock-text { display: grid; grid-template-columns: minmax(0, 1fr); }
+    .shot-main .dock-text > strong { grid-area: 1 / 1; }
+    .shot-main .dock-text > small { grid-area: 2 / 1; }
+    .shot-main .dock-text > .paste-hint { grid-area: 1 / 1 / 3 / 2; align-self: center; margin-top: 0; }
+    .shot-card.hinting .dock-text > :not(.paste-hint) { opacity: 0; }
+    .dock-text small.paste-hint { color: var(--positive); font-weight: 600; }
+
     /* KEYBOARD (phones). While a field is edited the viewport guard (JS) sets --kb (how much of the shell the
        keyboard covers, accessory bar included) and --vv-top (how far iOS panned the visible area; the guard scrolls
        that back when it can). Sheets and the setup screen then fill just the visible area: the field, the sheet's
@@ -2515,12 +2678,31 @@
     }
 
     /* SHORT SCREENS (iPhone SE / 8, a phone on its side): the whole Catat tab fits above the tab bar.
-       Tighter composer and compact dock cards. */
+       Tighter composer, slimmer pills, a smaller mic and compact dock cards; while typing, the pills step aside so
+       the text, its rows, the mic and Save share the little room above the keyboard. */
     @media (max-height: 700px) {
       #viewCatat { padding-bottom: 12px; }
       .catat-studio { gap: 10px; }
-      .voice-stage { padding: 12px 14px 12px; --stage-gap: 10px; }
+      .voice-stage { padding: 10px 14px 10px; --stage-gap: 8px; --halo: 5px; --orb: 52px; --gap-a: 9px; --cap-gap: 3px; }
       .catat-wallet-selector { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; width: calc(100% + 28px); }
+      .voice-stage > .catat-wallet-selector { margin-bottom: 0; }
+      .catat-wallet-selector > .w-pill { min-height: 36px; }
+      .voice-orb svg { width: 20px; height: 20px; }
+      .stage-bottom-slot { height: 51px; padding-top: 8px; }
+      .full-save-bar-btn { height: 42px; }
+      .app.kb-open .voice-stage > .catat-wallet-selector { display: none; }
+    }
+    /* the smallest phones (SE 1st gen): two lines of text while typing and a smaller mic with tighter air, so a
+       whole row still shows above it; without the keyboard a slightly smaller mic too, so the tab fits above the
+       tab bar with the mic in one place */
+    @media (max-height: 600px) {
+      .voice-stage { --orb: 48px; --halo: 4px; --gap-a: 7px; --gap-b: 0px; }
+      .app.kb-open .caption-input { max-height: calc(2 * 1.35em + 5px); }
+      .app.kb-open .voice-stage { --orb: 34px; --halo: 3px; --gap-a: 6px; --gap-b: 0px; padding-top: 6px; padding-bottom: 6px; }
+      .app.kb-open .voice-orb svg { width: 16px; height: 16px; }
+      .live-parsed-preview.stacked { margin-top: 5px; box-shadow: 0 -7px 0 -5px #2F2F36, 0 -14px 0 -9px #222228; }
+    }
+    @media (max-height: 700px) {
       .bottom-dock-section, .dock-buttons { gap: 8px; }
       .dock-card { min-height: 48px; padding: 9px 10px; }
       .dock-icon { width: 30px; height: 30px; border-radius: 9px; }
@@ -2642,28 +2824,40 @@
         <div class="voice-stage stagger-1">
           <div id="catatWallets" class="catat-wallet-selector" role="radiogroup" data-i18n-aria="catat.walletGroup"></div>
 
-          <div class="caption-box">
-            <label class="caption-hit" for="captionInput">
-              <textarea id="captionInput" class="caption-input" rows="2" autocomplete="off" spellcheck="false" data-i18n-aria="catat.inputAria"></textarea>
-            </label>
-            <button type="button" id="captionClear" class="caption-clear" data-action="voice-reset" data-i18n-aria="catat.clearAria" data-i18n-title="catat.clearAria" hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
+          <!-- between the pills and the hairline: the words, their rows ("+2 lainnya" over them when some are scrolled
+               away), the empty room, then the mic, always in the same place right above the hairline -->
+          <div class="stage-middle">
+            <div class="caption-box">
+              <label class="caption-hit" for="captionInput">
+                <textarea id="captionInput" class="caption-input" rows="1" autocomplete="off" spellcheck="false" data-i18n-aria="catat.inputAria"></textarea>
+              </label>
+              <button type="button" id="captionClear" class="caption-clear" data-action="voice-reset" data-i18n-aria="catat.clearAria" data-i18n-title="catat.clearAria" hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
+            </div>
+            <p id="parsedMore" class="parsed-more" aria-hidden="true" hidden></p>
+            <div id="parsedPreview" class="live-parsed-preview" aria-live="polite"></div>
+            <label class="caption-rest" for="captionInput" aria-hidden="true"></label>
+            <div id="orbWrap" class="orb-center-wrap">
+              <div id="waveLeft" class="wave-bars" aria-hidden="true">
+                <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+              </div>
+              <button type="button" id="micBtn" class="voice-orb" data-action="voice-toggle" aria-pressed="false" data-i18n-aria="catat.micAria">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                  <line x1="12" y1="19" x2="12" y2="22"/>
+                </svg>
+              </button>
+              <div id="waveRight" class="wave-bars" aria-hidden="true">
+                <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+              </div>
+            </div>
           </div>
 
-          <div id="parsedPreview" class="live-parsed-preview" aria-live="polite"></div>
-          <label class="caption-rest" for="captionInput" aria-hidden="true"></label>
-
-          <div class="composer-foot">
+          <div class="stage-bottom-slot">
             <p id="catatHint" class="catat-hint" aria-live="polite"></p>
             <button type="button" id="commitBtn" class="full-save-bar-btn" data-action="voice-commit" hidden></button>
-            <button type="button" id="micBtn" class="voice-orb" data-action="voice-toggle" aria-pressed="false" data-i18n-aria="catat.micAria">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" y1="19" x2="12" y2="22"/>
-              </svg>
-            </button>
           </div>
         </div>
 
@@ -2679,6 +2873,7 @@
                 <span class="dock-text">
                   <strong data-i18n="catat.shot"></strong>
                   <small data-i18n="catat.shotSub"></small>
+                  <small id="pasteHint" class="paste-hint" data-i18n="catat.pasteHint" aria-hidden="true" hidden></small>
                 </span>
                 <input type="file" accept="image/*" id="shotFile" class="visually-hidden">
               </label>
@@ -3378,6 +3573,105 @@ const Core = (() => {
     if (v === null || !isFinite(v) || v > MAX_AMOUNT) return null;
     v = roundTo(v, c.decimals);
     return v > 0 ? v : null;
+  }
+
+  // ---------- amount fields: grouping while typing ----------
+  // What an amount field shows after an edit: digits grouped in the currency's own style ("2.000.000" for IDR,
+  // "2,000,000.50" for USD/SGD), which parseAmountInput reads back unambiguously. Text with words ("25rb",
+  // "1,5jt") stays as typed, and so does an IDR decimal on its way ("1.5" before "jt") while keys are added, when
+  // it already was one before the edit, or when the edit only took letters off it ("1.5jt" -> "1.5", not "15");
+  // a Backspace that turns a grouped "1,234" into "1,23" regroups it ("123") instead of leaving a decimal.
+  // USD/SGD: a decimal comma (the decimal keypad of an iPhone set to an Indonesian region has no point) becomes
+  // the point ("1234,56" -> "1,234.56", "," -> "0."), and a point typed at the end with exactly three digits after
+  // it is a group separator, as the spec and parseAmountInput read "1.234" (a hand-typed "1,234,567" still groups).
+  // A currency written in the text ("Rp 1.250.000" pasted from a bank app) is dropped: the field shows its own.
+  // o: { currency | decimals, signed, caret, inputType, prev, ranged }: prev = the value before this edit,
+  // ranged = the edit replaced a selection. A Backspace/Delete that only hit a group separator (the field would
+  // look unchanged) removes the digit next to it. Returns { value, caret, changed }; the caret stays after the
+  // same digit, and after a "0" the field adds in front of a decimal point ("." -> "0.|", not "0|.").
+  const groupDigitsBy = (d, sep) => d.replace(/\B(?=(\d{3})+(?!\d))/g, sep);
+  const SIGN_RE = /^\s*[-−]\s*/;
+  // "1." / "1.5" (IDR, before "jt") and "12," / "1,234,5" (a decimal comma in USD/SGD)
+  const partialDecimal = (body, dec) => (dec ? /^(?:\d*|\d{1,3}(?:,\d{3})+),\d{0,2}$/ : /^\d{1,3}\.\d{0,2}\s*$/).test(body);
+  // a currency in front of the number ("Rp 1.250.000", "-Rp50.000", "US$ 12.50"), and after it when pasted
+  // ("50.000,-", "1.250.000 IDR")
+  const CUR_LEAD_RE = /^(\s*[-−]?\s*)(?:rp|idr|us\$|s\$|sgd|usd|\$)\.?\s*(?=[-−]?\s*[\d.,])/i;
+  const CUR_TAIL_RE = /(\d)\s*(?:[.,]-+|(?:rupiah|perak|idr|usd|sgd|dollars?|dolar)\.?)\s*$/i;
+  function regroupAmount(v, dec, signed, keepPartial) {
+    const neg = signed && SIGN_RE.test(v);
+    const body = neg ? v.replace(SIGN_RE, '') : v;
+    if (keepPartial && partialDecimal(body, dec)) return null;
+    let out = null;
+    if (!dec) {
+      if (/^[\d.\s]*$/.test(body)) { const d = body.replace(/\D/g, '').replace(/^0+(?=\d)/, ''); out = d ? groupDigitsBy(d, '.') : ''; }
+    } else if (/^[\d,]*(\.\d{0,2})?$/.test(body)) {
+      const parts = body.split('.');
+      const d = parts[0].replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+      out = (d ? groupDigitsBy(d, ',') : (parts.length > 1 ? '0' : '')) + (parts.length > 1 ? '.' + parts[1] : '');
+    }
+    return out == null ? null : (neg ? '-' : '') + out;
+  }
+  function liveAmountInput(value, o) {
+    o = isObj(o) ? o : {};
+    const v = String(value == null ? '' : value);
+    const dec = (isFiniteNum(o.decimals) ? o.decimals : cur(o.currency).decimals) > 0;
+    const signed = !!o.signed;
+    const it = typeof o.inputType === 'string' ? o.inputType : '';
+    const prev = typeof o.prev === 'string' ? o.prev : null;
+    const caret0 = isFiniteNum(o.caret) && o.caret >= 0 ? Math.min(Math.floor(o.caret), v.length) : v.length;
+    // what the caret counts: digits (and the sign, and the decimal point where there are decimals)
+    const counted = dec ? /[\d.\-−]/ : /[\d\-−]/;
+    const ins = !it || /^insert/.test(it);
+    // a whole value at once: paste, AutoFill, drag and drop (not one key)
+    const whole = !it || (ins && it !== 'insertText' && it !== 'insertCompositionText');
+    const keep = ins || (prev != null && (partialDecimal(signed ? prev.replace(SIGN_RE, '') : prev, dec) || /[a-z]/i.test(prev)));
+    let src = v, caret = caret0;
+    // takes src[a, b) out, the caret stays on the same character
+    const cut = (a, b) => { if (b > a) { src = src.slice(0, a) + src.slice(b); caret = caret <= a ? caret : Math.max(a, caret - (b - a)); } };
+    // a pasted " 1.5" is "1.5" (a space in front read as a separator: "15")
+    if (whole) { cut(src.length - /\s*$/.exec(src)[0].length, src.length); cut(0, /^\s*/.exec(src)[0].length); }
+    const lead = CUR_LEAD_RE.exec(src);
+    if (lead) {
+      // "- Rp 50.000" -> "-50.000", "Rp 1.250.000" -> "1.250.000"
+      const sign = /[-−]/.exec(lead[1]);
+      if (sign) { cut(sign.index + 1, lead[0].length); cut(0, sign.index); } else cut(0, lead[0].length);
+    }
+    if (whole) {
+      src = src.replace(CUR_TAIL_RE, '$1');
+      // "Rp 1.250.000,00": rupiah have no cents
+      if (!dec) src = src.replace(/^(\s*[-−]?\s*(?:\d{1,3}(?:\.\d{3})+|\d+)),0{1,2}\s*$/, '$1');
+      caret = Math.min(caret, src.length);
+    }
+    if (dec && keep) {
+      const sg = signed ? (SIGN_RE.exec(src) || [''])[0] : '';
+      let body = src.slice(sg.length).replace(/^(\d*|\d{1,3}(?:,\d{3})+),(\d{0,2})$/, '$1.$2');
+      const m3 = ins && caret >= src.length ? /^(\d+|\d{1,3}(?:,\d{3})+)\.(\d{3})$/.exec(body) : null;
+      if (m3 && /[1-9]/.test(m3[1])) body = m3[1] + ',' + m3[2];
+      src = sg + body;
+    }
+    let out = regroupAmount(src, dec, signed, keep);
+    if (out != null && out !== v && out === prev && !o.ranged && (it === 'deleteContentBackward' || it === 'deleteContentForward')) {
+      const i = it === 'deleteContentBackward' ? caret - 1 : caret;
+      if (i >= 0 && i < src.length && /\d/.test(src[i])) {
+        src = src.slice(0, i) + src.slice(i + 1);
+        caret = i;
+        out = regroupAmount(src, dec, signed, false);
+      }
+    }
+    if (out == null) out = src;
+    if (out === v) return { value: v, caret: caret0, changed: false };
+    // only a currency dropped ("Rp 25rb" -> "25rb"): the caret moved with it
+    if (out === src) return { value: out, caret, changed: true };
+    // The caret goes after the same digit, found from the right: what changed is on the left (separators, a "0"
+    // added in front of a point, leading zeros dropped). A sign in front of the caret stays there ("-|0").
+    let after = 0, total = 0;
+    for (let i = caret; i < src.length; i++) if (counted.test(src[i])) after++;
+    for (let i = 0; i < out.length; i++) if (counted.test(out[i])) total++;
+    const signFirst = signed && SIGN_RE.test(src) && src.search(/[-−]/) < caret ? 1 : 0;
+    const before = Math.max(total - after, signFirst);
+    let pos = 0, seen = 0;
+    while (pos < out.length && seen < before) { if (counted.test(out[pos])) seen++; pos++; }
+    return { value: out, caret: pos, changed: true };
   }
 
   // ---------- parseEntry ----------
@@ -5588,15 +5882,139 @@ const Core = (() => {
     return '﻿' + rows.join('\r\n') + '\r\n';
   }
 
+  // ---------- notifications (optional Web Push through Sangu's own push Worker) ----------
+  // Pure helpers for the UI's "Notifikasi" section: which state to show, what an error means, the device record
+  // kept in the browser (token, auth secret, notify URL, VAPID key) and base64url for VAPID keys.
+  const PUSH_TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;     // 32 random bytes from the Worker
+  const PUSH_AUTH_RE = /^[A-Za-z0-9_-]{22}$/;      // a subscription's 16-byte auth secret
+  const PUSH_KEY_RE = /^[A-Za-z0-9_-]{87}$/;       // an uncompressed P-256 public key (65 bytes)
+  const B64U = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+  // base64 or base64url text -> Uint8Array (null when it is not base64)
+  function b64uToBytes(s) {
+    const str = String(s == null ? '' : s).trim().replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+    if (!/^[A-Za-z0-9_-]*$/.test(str) || str.length % 4 === 1) return null;
+    const out = new Uint8Array(Math.floor(str.length * 3 / 4));
+    let buf = 0, bits = 0, j = 0;
+    for (let i = 0; i < str.length; i++) {
+      buf = (buf << 6) | B64U.indexOf(str[i]);
+      bits += 6;
+      if (bits >= 8) { bits -= 8; out[j++] = (buf >> bits) & 255; buf &= (1 << bits) - 1; }
+    }
+    return out;
+  }
+  // ArrayBuffer, typed array or array of bytes -> base64url without padding ('' for anything else)
+  function bytesToB64u(input) {
+    let b = null;
+    if (input && typeof input === 'object' && typeof input.byteLength === 'number') {
+      b = ArrayBuffer.isView(input) ? new Uint8Array(input.buffer, input.byteOffset, input.byteLength) : new Uint8Array(input);
+    } else if (Array.isArray(input)) {
+      b = Uint8Array.from(input.map(x => Number(x) & 255));
+    }
+    if (!b) return '';
+    let out = '';
+    for (let i = 0; i < b.length; i += 3) {
+      const n = (b[i] << 16) | ((i + 1 < b.length ? b[i + 1] : 0) << 8) | (i + 2 < b.length ? b[i + 2] : 0);
+      out += B64U[(n >> 18) & 63] + B64U[(n >> 12) & 63];
+      if (i + 1 < b.length) out += B64U[(n >> 6) & 63];
+      if (i + 2 < b.length) out += B64U[n & 63];
+    }
+    return out;
+  }
+  const pushValidToken = t => typeof t === 'string' && PUSH_TOKEN_RE.test(t);
+  const pushValidKey = k => typeof k === 'string' && PUSH_KEY_RE.test(k) && k[0] === 'B'; // 0x04 prefix
+  // The notify URL for a token: the Worker's own answer when it is that token's https URL, else base + /n/<token>.
+  function pushNotifyUrl(base, token, given) {
+    if (!pushValidToken(token)) return '';
+    if (typeof given === 'string' && /^https:\/\/[A-Za-z0-9.-]+(:\d{1,5})?\/n\/[A-Za-z0-9_-]{43}$/.test(given) && given.slice(-43) === token) return given;
+    return String(base || '').replace(/\/+$/, '') + '/n/' + token;
+  }
+  // The stored device record, cleaned: null unless it holds a usable token (notifications are "on").
+  function pushSaved(raw) {
+    if (!isObj(raw) || !pushValidToken(raw.token)) return null;
+    const notifyUrl = pushNotifyUrl('', raw.token, raw.notifyUrl);
+    if (!/^https:/.test(notifyUrl)) return null;
+    return {
+      token: raw.token,
+      auth: typeof raw.auth === 'string' && PUSH_AUTH_RE.test(raw.auth) ? raw.auth : '',
+      notifyUrl,
+      publicKey: pushValidKey(raw.publicKey) ? raw.publicKey : '',
+      enabledAt: typeof raw.enabledAt === 'string' && !isNaN(Date.parse(raw.enabledAt)) ? raw.enabledAt : ''
+    };
+  }
+  // What the Settings section shows. env: { ios, standalone, supported, permission, saved }
+  //   install: an iPhone/iPad outside the Home Screen app (Safari has no Web Push there)
+  //   unsupported: no service worker / PushManager / Notification
+  //   denied: notifications blocked for this app; on: permission + a registered token; off: everything else
+  function pushView(env) {
+    const e = isObj(env) ? env : {};
+    if (e.ios && !e.standalone) return 'install';
+    if (!e.supported) return 'unsupported';
+    if (e.permission === 'denied') return 'denied';
+    if (e.permission === 'granted' && pushSaved(e.saved)) return 'on';
+    return 'off';
+  }
+  // A subscription made with another VAPID key never gets pushes again (403 VapidPkHashMismatch): replace it.
+  // boundKey: the key the current subscription was made with ('' when unknown)
+  function pushKeyChanged(boundKey, publicKey) {
+    return !!boundKey && pushValidKey(publicKey) && boundKey !== publicKey;
+  }
+  // An error from enabling, syncing or a test push -> one plain-language kind for the UI.
+  //   err: { kind } (already known), { name: 'AbortError' } (timeout), { status, code, pushStatus, reason } (the
+  //   Worker answered; pushStatus/reason: what the push service said), or anything else (no answer: network).
+  //   online: false when the browser knows it is offline.
+  //   storage: the device record could not be kept (storage full); cancelled: notifications were turned off (or
+  //   all data reset) while it ran, nothing to show.
+  const PUSH_KINDS = ['offline', 'network', 'timeout', 'push_unavailable', 'rejected', 'rate_limited', 'quota', 'server',
+    'gone', 'vapid_mismatch', 'subscribe', 'sw', 'denied', 'dismissed', 'unsupported', 'storage', 'cancelled'];
+  // Apple's 403 when the subscription was made with another VAPID key (the phone can fix that by subscribing again)
+  const VAPID_MISMATCH = 'VapidPkHashMismatch';
+  function pushErrorKind(err, online) {
+    const e = err !== null && typeof err === 'object' ? err : {};
+    if (e.kind === 'cancelled') return 'cancelled';
+    if (online === false) return 'offline';
+    if (typeof e.kind === 'string' && PUSH_KINDS.indexOf(e.kind) >= 0) return e.kind;
+    if (e.name === 'AbortError' || e.name === 'TimeoutError') return 'timeout';
+    const st = Number(e.status) || 0;
+    const code = typeof e.code === 'string' ? e.code : '';
+    const reason = typeof e.reason === 'string' ? e.reason : '';
+    // any other 403 from the push service (BadJwtToken, ...) is the server's own VAPID setup: nothing the phone
+    // can fix, so it is a server problem (turning notifications off and on would only change the URL)
+    const serverKey = Number(e.pushStatus) === 403 && !!reason && reason !== VAPID_MISMATCH;
+    if (!st) return 'network';
+    if (st === 404 || st === 410) return 'gone';
+    if (st === 429) return 'rate_limited';
+    if (code === 'subscription_rejected') return serverKey ? 'server' : 'rejected';
+    if (code === 'kv_quota_exceeded') return 'quota';
+    if (st === 502 && Number(e.pushStatus) === 403) return serverKey ? 'server' : 'vapid_mismatch';
+    if (st === 502 || code === 'push_unavailable' || code === 'push_unreachable') return 'push_unavailable';
+    return 'server';
+  }
+  // Text that holds a notify URL (https://<host>/n/<token>): it must not be pasted into a transaction.
+  function pushHasNotifyUrl(text) {
+    return typeof text === 'string' && /https?:\/\/[^\s/]+\/n\/[A-Za-z0-9_-]{43}(?![A-Za-z0-9_-])/.test(text);
+  }
+  // Long URL shown with an ellipsis in the middle: head (may be cut by CSS) + a tail that always shows.
+  function splitMiddle(s, tailLen) {
+    const str = String(s == null ? '' : s);
+    const n = Math.max(0, Math.min(str.length, Math.trunc(Number(tailLen)) || 0));
+    return { head: str.slice(0, str.length - n), tail: n ? str.slice(-n) : '' };
+  }
+  const push = {
+    b64uToBytes, bytesToB64u, validToken: pushValidToken, validKey: pushValidKey, notifyUrl: pushNotifyUrl,
+    saved: pushSaved, view: pushView, keyChanged: pushKeyChanged, errorKind: pushErrorKind, splitMiddle, KINDS: PUSH_KINDS,
+    hasNotifyUrl: pushHasNotifyUrl
+  };
+
   return {
     VERSION, TX_TYPES, SOURCES, WALLET_COLORS, CURRENCIES, CATEGORIES,
     uid, pad2, dayKey, addDays, diffDays, daysInMonth, isDayKey,
-    formatMoney, formatCompact, parseAmountInput, roundMoney, normalizeText,
+    formatMoney, formatCompact, parseAmountInput, liveAmountInput, roundMoney, normalizeText,
     categoryById, categorize,
     parseEntry, parseStatement, extractReceipt, extractPayment, extractFromImageText,
     defaultState, sanitizeState, validateBackup,
     walletBalances, goalBalances, deleteGoal, periodRange, budgetStats, streak, MAX_AMOUNT,
-    groupByDay, filterTransactions, toCSV
+    groupByDay, filterTransactions, toCSV, push
   };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = Core;
@@ -5700,6 +6118,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'catat.saveShort': 'Simpan {n} · {total}',
     'catat.dropAria': 'Buang "{title}" dari daftar',
     'catat.hintAmount': 'Sebut nominalnya, mis. 25rb',
+    'catat.moreRows': '+{n} lainnya',
     'catat.needWallet': 'Tambah wallet dulu untuk mulai mencatat',
     'catat.addWallet': '+ Tambah wallet',
     'catat.manual': 'Input Manual',
@@ -5904,7 +6323,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'settings.about': 'Tentang',
     'settings.version': 'Versi {v}',
     'settings.storageNote': 'Data hanya ada di browser ini. Rutin backup.',
-    'settings.offlineNote': 'Tanpa akun, tanpa server, tanpa API. Semua hitungan terjadi di perangkat ini.',
+    'settings.offlineNote': 'Tanpa akun. Semua hitungan terjadi di perangkat ini. Internet cuma dipakai untuk mengunduh pembaca gambar (sekali) dan untuk notifikasi kalau kamu nyalakan.',
     'settings.budgetSaved': 'Budget diperbarui',
     'settings.exported': 'CSV diunduh',
     'settings.backedUp': 'Backup diunduh',
@@ -6073,8 +6492,64 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'tips.s3a': 'Buka app Pintasan → tab Otomatisasi → + → App → pilih app bayarmu (mis. GoPay, OCBC, BCA, DANA) → centang “Ditutup” (Is Closed), hapus centang “Dibuka” → pilih “Jalankan Segera” (Run Immediately) → lanjut → Otomatisasi Kosong Baru.',
     'tips.s3b': 'Tambahkan aksi berurutan: Dapatkan Jepretan Layar Terbaru (Get Latest Screenshots) → Dapatkan Detail Gambar: Tanggal Diambil (Get Details of Images: Date Taken) → Dapatkan Waktu di Antara Tanggal (Get Time Between Dates) dalam Menit → Jika (If) Waktu di Antara Tanggal “berada di antara” (is between) -3 dan 3: Ekstrak Teks dari Gambar (Extract Text from Image) — ketuk inputnya dan pilih Jepretan Layar Terbaru (Latest Screenshots) → Salin ke Papan Klip (Copy to Clipboard) → Tampilkan Pemberitahuan (Show Notification) “Bukti bayar terbaca, buka {app} → Catat → Tempel” → Akhiri Jika (End If). Izinkan akses Foto saat diminta.',
     'tips.s3c': 'Pakainya: bayar → screenshot → tutup app bayar → notifikasi muncul → buka {app} → Catat → Tempel → cek → Simpan.',
-    'tips.privacy': 'Gambar dan teksnya dibaca di HP ini — tidak dikirim ke server dan tidak disimpan. Pembaca gambarnya diunduh sekali saat pertama dipakai (butuh internet).',
-    'tips.try': 'Coba sekarang'
+    'tips.privacy': 'Gambar dan teksnya dibaca di HP ini — tidak dikirim ke server dan tidak disimpan. Pembaca gambarnya diunduh sekali saat pertama dipakai (butuh internet). Notifikasi itu opsional: kalau dinyalakan, yang dikirim cuma nominal & nama app untuk teks notifnya.',
+    'tips.try': 'Coba sekarang',
+    'catat.pasteHint': 'Ketuk Tempel untuk isi otomatis',
+    'tips.s3d': 'Mau notifnya bisa diketuk untuk langsung membuka {app}? Nyalakan Notifikasi {app} di Pengaturan, lalu ikuti “Cara pasang di Pintasan”.',
+    'push.title': 'Notifikasi {app}',
+    'push.lead': 'Dapat notif dari Pintasan (Shortcuts) tiap ada bukti bayar baru. Ketuk notifnya, {app} langsung buka Catat.',
+    'push.install': 'Notifikasi cuma bisa di {app} yang dibuka dari ikonnya di Layar Utama. Data app itu terpisah dari Safari — catatan di sini tidak ikut pindah, jadi bawa lewat backup:',
+    'push.installBackup': 'Ketuk Backup (JSON) di bagian Data, tepat di bawah, lalu simpan filenya.',
+    'push.installAdd': 'Di Safari, ketuk Bagikan (di iOS 26: ••• → Bagikan) → Tambah ke Layar Utama. Kalau ada pilihan Buka sebagai App Web, biarkan menyala.',
+    'push.installRestore': 'Buka {app} dari ikonnya → Sudah punya backup? Pulihkan → pilih file tadi.',
+    'push.installAfter': 'Nyalakan notifikasi di Pengaturan sana. Setelah itu, catat dari ikonnya saja: catatan di Safari tidak ikut berubah.',
+    'push.unsupported': 'Browser ini belum bisa menerima notifikasi. Di iPhone, perlu iOS 16.4 atau lebih baru, dan {app} dibuka dari ikonnya di Layar Utama.',
+    'push.deniedIos': 'Notifikasi untuk {app} lagi diblokir. Nyalakan lagi di Pengaturan iPhone → Notifikasi → {app} → Izinkan Notifikasi, lalu balik ke sini.',
+    'push.denied': 'Notifikasi untuk {app} diblokir di browser ini. Izinkan lewat pengaturan situs (ikon di sebelah alamat), lalu muat ulang halaman.',
+    'push.enable': 'Aktifkan notifikasi',
+    'push.enabling': 'Mengaktifkan…',
+    'push.retry': 'Coba lagi',
+    'push.enabled': 'Notifikasi aktif. Salin URL-nya ke Pintasan, ya.',
+    'push.onStatus': 'Aktif di HP ini',
+    'push.since': '· sejak {date}',
+    'push.urlLabel': 'URL notifikasi kamu',
+    'push.urlHint': 'Rahasiakan seperti kata sandi: siapa pun yang punya URL ini bisa mengirim notif ke HP kamu.',
+    'push.copy': 'Salin URL',
+    'push.copied': 'URL disalin. Tempel di Pintasan kamu.',
+    'push.copyFail': 'URL gagal disalin. Tekan lama URL-nya, lalu pilih Salin.',
+    'push.pasteIsUrl': 'Itu URL notifikasi kamu (rahasia), bukan bukti bayar — jadi tidak ditempel. Salin bukti bayarnya dulu, lalu Tempel lagi.',
+    'push.test': 'Kirim notif tes',
+    'push.testing': 'Mengirim…',
+    'push.testSent': 'Notif tes dikirim — harusnya muncul dalam beberapa detik.',
+    'push.off': 'Matikan notifikasi',
+    'push.offConfirm': 'Ketuk lagi untuk mematikan',
+    'push.disabling': 'Mematikan…',
+    'push.disabled': 'Notifikasi dimatikan. URL lamanya sudah tidak berlaku.',
+    'push.privacy': 'Notifikasi lewat server kecil milik {app} (Cloudflare). Yang dikirim Pintasan cuma nama app (dan nominal kalau kamu isi) untuk teks notif, dan tidak disimpan. Isi bukti bayar tetap di HP.',
+    'push.howTitle': 'Cara pasang di Pintasan',
+    'push.howApp': 'Buka app Pintasan → Otomatisasi → otomatisasi bukti bayar kamu (lihat Tips: catat dari screenshot → cara 3).',
+    'push.howDelete': 'Hapus aksi Tampilkan Pemberitahuan (Show Notification). Aksi Salin ke Papan Klip (Copy to Clipboard) sebelumnya biarkan saja.',
+    'push.howAdd': 'Di tempatnya (masih sebelum Akhiri Jika), tambahkan aksi Dapatkan Konten URL (Get Contents of URL). URL: tempel URL yang tadi kamu salin.',
+    'push.howMethod': 'Ketuk Tampilkan Lainnya (Show More): Metode = {post}, Minta Isi (Request Body) = {json}.',
+    'push.howFields': 'Opsional: tambah field Teks {keyApp} berisi nama app bayarnya (mis. GoPay) supaya muncul di judul notif. Kalau otomatisasinya untuk beberapa app, lewati saja. {keyAmount} (nominal) juga boleh dilewati.',
+    'push.howTest': 'Tes sekali: ambil screenshot apa saja, buka lagi otomatisasinya, lalu ketuk ▶. Kalau iPhone minta izin menghubungi sangu-push, pilih Selalu Izinkan (Always Allow). Notif “Bukti bayar terdeteksi” harus muncul.',
+    'push.howDone': 'Selesai. Bayar → screenshot → tutup app bayar → notif muncul → ketuk → {app} terbuka di Catat → Tempel.',
+    'push.howNote': 'Notif nggak muncul? Ketuk Kirim notif tes di atas. Kalau notif tes muncul, HP ini sudah siap — cek lagi URL dan Metode = {post} di Pintasan.',
+    'push.urlChanged': 'URL notifikasi kamu berubah. Salin URL baru ke Pintasan.',
+    'push.urlChangedOpen': 'Buka',
+    'push.errOffline': 'Kamu lagi offline. Sambungkan ke internet, lalu coba lagi.',
+    'push.errNetwork': 'Server notifikasi nggak bisa dihubungi. Cek internet kamu, lalu coba lagi.',
+    'push.errTimeout': 'Server notifikasi kelamaan menjawab. Coba lagi, ya.',
+    'push.errPushUnavailable': 'Layanan notifikasi Apple lagi nggak bisa dihubungi. Coba lagi sebentar lagi.',
+    'push.errRejected': 'Pendaftaran notifikasi HP ini ditolak. Ketuk Coba lagi — {app} akan mendaftar ulang.',
+    'push.errRateLimited': 'Kebanyakan percobaan. Tunggu sekitar satu menit, lalu coba lagi.',
+    'push.errQuota': 'Server notifikasi sudah mencapai batas hari ini. Coba lagi besok, ya.',
+    'push.errServer': 'Server notifikasi lagi bermasalah. Coba lagi nanti.',
+    'push.errGone': 'Notifikasi di HP ini sudah nggak tersambung. Aktifkan lagi, lalu salin URL barunya ke Pintasan.',
+    'push.errSubscribe': 'HP ini gagal mendaftar notifikasi. Coba lagi, atau tutup lalu buka lagi {app} dari Layar Utama.',
+    'push.errSw': '{app} belum siap untuk notifikasi. Tutup lalu buka lagi {app}, lalu coba lagi.',
+    'push.errStorage': 'Penyimpanan browser penuh, jadi URL notifikasinya nggak bisa disimpan. Backup data dulu, kosongkan ruang penyimpanan, lalu coba lagi.',
+    'push.errDismissed': 'Izin notifikasi belum diberikan. Ketuk tombolnya lagi, lalu pilih Izinkan.'
   };
 
   I18N.en = {
@@ -6158,6 +6633,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'catat.saveShort': 'Save {n} · {total}',
     'catat.dropAria': 'Remove "{title}" from the list',
     'catat.hintAmount': 'Say the amount, e.g. 25k',
+    'catat.moreRows': '+{n} more',
     'catat.needWallet': 'Add a wallet first to start recording',
     'catat.addWallet': '+ Add wallet',
     'catat.manual': 'Manual input',
@@ -6365,7 +6841,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'settings.about': 'About',
     'settings.version': 'Version {v}',
     'settings.storageNote': 'Data lives only in this browser. Back up regularly.',
-    'settings.offlineNote': 'No account, no server, no API. All calculations happen on this device.',
+    'settings.offlineNote': 'No account. All calculations happen on this device. The internet is only used to download the image reader (once) and for notifications, if you turn them on.',
     'settings.budgetSaved': 'Budget updated',
     'settings.exported': 'CSV downloaded',
     'settings.backedUp': 'Backup downloaded',
@@ -6534,8 +7010,64 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'tips.s3a': 'Open Shortcuts → Automation tab → + → App → choose your payment apps (e.g. GoPay, OCBC, BCA, DANA) → tick “Is Closed”, untick “Is Opened” → choose “Run Immediately” → Next → New Blank Automation.',
     'tips.s3b': 'Add these actions in order: Get Latest Screenshots → Get Details of Images: Date Taken → Get Time Between Dates in Minutes → If Time Between Dates “is between” -3 and 3: Extract Text from Image — tap its input and pick Latest Screenshots → Copy to Clipboard → Show Notification “Payment proof read, open {app} → Record → Paste” → End If. Allow Photos access when asked.',
     'tips.s3c': 'Day to day: pay → screenshot → close the payment app → the notification appears → open {app} → Record → Paste → check → Save.',
-    'tips.privacy': 'Images and text are read on this phone — never sent to a server and not stored. The image reader is downloaded once, the first time (needs internet).',
-    'tips.try': 'Try it now'
+    'tips.privacy': 'Images and text are read on this phone — never sent to a server and not stored. The image reader is downloaded once, the first time (needs internet). Notifications are optional: if you turn them on, only the amount and app name are sent, for the notification text.',
+    'tips.try': 'Try it now',
+    'catat.pasteHint': 'Tap Paste to fill it in automatically',
+    'tips.s3d': 'Want a notification you can tap to open {app} right away? Turn on {app} notifications in Settings, then follow “How to set it up in Shortcuts”.',
+    'push.title': '{app} notifications',
+    'push.lead': 'Get a notification from your Shortcut for every new payment proof. Tap it and {app} opens Record right away.',
+    'push.install': 'Notifications only work in {app} opened from its Home Screen icon. That app keeps its own data, apart from Safari — your records here don’t move over, so bring them with a backup:',
+    'push.installBackup': 'Tap Backup (JSON) in Data, just below, and save the file.',
+    'push.installAdd': 'In Safari, tap Share (on iOS 26: ••• → Share) → Add to Home Screen. If you see Open as Web App, leave it on.',
+    'push.installRestore': 'Open {app} from its icon → Have a backup? Restore it → pick that file.',
+    'push.installAfter': 'Turn on notifications in Settings there. From then on, record from the icon only: the records in Safari won’t follow.',
+    'push.unsupported': 'This browser can’t receive notifications. On iPhone you need iOS 16.4 or later, with {app} opened from its Home Screen icon.',
+    'push.deniedIos': 'Notifications for {app} are blocked. Turn them back on in iPhone Settings → Notifications → {app} → Allow Notifications, then come back here.',
+    'push.denied': 'Notifications for {app} are blocked in this browser. Allow them in the site settings (the icon next to the address), then reload the page.',
+    'push.enable': 'Turn on notifications',
+    'push.enabling': 'Turning on…',
+    'push.retry': 'Try again',
+    'push.enabled': 'Notifications are on. Copy the URL into your Shortcut.',
+    'push.onStatus': 'On for this phone',
+    'push.since': '· since {date}',
+    'push.urlLabel': 'Your notification URL',
+    'push.urlHint': 'Keep it secret, like a password: anyone with this URL can send notifications to your phone.',
+    'push.copy': 'Copy URL',
+    'push.copied': 'URL copied. Paste it into your Shortcut.',
+    'push.copyFail': 'Couldn’t copy the URL. Long-press it and choose Copy.',
+    'push.pasteIsUrl': 'That’s your notification URL (keep it secret), not a payment proof — so it wasn’t pasted. Copy the payment proof, then Paste again.',
+    'push.test': 'Send a test',
+    'push.testing': 'Sending…',
+    'push.testSent': 'Test sent — it should appear within a few seconds.',
+    'push.off': 'Turn off notifications',
+    'push.offConfirm': 'Tap again to turn off',
+    'push.disabling': 'Turning off…',
+    'push.disabled': 'Notifications are off. The old URL no longer works.',
+    'push.privacy': 'Notifications go through a small server run by {app} (Cloudflare). Your Shortcut only sends the app name (and the amount, if you add it) for the notification text, and it isn’t stored. The payment proof itself stays on your phone.',
+    'push.howTitle': 'How to set it up in Shortcuts',
+    'push.howApp': 'Open the Shortcuts app → Automation → your payment-proof automation (see Tips: record from screenshots → way 3).',
+    'push.howDelete': 'Delete the Show Notification action. Keep the Copy to Clipboard action before it.',
+    'push.howAdd': 'In its place (still before End If), add a Get Contents of URL action. URL: paste the URL you just copied.',
+    'push.howMethod': 'Tap Show More: Method = {post}, Request Body = {json}.',
+    'push.howFields': 'Optional: add a Text field {keyApp} with the payment app’s name (e.g. GoPay) so it shows in the notification title. Skip it if the automation covers several apps. {keyAmount} can be skipped too.',
+    'push.howTest': 'Test it once: take any screenshot, open the automation again and tap ▶. If your iPhone asks to connect to sangu-push, choose Always Allow. The “Bukti bayar terdeteksi” notification should appear.',
+    'push.howDone': 'Done. Pay → screenshot → close the payment app → the notification appears → tap it → {app} opens on Record → Paste.',
+    'push.howNote': 'No notification? Tap Send a test above. If the test arrives, this phone is ready — check the URL and Method = {post} in Shortcuts.',
+    'push.urlChanged': 'Your notification URL changed. Copy the new one into your Shortcut.',
+    'push.urlChangedOpen': 'Open',
+    'push.errOffline': 'You’re offline. Connect to the internet, then try again.',
+    'push.errNetwork': 'Couldn’t reach the notification server. Check your internet, then try again.',
+    'push.errTimeout': 'The notification server took too long to answer. Try again.',
+    'push.errPushUnavailable': 'Apple’s notification service can’t be reached right now. Try again in a moment.',
+    'push.errRejected': 'This phone’s notification sign-up was refused. Tap Try again — {app} will sign up again.',
+    'push.errRateLimited': 'Too many tries. Wait about a minute, then try again.',
+    'push.errQuota': 'The notification server hit today’s limit. Try again tomorrow.',
+    'push.errServer': 'The notification server has a problem. Try again later.',
+    'push.errGone': 'Notifications are no longer connected on this phone. Turn them on again, then copy the new URL into your Shortcut.',
+    'push.errSubscribe': 'This phone couldn’t sign up for notifications. Try again, or close and reopen {app} from the Home Screen.',
+    'push.errSw': '{app} isn’t ready for notifications yet. Close and reopen {app}, then try again.',
+    'push.errStorage': 'Browser storage is full, so the notification URL can’t be saved. Back up your data, free some space, then try again.',
+    'push.errDismissed': 'Notification permission wasn’t given. Tap the button again, then choose Allow.'
   };
 
   // ---------- Constants & icons ----------
@@ -6757,36 +7289,27 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     return groupDigits(parts[0], ',') + (parts[1] === '00' ? '' : '.' + parts[1]);
   }
   const signedToField = (v) => (num(v) < 0 ? '-' : '') + amountToField(Math.abs(num(v)));
-  function liveFormat(el, inputType) {
-    const v = el.value;
-    const signed = el.hasAttribute('data-signed');
-    const neg = signed && /^\s*[-−]/.test(v);
-    const body = neg ? v.replace(/^\s*[-−]\s*/, '') : v;
-    let out = null;
-    const dec = curDecimals() > 0;
-    if (!dec) {
-      // "1." / "1.5" while typing "1.5jt": keep the dot (a deletion still regroups "10.00" -> "1.000")
-      const typing = !inputType || /^insert/.test(inputType);
-      if (typing && /^\d{1,3}\.\d{0,2}\s*$/.test(body)) return;
-      if (/^[\d.\s]*$/.test(body)) { const d = body.replace(/\D/g, '').replace(/^0+(?=\d)/, ''); out = d ? groupDigits(d, '.') : ''; }
-    } else if (/^\d+,\d{0,2}$/.test(body)) {
-      return; // decimal comma being typed ("12,50"); Core.parseAmountInput reads it as 12.50
-    } else if (/^[\d,]*(\.\d{0,2})?$/.test(body)) {
-      const parts = body.split('.');
-      const d = parts[0].replace(/\D/g, '').replace(/^0+(?=\d)/, '');
-      out = (d ? groupDigits(d, ',') : (parts.length > 1 ? '0' : '')) + (parts.length > 1 ? '.' + parts[1] : '');
-    }
-    if (out == null) return;
-    out = (neg ? '-' : '') + out;
-    if (out === v) return;
-    const caret = el.selectionStart == null ? v.length : el.selectionStart;
-    const counted = dec ? /[\d.-]/ : /[\d-]/;
-    let before = 0;
-    for (let i = 0; i < caret && i < v.length; i++) if (counted.test(v[i])) before++;
-    el.value = out;
-    let pos = 0, seen = 0;
-    while (pos < out.length && seen < before) { if (counted.test(out[pos])) seen++; pos++; }
-    try { el.setSelectionRange(pos, pos); } catch (_) { /* not focusable */ }
+  // Regroups an amount field in place after an edit (Core.liveAmountInput) with the caret after the same digit.
+  // Runs from a capture listener on document (10_events_init.js), so every listener of the field itself (a live
+  // button label, the duplicate check) reads the grouped value: one keystroke before regrouping "2.000.000" is
+  // "200.0000", which reads as 200. before: { value, ranged } just before the edit (beforeinput), if known.
+  function liveFormat(el, inputType, before) {
+    const r = safe(() => Core.liveAmountInput(el.value, {
+      decimals: curDecimals(), signed: el.hasAttribute('data-signed'), inputType: inputType || '',
+      prev: before ? before.value : null, ranged: !!(before && before.ranged),
+      caret: el.selectionStart == null ? el.value.length : el.selectionStart
+    }), null);
+    if (!r || !r.changed) return false;
+    el.value = r.value;
+    try { el.setSelectionRange(r.caret, r.caret); } catch (_) { /* not focusable */ }
+    return true;
+  }
+  // Sets an amount field from code (a number is written in the currency's style) and sends the same input event
+  // typing does, so its hint, live labels and error state follow, as after a keystroke.
+  function setAmountField(el, v) {
+    if (!el) return;
+    el.value = typeof v === 'number' ? (el.hasAttribute('data-signed') ? signedToField(v) : amountToField(v)) : String(v == null ? '' : v);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
   }
   function parseAmt(str) {
     const v = safe(() => Core.parseAmountInput(String(str == null ? '' : str).trim(), cur(), lang()), null);
@@ -7298,8 +7821,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     // measured only while visible (a hidden Catat view has no height): switchTab calls this again
     if (!el.offsetParent) return;
     el.style.height = 'auto';
-    // scrollHeight leaves out the border; add it so the last line is never cut off
-    el.style.height = Math.min(140, Math.max(el.scrollHeight + el.offsetHeight - el.clientHeight, 48)) + 'px';
+    // one line when empty (the short example), growing with the text up to the CSS max-height;
+    // scrollHeight leaves out the border (the dashed line): add it so the last line is never cut off
+    el.style.height = Math.min(160, el.scrollHeight + el.offsetHeight - el.clientHeight) + 'px';
     markClipped(el);
   }
   // text taller than the field (capped height) fades at the cut instead of being sliced through a line
@@ -7321,8 +7845,66 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       if (old) { if (old.classList.contains('parsed-tag')) node.classList.add('no-anim'); box.replaceChild(node, old); } else box.appendChild(node);
     });
     for (let i = kids.length - 1; i >= parts.length; i--) kids[i].remove();
-    // keyboard up and the list scrolls: the row being typed (the last one) stays in view
+    // when the list scrolls (more rows than room above the mic): the row being typed (the last one) stays in view
     if (parts.length > before || (parts.length && kids[parts.length - 1] !== box.lastElementChild)) ui.previewPinned = true;
+    fitRows();
+  }
+  // The rows window. When the rows need more room than there is between the words and the mic it shows whole rows
+  // only (the cut falls between two; scroll snapping keeps it there while they are scrolled) and "+2 lainnya" on top
+  // says how many more there are. Measured from the rows' layout boxes (a row's entrance offset is no overflow). Runs
+  // when the rows change and when their room changes (the field grows, the keyboard comes or goes: an observer on
+  // the area). The mic is never moved for them: it has one place, at the bottom of the area.
+  function fitRows() {
+    const box = $('parsedPreview'), more = $('parsedMore');
+    if (!fitRows.ro && window.ResizeObserver) { fitRows.ro = new ResizeObserver(() => fitRows()); fitRows.ro.observe(box.parentNode); }
+    const rows = box.getElementsByClassName('parsed-tag'), n = rows.length;
+    const cap = $('captionInput');
+    cap.style.maxHeight = '';
+    box.style.maxHeight = '';
+    box.classList.remove('stacked');
+    more.hidden = true;
+    // measured only while Catat shows (the observer runs this again when it does)
+    if (n && box.offsetParent) {
+      const first = rows[0], last = rows[n - 1], h = first.offsetHeight;
+      // (to the subpixel: a row short by a pixel would lose its bottom edge)
+      if (last.offsetTop + last.offsetHeight - first.offsetTop > box.getBoundingClientRect().height + 0.5) {
+        const pitch = n > 1 ? rows[1].offsetTop - first.offsetTop : h;
+        const area = box.parentNode, wrap = $('orbWrap');
+        // the area runs over when what is above the mic (a row kept by its min-height, the words at one line, the
+        // "+2" line) needs more than it has: the mic (its last item, with its ring under it) would be pushed out
+        const over = () => wrap.getBoundingClientRect().bottom + parseFloat(getComputedStyle(wrap).marginBottom) > area.getBoundingClientRect().bottom + 0.5;
+        // whole rows in the window's room; none when the area itself runs over
+        const fit = () => over() ? 0 :
+          Math.max(0, Math.min(n - 1, Math.floor((box.getBoundingClientRect().height + 0.3 - h) / pitch) + 1));
+        // its line comes out of the rows' room (written now: an empty line would take none)
+        more.textContent = t('catat.moreRows', { n: n - 1 });
+        more.hidden = false;
+        let shown = fit();
+        // no room for that line and a row (small phones): the newest row, with the edges of the ones behind it
+        // peeking out above it (the area always has room for that, except while typing)
+        if (!shown) { more.hidden = true; box.classList.add('stacked'); shown = fit(); }
+        // still none (typing on the smallest phones, a long text): "+3 lainnya" alone says they are there; and
+        // when not even that line fits above the mic (a very tall keyboard), it steps aside too: the words keep
+        // their line and the mic its place, and Save still says how many there are
+        if (!shown) { more.hidden = false; box.classList.remove('stacked'); box.style.maxHeight = '0px'; if (over()) more.hidden = true; }
+        box.style.maxHeight = (shown ? (shown - 1) * pitch + h : 0) + 'px';
+        more.textContent = t('catat.moreRows', { n: n - shown });
+      }
+    }
+    // the words gave way (to keep a row, or the note, above the mic): cut them at a whole line, never through one
+    if (cap.offsetParent) {
+      const cs = getComputedStyle(cap), lh = parseFloat(cs.lineHeight);
+      const want = Math.min(parseFloat(cap.style.height) || 0, parseFloat(cs.maxHeight) || Infinity);
+      if (lh > 0 && cap.offsetHeight < want - 0.5) {
+        const frame = cap.offsetHeight - cap.clientHeight + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+        cap.style.maxHeight = Math.max(1, Math.floor((cap.offsetHeight - frame + 0.5) / lh)) * lh + frame + 'px';
+      }
+      // a field cut short shows its end while listening (the words being heard now; the fade moves to the top),
+      // its start otherwise (not while it is edited: the caret's line is the browser's to show)
+      const tail = !!ui.recording && cap.scrollHeight > cap.clientHeight + 1;
+      cap.classList.toggle('tail', tail);
+      if (document.activeElement !== cap) cap.scrollTop = tail ? cap.scrollHeight : 0;
+    }
     if (ui.previewPinned) box.scrollTop = box.scrollHeight;
     previewFades();
   }
@@ -7338,13 +7920,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     ui.previewPinned = box.scrollTop + box.clientHeight >= box.scrollHeight - 2;
     previewFades();
   }
-  // a faded edge where the rows list is cut (it only scrolls while the keyboard is up)
+  // a faded edge where a row is cut while the rows are being scrolled (at rest the window holds whole rows)
   function previewFades() {
     const box = $('parsedPreview');
-    // only while it is a scroller (keyboard up); a row's entrance offset alone is no overflow
-    const over = getComputedStyle(box).overflowY !== 'visible' && box.scrollHeight > box.clientHeight + 1;
-    box.classList.toggle('fade-top', over && box.scrollTop > 2);
-    box.classList.toggle('fade-bottom', over && box.scrollTop + box.clientHeight < box.scrollHeight - 2);
+    const top = box.scrollTop, bot = top + box.clientHeight;
+    let cutTop = false, cutBot = false;
+    // only while it is a window onto more rows (fitRows capped it)
+    if (box.style.maxHeight) {
+      for (const r of box.getElementsByClassName('parsed-tag')) {
+        const a = r.offsetTop, b = a + r.offsetHeight;
+        if (a < top - 1 && b > top + 1) cutTop = true;
+        if (a < bot - 1 && b > bot + 1) cutBot = true;
+      }
+    }
+    box.classList.toggle('fade-top', cutTop);
+    box.classList.toggle('fade-bottom', cutBot);
   }
   function updatePreview() {
     const input = $('captionInput');
@@ -7381,7 +7971,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     } else {
       commitBtn.hidden = true;
     }
-    // foot row: Save when there is something to save, else one line: listening / the tip
+    // the slot under the mic: Save when there is something to save, else one line: listening / the tip
     const hint = $('catatHint');
     hint.hidden = !commitBtn.hidden;
     // rewritten only when it changes: it is a live region and this runs on every keystroke
@@ -7391,7 +7981,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       hint.innerHTML = ui.recording ? '<span class="rec-dot" aria-hidden="true"></span>' + T('voice.listening') : catatTipHtml();
     }
     hint.classList.toggle('strong', ui.recording);
+    // the mic steps back once Save is the next step; its wave bars move only while it listens
     $('micBtn').classList.toggle('quiet', !commitBtn.hidden && !ui.recording);
+    $('waveLeft').classList.toggle('active', ui.recording);
+    $('waveRight').classList.toggle('active', ui.recording);
     $('captionClear').hidden = !typed;
   }
 
@@ -7524,13 +8117,13 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
 
   // Android/browser Back closes the top sheet instead of leaving the app: one history entry
   // stands for "a sheet is open" (synced after the current task, so close+open in one go is a no-op).
-  const hist = { armed: false, skip: 0, timer: 0, skipTimer: 0 };
+  const hist = { armed: false, skip: 0, timer: 0, skipTimer: 0, hash: '' };
   function syncHistory() {
     clearTimeout(hist.timer);
     hist.timer = setTimeout(() => {
       const want = sheets.length > 0;
       try {
-        if (want && !hist.armed) { history.pushState({ moneyappSheet: true }, ''); hist.armed = true; } else if (!want && hist.armed) {
+        if (want && !hist.armed) { history.pushState({ moneyappSheet: true }, ''); hist.armed = true; hist.hash = location.hash; } else if (!want && hist.armed) {
           hist.armed = false;
           hist.skip++;
           clearTimeout(hist.skipTimer);
@@ -7543,6 +8136,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   window.addEventListener('popstate', () => {
     if (hist.skip > 0) { hist.skip--; return; }
     if (!hist.armed) return;
+    // A link into the running app (a notification opening index.html#catat) is a fragment navigation, which fires
+    // popstate too. It lands on a new entry with another fragment, not on the entry under the sheet's (that one has
+    // the sheet's URL), so it is not Back: the sheet stays, with what was typed in it, and hashchange routes it.
+    if (location.hash !== hist.hash) return;
     hist.armed = false;
     const top = topSheet();
     if (top) closeSheet(top);
@@ -8300,7 +8897,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         'g-details': () => saveDetails(),
         'g-withdraw-all': () => {
           f.mode = 'out';
-          entry.q('#gAmt').value = amountToField(num(goalSaved()[goalId]));
+          setAmountField(entry.q('#gAmt'), num(goalSaved()[goalId]));
           drawMove();
           entry.q('#gAmt').scrollIntoView({ block: 'center' });
           focusEl(entry.q('#gAmt'));
@@ -8368,8 +8965,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         note: '', date: today + 'T' + localNow().time, source: 'MANUAL', createdAt: stamp()
       };
       if (!commit((s) => { s.transactions.push(tx); })) return;
-      q('#gAmt').value = '';
-      updateAmountHint(q('#gAmt'));
+      // the commit redrew the button from the amount still in the field: clearing it goes through the field's
+      // input listeners, so the button says "Setor" again instead of the amount just saved
+      setAmountField(q('#gAmt'), '');
       celebrate(fmt(amount), t(f.mode === 'in' ? 'goal.deposited' : 'goal.withdrawn', { goal: g.name }));
     }
     function saveDetails() {
@@ -8483,6 +9081,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         const keepLang = lang();
         stopVoice();
         closeAllSheets();
+        // notifications are turned off too (this phone's token is deleted at the push Worker)
+        pushForget();
         // every key of this app goes, including kept copies of unreadable data
         try {
           const keys = [];
@@ -8529,7 +9129,12 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         'export-csv': () => exportCsv(),
         'backup-json': () => exportBackup(),
         'reset-all': () => resetAll(),
-        'open-shot-tips': () => openShotTips()
+        'open-shot-tips': () => openShotTips(),
+        // Notifikasi (09b_push.js); enabling asks for permission inside this tap
+        'push-enable': () => pushEnable(),
+        'push-copy': () => pushCopy(),
+        'push-test': () => pushTest(),
+        'push-off': (el) => pushDisable(el)
       }
     });
     function html() {
@@ -8555,6 +9160,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         '<button type="button" class="switch" role="switch" aria-checked="false" aria-labelledby="setSoundL" data-action="set-sound" id="setSound"></button></div>' +
         '<button type="button" class="settings-row settings-link" data-action="open-shot-tips"><span class="sr-icon" aria-hidden="true">' + ICON.shot + '</span>' +
         '<span class="sr-text"><strong>' + T('tips.item') + '</strong><small>' + T('tips.itemSub') + '</small></span>' + ICON.chevR + '</button></section>' +
+        '<section class="settings-group" id="setPushGroup"><h3>' + T('push.title') + '</h3><div id="setPush" class="push-box"></div></section>' +
         '<section class="settings-group"><h3>' + T('settings.data') + '</h3><p class="field-hint" id="setCounts"></p><div class="data-buttons">' +
         '<button type="button" class="btn-secondary" data-action="export-csv">' + ICON.table + '<span>' + T('settings.exportCsv') + '</span></button>' +
         '<button type="button" class="btn-secondary" data-action="backup-json">' + ICON.download + '<span>' + T('settings.backup') + '</span></button>' +
@@ -8580,6 +9186,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       q('#setRestore').addEventListener('change', (e) => { const file = e.target.files && e.target.files[0]; e.target.value = ''; handleRestore(file); });
       // hidden screen info for layout problems on a phone (press and hold "Versi ...")
       onLongPress(q('#setVersion'), () => openViewportDiag());
+      pushUi.html = '';
       refresh();
     }
     function refresh() {
@@ -8591,6 +9198,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       q('#setStartHint').textContent = p ? t('settings.startHint', { range: periodRangeText(p) }) : '';
       q('#setSound').setAttribute('aria-checked', String(!!S().sound));
       q('#setCounts').textContent = t('settings.storageCount', { tx: state.transactions.length, w: state.wallets.length, g: state.goals.length });
+      pushRender();
     }
     function flushName() {
       clearTimeout(nameTimer);
@@ -8626,6 +9234,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       const el = entry.q('#setBudget');
       el.scrollIntoView({ block: 'center' });
       focusEl(el);
+    } else if (opts.focus === 'push') {
+      const g = entry.q('#setPushGroup');
+      g.scrollIntoView({ block: 'start' });
+      focusEl(g.querySelector('[data-action="push-copy"]') || g.querySelector('button') || entry.el);
     }
     return entry;
   }
@@ -9311,6 +9923,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
         if (res.error) { toast(t(CLIP_MSG[res.error] || CLIP_MSG.failed), { type: res.error === 'failed' ? 'error' : undefined, duration: 6500 }); return; }
         if (res.kind === 'empty') { toast(t('clip.empty'), { duration: 4500 }); return; }
         if (res.kind === 'image') { if (entry) entry.startOcr(res.file); else routeImage(res.file, 'screenshot'); return; }
+        // the notify URL (just copied in Settings → Notifikasi) is a secret, not a payment: it never becomes a
+        // transaction, a backup or a CSV row
+        if (Core.push.hasNotifyUrl(res.text)) { toast(t('push.pasteIsUrl'), { duration: 6500 }); return; }
         if (entry) entry.takeText(res.text); else routeText(res.text);
       } finally {
         // what was pasted is in a sheet or the Catat box by now
@@ -9345,6 +9960,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       // a payment screen's text pasted into the Catat box opens the review sheet right away
       if (cd && target && target.id === 'captionInput' && !top && $('onboarding').hidden) {
         const text = cd.getData('text/plain');
+        if (Core.push.hasNotifyUrl(text)) { e.preventDefault(); toast(t('push.pasteIsUrl'), { duration: 6500 }); return; }
         const r = screenFromText(text, true);
         if (r) {
           e.preventDefault();
@@ -9391,7 +10007,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       '<ol class="tip-list">' +
       step(1, T('tips.s1Title'), '<p>' + T('tips.s1') + '</p>') +
       step(2, T('tips.s2Title'), '<p>' + T('tips.s2') + '</p>') +
-      step(3, T('tips.s3Title'), '<p>' + T('tips.s3') + '</p><ol class="tip-steps"><li>' + T('tips.s3a') + '</li><li>' + T('tips.s3b') + '</li><li>' + T('tips.s3c') + '</li></ol>') +
+      step(3, T('tips.s3Title'), '<p>' + T('tips.s3') + '</p><ol class="tip-steps"><li>' + T('tips.s3a') + '</li><li>' + T('tips.s3b') + '</li><li>' + T('tips.s3c') + '</li></ol><p>' + T('tips.s3d') + '</p>') +
       '</ol>' +
       '<p class="field-hint">' + T('tips.privacy') + '</p>';
     const entry = openSheet({
@@ -9543,9 +10159,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     obStep = 1;
     $('onboarding').hidden = false;
     $('obName').value = S().name || '';
-    $('obBudget').value = num(S().monthlyBudget) > 0 ? amountToField(num(S().monthlyBudget)) : '';
+    setAmountField($('obBudget'), num(S().monthlyBudget) > 0 ? num(S().monthlyBudget) : '');
     $('obWName').value = '';
-    $('obWBal').value = '';
+    setAmountField($('obWBal'), '');
     ['obBudgetErr', 'obWalletErr'].forEach((id) => { $(id).textContent = ''; });
     renderOnboarding();
     syncModalState();
@@ -9641,7 +10257,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     });
     if (!ok) return false;
     nameEl.value = '';
-    balEl.value = '';
+    setAmountField(balEl, '');
     delete nameEl.dataset.color;
     focusEl(nameEl);
     return true;
@@ -9686,6 +10302,538 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     requestPersist();
   }
 
+  // ---------- Notifikasi Sangu (optional Web Push through Sangu's own push Worker) ----------
+  // An iOS Shortcut POSTs the personal notify URL, the Worker pushes a notification to this phone, and tapping it
+  // opens Catat with Tempel highlighted (the clipboard is never read without a tap: iOS asks for one).
+  // The device record lives in its own key, never in the data or in backups (it belongs to this phone):
+  //   moneyapp.push.v1 = { token, auth, notifyUrl, publicKey, enabledAt }
+  //   token: the notify URL's secret; auth: the auth secret of the subscription the token is registered with (it
+  //   proves this is the same device, so a new subscription keeps the same URL); publicKey: the Worker's VAPID key
+  //   the subscription was made with.
+  // Network use: only after the user turns this on (GET /vapid + POST /subscribe at app start and when the app comes
+  // back to the foreground, POST /n/<token> for a test, POST /unsubscribe to turn off). Pure helpers: Core.push.
+  const PUSH_BASE = 'https://sangu-push.istanahanduk.workers.dev';
+  // The Worker's VAPID public key at build time; GET /vapid is asked first, so a changed key is picked up.
+  const PUSH_VAPID = 'BBlZE-TUwh50bjjOZtMs9TPEvwzWmMHLCYwav3mWxWyjfxi_x13rGi3BWeQj47auMnGb86galXLw7UYvCaVN8OY';
+  const PUSH_KEY = 'moneyapp.push.v1';      // removed with the other moneyapp.* keys by "Hapus semua data"
+  const PUSH_TIMEOUT_MS = 15000;
+  const PUSH_RESYNC_MS = 5 * 60 * 1000;      // foreground syncs: at most one per 5 minutes
+  const PASTE_HINT_MS = 12000;               // "Ketuk Tempel" after a notification tap
+  const ROUTE_KEY = STORAGE_KEY + '.route';  // sessionStorage: Catat + its hint survive an update reload
+  const PC = Core.push;
+  // errors -> plain-language text ('cancelled' is never shown; a key change the phone could not fix is the server's)
+  const PUSH_ERR = {
+    offline: 'push.errOffline', network: 'push.errNetwork', timeout: 'push.errTimeout', push_unavailable: 'push.errPushUnavailable',
+    rejected: 'push.errRejected', rate_limited: 'push.errRateLimited', quota: 'push.errQuota', server: 'push.errServer',
+    gone: 'push.errGone', vapid_mismatch: 'push.errServer', subscribe: 'push.errSubscribe', sw: 'push.errSw',
+    dismissed: 'push.errDismissed', unsupported: 'push.errSubscribe', denied: 'push.errDismissed', storage: 'push.errStorage'
+  };
+  // busy: '' | 'enable' | 'test' | 'off'; err: { kind, op } shown in the section until the next try
+  // gen: bumped by "off", reset and a lost token (pushCancel), so a sync still on its way never writes the record back
+  // syncing: { gen, promise } of the sync running for the current gen (a newer "on" never joins an older one)
+  const pushUi = { busy: '', err: null, howOpen: false, lastSync: 0, syncing: null, html: '', armed: false, armTimer: 0, armedAt: 0, retryOnline: false, gen: 0 };
+  ICON.bell = svgIcon('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>');
+  ICON.copy = svgIcon('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>');
+  ICON.send = svgIcon('<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>');
+
+  // ---------- Environment ----------
+  const isIOSDevice = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandaloneApp = () => navigator.standalone === true || !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+  function pushSupported() {
+    const host = location.hostname;
+    const served = location.protocol === 'https:' || (location.protocol === 'http:' && (host === 'localhost' || host === '127.0.0.1' || host === '[::1]'));
+    return served && !!window.isSecureContext && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  }
+  function pushPermission() { try { return window.Notification ? Notification.permission : 'default'; } catch (_) { return 'default'; } }
+
+  // ---------- Device record ----------
+  function pushLoadRaw() {
+    try {
+      const o = JSON.parse(localStorage.getItem(PUSH_KEY) || 'null');
+      return o && typeof o === 'object' && !Array.isArray(o) ? o : {};
+    } catch (_) { return {}; }
+  }
+  function pushStore(o) { try { localStorage.setItem(PUSH_KEY, JSON.stringify(o)); return true; } catch (_) { return false; } }
+  function pushClear() { try { localStorage.removeItem(PUSH_KEY); } catch (_) { /* storage unavailable */ } }
+  const pushSaved = () => PC.saved(pushLoadRaw());
+  function pushState() {
+    return PC.view({ ios: isIOSDevice(), standalone: isStandaloneApp(), supported: pushSupported(), permission: pushPermission(), saved: pushLoadRaw() });
+  }
+
+  // ---------- Network ----------
+  const pushError = (kind, msg) => Object.assign(new Error(msg || kind), { kind });
+  function pushFetch(url, init) {
+    const ctl = window.AbortController ? new AbortController() : null;
+    const timer = ctl ? setTimeout(() => ctl.abort(), PUSH_TIMEOUT_MS) : 0;
+    const opts = Object.assign({ cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' }, init, ctl ? { signal: ctl.signal } : {});
+    return fetch(url, opts).then((res) => { clearTimeout(timer); return res; }, (e) => { clearTimeout(timer); throw e; });
+  }
+  // POST JSON to the Worker; a non-2xx answer throws { status, code, pushStatus, reason } (see Core.push.errorKind)
+  async function pushPost(url, body) {
+    const res = await pushFetch(/^https:/.test(url) ? url : PUSH_BASE + url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {})
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw Object.assign(new Error(data.error || 'http_' + res.status), {
+        status: res.status, code: data.error, pushStatus: data.status, reason: typeof data.reason === 'string' ? data.reason : ''
+      });
+    }
+    return data;
+  }
+  async function pushVapidKey(fallback) {
+    try {
+      const res = await pushFetch(PUSH_BASE + '/vapid', { method: 'GET' });
+      const d = await res.json();
+      if (res.ok && PC.validKey(d.publicKey)) return d.publicKey;
+    } catch (_) { /* no answer: the /subscribe call that follows reports it */ }
+    return fallback;
+  }
+  function swReady() {
+    if (!('serviceWorker' in navigator)) return Promise.reject(pushError('unsupported'));
+    let timer = 0;
+    return Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((resolve, reject) => { timer = setTimeout(() => reject(pushError('sw')), 10000); })
+    ]).then((reg) => { clearTimeout(timer); return reg; }, (e) => { clearTimeout(timer); throw e; });
+  }
+
+  // ---------- Sync (the push Worker README's syncPush) ----------
+  // Makes sure this phone has a push subscription made with the Worker's current key and that the Worker has it under
+  // this phone's token. Re-subscribes when the subscription is missing or was made with another key; the token (and
+  // so the Shortcut URL) stays the same because the saved auth secret proves it is the same device.
+  // Resolves { notifyUrl, changed } (changed: the URL is new, the Shortcut needs it).
+  // Turned off or reset while it runs (pushCancel): it stops at the next step with kind 'cancelled', writes nothing
+  // and takes back what it made by then, a new browser subscription or a token at the Worker.
+  // Storage full: kind 'storage'. A first "on" finds out before anything is registered; if only the final write
+  // fails, a token the phone cannot keep is deleted at the Worker again.
+  async function pushSync() {
+    if (navigator.onLine === false) throw pushError('offline');
+    const gen = pushUi.gen;
+    const stale = () => gen !== pushUi.gen;
+    const current = () => { if (stale()) throw pushError('cancelled'); };
+    // the browser keeps one subscription per app: once this sync is stale, the one it made is dropped only while
+    // no newer "on" is running or done (that one would be using the same subscription)
+    const unused = () => !pushUi.syncing && !PC.validToken(pushLoadRaw().token);
+    const reg = await swReady();
+    current();
+    const pm = reg && reg.pushManager;
+    if (!pm) throw pushError('unsupported');
+    const raw = pushLoadRaw();
+    const had = PC.validToken(raw.token) ? raw.token : '';
+    const publicKey = await pushVapidKey(PC.validKey(raw.publicKey) ? raw.publicKey : PUSH_VAPID);
+    current();
+    let sub = null;
+    try { sub = await pm.getSubscription(); } catch (_) { sub = null; }
+    current();
+    const opt = sub && sub.options && sub.options.applicationServerKey;
+    const bound = opt ? PC.bytesToB64u(opt) : (PC.validKey(raw.publicKey) ? raw.publicKey : '');
+    if (sub && PC.keyChanged(bound, publicKey)) {
+      try { await sub.unsubscribe(); } catch (_) { /* replaced below either way */ }
+      sub = null;
+    }
+    let made = false;
+    if (!sub) {
+      try {
+        sub = await pm.subscribe({ userVisibleOnly: true, applicationServerKey: PC.b64uToBytes(publicKey) });
+      } catch (e) {
+        throw pushError(e && e.name === 'NotAllowedError' && pushPermission() === 'denied' ? 'denied' : 'subscribe', e && e.name);
+      }
+      made = true;
+      if (stale()) {
+        if (unused()) { try { await sub.unsubscribe(); } catch (_) { /* ignore */ } }
+        current();
+      }
+    }
+    // keep the key the subscription was made with; before a first registration this also proves the record can be
+    // kept at all (with storage full the new URL would be lost, and every retry would register another token)
+    if ((made || !had) && !pushStore(Object.assign({}, raw, { publicKey })) && !had) throw pushError('storage');
+    const json = sub && typeof sub.toJSON === 'function' ? sub.toJSON() : null;
+    if (!json || !json.endpoint || !json.keys || !json.keys.auth || !json.keys.p256dh) throw pushError('subscribe');
+    const body = { subscription: json };
+    if (had) { body.token = had; if (typeof raw.auth === 'string' && raw.auth) body.auth = raw.auth; }
+    let data;
+    try {
+      data = await pushPost('/subscribe', body);
+    } catch (e) {
+      // the push service refused this subscription: the next try makes a new one
+      if (e && e.code === 'subscription_rejected' && !stale()) { try { await sub.unsubscribe(); } catch (_) { /* ignore */ } }
+      current();
+      throw e;
+    }
+    if (!data || !PC.validToken(data.token)) throw Object.assign(new Error('bad_reply'), { status: 500, code: 'bad_reply' });
+    const auth = json.keys.auth;
+    // a token this phone will not keep is deleted at the Worker again (best effort; it expires after 90 days anyway)
+    const giveBack = () => {
+      if (data.token !== pushLoadRaw().token && navigator.onLine !== false) pushPost('/unsubscribe', { token: data.token, auth }).catch(() => {});
+    };
+    if (stale()) {
+      // turned off while the Worker answered: whatever it registered goes again (its "off" may have been
+      // answered first, or with the auth secret of the subscription this sync replaced)
+      giveBack();
+      if (unused()) { try { await sub.unsubscribe(); } catch (_) { /* ignore */ } }
+      current();
+    }
+    const notifyUrl = PC.notifyUrl(PUSH_BASE, data.token, data.notifyUrl);
+    const changed = data.changed === true || (!!had && had !== data.token);
+    const enabledAt = had && typeof raw.enabledAt === 'string' && raw.enabledAt ? raw.enabledAt : new Date().toISOString();
+    if (!pushStore({ token: data.token, auth, notifyUrl, publicKey, enabledAt })) {
+      // the same token stays usable (the Worker has this subscription under it); a new one is taken back
+      if (data.token !== had) giveBack();
+      throw pushError('storage');
+    }
+    pushUi.lastSync = Date.now();
+    return { notifyUrl, changed };
+  }
+  // one sync at a time (app start, foreground and a tap may meet); after "off" the next one starts afresh
+  function pushSyncOnce() {
+    const s = pushUi.syncing;
+    if (s && s.gen === pushUi.gen) return s.promise;
+    const entry = { gen: pushUi.gen, promise: null };
+    const done = () => { if (pushUi.syncing === entry) pushUi.syncing = null; };
+    entry.promise = pushSync().then((r) => { done(); return r; }, (e) => { done(); throw e; });
+    pushUi.syncing = entry;
+    return entry.promise;
+  }
+  // Notifications are off from here on (turned off, all data reset, or the token is gone): a sync still on its way
+  // stops without writing the record back, and the next "on" does not wait for it.
+  function pushCancel() {
+    pushUi.gen++;
+    pushUi.syncing = null;
+  }
+  // App start, back in the foreground, back online, or the service worker saw the subscription change.
+  // Only when notifications are on (permission + token); quiet on failure (the next start tries again).
+  function pushAutoSync(reason) {
+    if (!pushSupported() || pushPermission() !== 'granted' || !pushSaved()) return;
+    if (reason === 'foreground' && Date.now() - pushUi.lastSync < PUSH_RESYNC_MS) return;
+    if (navigator.onLine === false) { pushUi.retryOnline = true; return; }
+    pushUi.retryOnline = false;
+    pushUi.lastSync = Date.now();
+    pushSyncOnce().then((r) => {
+      pushRender();
+      if (r && r.changed) {
+        toast(t('push.urlChanged'), { duration: 10000, action: { label: t('push.urlChangedOpen'), fn: () => openPushSettings() } });
+      }
+    }, () => { if (navigator.onLine === false) pushUi.retryOnline = true; });
+  }
+
+  // ---------- Taps ----------
+  function pushEnable() {
+    if (pushUi.busy) return;
+    if (navigator.onLine === false) { pushUi.err = { kind: 'offline', op: 'enable' }; pushRender('push-enable'); return; }
+    // iOS shows the permission prompt only from a tap: ask right here, before anything is awaited
+    let ask;
+    try {
+      const r = Notification.requestPermission();
+      ask = r && typeof r.then === 'function' ? r : Promise.resolve(pushPermission());
+    } catch (_) {
+      ask = Promise.resolve(pushPermission());
+    }
+    pushUi.busy = 'enable';
+    pushUi.err = null;
+    // reset all data while this runs: it ends quietly (no message, no toast over the onboarding)
+    const gen = pushUi.gen;
+    const cancelled = () => gen !== pushUi.gen;
+    // no automatic update reload while the prompt is up or the subscription is made
+    setBusy('push', 60000);
+    pushRender('push-enable');
+    ask.then((perm) => {
+      if (cancelled()) return false;
+      if (perm !== 'granted') {
+        if (perm !== 'denied') pushUi.err = { kind: 'dismissed', op: 'enable' };
+        return false;
+      }
+      return pushSyncOnce().then(() => {
+        // only "on" once the URL is really kept on this phone
+        if (!cancelled() && !pushSaved()) throw pushError('storage');
+        return true;
+      });
+    }).then((on) => {
+      if (cancelled()) return;
+      pushUi.busy = '';
+      pushRender(on ? 'push-copy' : 'push-enable');
+      if (on) { toast(t('push.enabled')); announce(t('push.enabled')); }
+    }, (e) => {
+      const kind = PC.errorKind(e, navigator.onLine);
+      if (cancelled() || kind === 'cancelled') return;
+      pushUi.busy = '';
+      pushUi.err = kind === 'denied' ? null : { kind, op: 'enable' };
+      pushRender('push-enable');
+    }).then(() => { if (pushUi.busy !== 'enable') clearBusy('push'); });
+  }
+  function pushTest() {
+    const s = pushSaved();
+    if (!s || pushUi.busy) return;
+    pushUi.busy = 'test';
+    pushUi.err = null;
+    const gen = pushUi.gen;
+    pushRender('push-test');
+    const send = (url) => pushPost(url, { test: true });
+    send(s.notifyUrl).catch((e) => {
+      // the Worker's key changed since this phone subscribed: subscribe again (same URL), then send once more
+      if (PC.errorKind(e, navigator.onLine) !== 'vapid_mismatch') throw e;
+      return pushSyncOnce().then((r) => send(r.notifyUrl)).catch((e2) => {
+        // still refused with the Worker's current key: the server's setup, not this phone (off and on would only
+        // change the URL)
+        throw PC.errorKind(e2, navigator.onLine) === 'vapid_mismatch' ? pushError('server') : e2;
+      });
+    }).then(() => {
+      if (gen !== pushUi.gen) return;
+      pushUi.busy = '';
+      pushRender('push-test');
+      toast(t('push.testSent'));
+    }, (e) => {
+      const kind = PC.errorKind(e, navigator.onLine);
+      if (gen !== pushUi.gen || kind === 'cancelled') return;
+      pushUi.busy = '';
+      // the token is gone at the Worker (expired, replaced, or the push service dropped the subscription): back to
+      // "off"; the next "on" starts with a fresh subscription (an expired one would only be refused)
+      if (kind === 'gone') { pushCancel(); pushClear(); dropSubscription(); }
+      pushUi.err = { kind, op: 'test' };
+      pushRender(kind === 'gone' ? 'push-enable' : 'push-test');
+    });
+  }
+  // Off: this phone forgets the token and drops its subscription, and the Worker deletes it. Local first, so the old
+  // URL stops working even when the Worker can't be reached (its next push gets 410 and is cleaned up then).
+  function pushTurnOff() {
+    pushCancel();
+    const raw = pushLoadRaw();
+    pushClear();
+    const server = PC.validToken(raw.token) && typeof raw.auth === 'string' && raw.auth && navigator.onLine !== false
+      ? pushPost('/unsubscribe', { token: raw.token, auth: raw.auth }).catch(() => {}) : Promise.resolve();
+    return Promise.all([server, dropSubscription()]);
+  }
+  function dropSubscription() {
+    if (!pushSupported()) return Promise.resolve();
+    return swReady().then((reg) => reg.pushManager && reg.pushManager.getSubscription()).then((sub) => sub && sub.unsubscribe()).catch(() => {});
+  }
+  function pushDisable(btn) {
+    if (pushUi.busy) return;
+    // two taps (not a double tap): a new URL means updating the Shortcut
+    if (!pushUi.armed) {
+      pushUi.armed = true;
+      pushUi.armedAt = performance.now();
+      clearTimeout(pushUi.armTimer);
+      pushUi.armTimer = setTimeout(() => { pushUi.armed = false; pushRender(); }, 3000);
+      pushRender('push-off');
+      return;
+    }
+    if (performance.now() - pushUi.armedAt < 450) return;
+    clearTimeout(pushUi.armTimer);
+    pushUi.armed = false;
+    pushUi.busy = 'off';
+    pushUi.err = null;
+    pushRender('push-off');
+    pushTurnOff().then(() => {
+      pushUi.busy = '';
+      pushRender('push-enable');
+      toast(t('push.disabled'));
+    });
+  }
+  function copyViaSelection(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;pointer-events:none;font-size:16px';
+    document.body.appendChild(ta);
+    let ok = false;
+    try { ta.select(); ta.setSelectionRange(0, text.length); ok = document.execCommand('copy'); } catch (_) { ok = false; }
+    ta.remove();
+    return ok;
+  }
+  function pushCopy() {
+    const s = pushSaved();
+    if (!s) return;
+    const done = () => toast(t('push.copied'));
+    const fallback = () => { if (copyViaSelection(s.notifyUrl)) done(); else toast(t('push.copyFail'), { type: 'error', duration: 6500 }); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s.notifyUrl).then(done, fallback);
+      else fallback();
+    } catch (_) { fallback(); }
+  }
+  // Reset all data: notifications go too (the record is removed with the other keys; the rest runs in the background).
+  // Always, not only with a saved token: a first "Aktifkan" may still be on its way, and it must not come back on.
+  function pushForget() {
+    pushUi.err = null;
+    pushUi.busy = '';
+    clearTimeout(pushUi.armTimer);
+    pushUi.armed = false;
+    pushTurnOff();
+  }
+
+  // ---------- Settings section ----------
+  const spinner = '<span class="btn-spin" aria-hidden="true"></span>';
+  function pushHtml() {
+    const view = pushState();
+    const lead = '<p class="push-lead">' + T('push.lead') + '</p>';
+    const privacy = '<p class="field-hint">' + T('push.privacy') + '</p>';
+    const err = pushUi.err ? '<p class="notice warn" role="alert">' + T(PUSH_ERR[pushUi.err.kind] || 'push.errServer') + '</p>' : '';
+    const busy = pushUi.busy;
+    if (view === 'install') {
+      // The Home Screen app keeps its own storage, apart from Safari: the data comes along only through a backup
+      // (and the Safari copy is left behind), so the steps start with one (Backup in the Data group right below).
+      return lead + '<div class="notice info push-note push-install"><p>' + T('push.install') + '</p>' +
+        '<ol class="tip-steps">' + ['push.installBackup', 'push.installAdd', 'push.installRestore', 'push.installAfter'].map((k) => '<li>' + T(k) + '</li>').join('') + '</ol></div>';
+    }
+    if (view === 'unsupported') return lead + '<div class="notice push-note">' + T('push.unsupported') + '</div>';
+    if (view === 'denied') {
+      const off = pushLoadRaw().token
+        ? '<button type="button" class="btn-danger push-off' + (pushUi.armed ? ' armed' : '') + '" data-action="push-off"' + (busy ? ' aria-disabled="true"' : '') + '>' +
+          (busy === 'off' ? spinner + '<span>' + T('push.disabling') + '</span>' : '<span>' + T(pushUi.armed ? 'push.offConfirm' : 'push.off') + '</span>') + '</button>'
+        : '';
+      return lead + '<div class="notice warn push-note" role="status">' + T(isIOSDevice() ? 'push.deniedIos' : 'push.denied') + '</div>' + off + privacy;
+    }
+    if (view === 'off') {
+      const label = busy === 'enable' ? spinner + '<span>' + T('push.enabling') + '</span>'
+        : ICON.bell + '<span>' + T(pushUi.err && pushUi.err.op === 'enable' ? 'push.retry' : 'push.enable') + '</span>';
+      return lead + err +
+        '<button type="button" class="btn-primary" data-action="push-enable"' + (busy ? ' aria-disabled="true" aria-busy="true"' : '') + '>' + label + '</button>' + privacy;
+    }
+    const s = pushSaved();
+    const parts = PC.splitMiddle(s.notifyUrl, 10);
+    let since = '';
+    if (s.enabledAt) {
+      const d = new Date(s.enabledAt);
+      if (!isNaN(d)) since = ' <small>' + T('push.since', { date: dtf({ day: 'numeric', month: 'short', year: 'numeric' }).format(d) }) + '</small>';
+    }
+    // the Shortcut's field names and values are typed exactly as shown
+    const code = (x) => '<code>' + esc(x) + '</code>';
+    const keys = { keyAmount: code('amount'), keyApp: code('app'), post: code('POST'), json: code('JSON') };
+    const step = (k) => '<li>' + tHtml(k, keys) + '</li>';
+    return '<div class="push-status"><span class="push-dot" aria-hidden="true"></span><span>' + T('push.onStatus') + since + '</span></div>' +
+      '<div class="field"><span class="field-label" id="pushUrlL">' + T('push.urlLabel') + '</span>' +
+      '<p class="push-url" id="pushUrl" aria-labelledby="pushUrlL pushUrl">' +
+      '<span class="pu-head">' + esc(parts.head) + '</span><span class="pu-tail">' + esc(parts.tail) + '</span></p>' +
+      '<span class="field-hint">' + T('push.urlHint') + '</span></div>' +
+      '<div class="push-actions">' +
+      '<button type="button" class="btn-secondary" data-action="push-copy">' + ICON.copy + '<span>' + T('push.copy') + '</span></button>' +
+      '<button type="button" class="btn-secondary" data-action="push-test"' + (busy ? ' aria-disabled="true"' : '') + (busy === 'test' ? ' aria-busy="true"' : '') + '>' +
+      (busy === 'test' ? spinner + '<span>' + T('push.testing') + '</span>' : ICON.send + '<span>' + T('push.test') + '</span>') + '</button></div>' +
+      err +
+      '<details class="push-howto"' + (pushUi.howOpen ? ' open' : '') + '><summary><span>' + T('push.howTitle') + '</span>' + ICON.chevR + '</summary>' +
+      '<ol class="tip-steps">' + ['push.howApp', 'push.howDelete', 'push.howAdd', 'push.howMethod', 'push.howFields', 'push.howTest', 'push.howDone'].map(step).join('') + '</ol>' +
+      '<p class="field-hint push-how-note">' + tHtml('push.howNote', keys) + '</p></details>' +
+      '<button type="button" class="btn-danger push-off' + (pushUi.armed ? ' armed' : '') + '" data-action="push-off"' + (busy ? ' aria-disabled="true"' : '') + '>' +
+      (busy === 'off' ? spinner + '<span>' + T('push.disabling') + '</span>' : '<span>' + T(pushUi.armed ? 'push.offConfirm' : 'push.off') + '</span>') + '</button>' +
+      privacy;
+  }
+  // Draws the section when Settings is open. focusAction: the control to keep focused when it was focused (or
+  // when the tapped one is gone after this change).
+  function pushRender(focusAction) {
+    const box = document.getElementById('setPush');
+    if (!box) return;
+    const html = pushHtml();
+    if (html === pushUi.html && box.firstChild) return;
+    const active = document.activeElement;
+    const had = active && box.contains(active) ? active.getAttribute('data-action') : null;
+    pushUi.html = html;
+    box.innerHTML = html;
+    const det = box.querySelector('.push-howto');
+    if (det) det.addEventListener('toggle', () => { pushUi.howOpen = det.open; });
+    // busy buttons stay focusable (aria-disabled), so focus is not dropped while something runs
+    if (had) {
+      const pick = (a) => (a ? box.querySelector('[data-action="' + a + '"]') : null);
+      const next = pick(had) || pick(focusAction);
+      if (next) focusEl(next);
+    }
+  }
+  // from the "URL changed" toast: Settings opens at this section (on top of whatever is open, nothing typed is lost)
+  function openPushSettings() {
+    openSettingsSheet({ focus: 'push' });
+  }
+
+  // ---------- Opened from a notification: Catat, with Tempel pointed out ----------
+  // Views with nothing typed in them are closed; a form being filled in stays on top (Catat waits behind it).
+  const CLOSE_FOR_CATAT = ['settings', 'tips', 'diag', 'rollover', 'history', 'confirm'];
+  let pasteHintTimer = 0;
+  function openCatatFromNotification() {
+    if (!state || !S().onboarded || !$('onboarding').hidden) return;
+    sheets.slice().forEach((sh) => { if (CLOSE_FOR_CATAT.indexOf(sh.id) >= 0) closeSheet(sh, true); });
+    switchTab('catat');
+    pointAtPaste();
+  }
+  function pointAtPaste() {
+    const btn = document.querySelector('#viewCatat .paste-pill');
+    const card = document.querySelector('#viewCatat .shot-card');
+    if (!btn || !card) return;
+    // the update reload waits a moment: the user is about to tap Tempel
+    setBusy('notif-open', PASTE_HINT_MS);
+    clearTimeout(pasteHintTimer);
+    card.classList.add('hinting');
+    btn.classList.remove('pulse');
+    void btn.offsetWidth;
+    btn.classList.add('pulse');
+    const hint = $('pasteHint');
+    if (hint) hint.hidden = false;
+    pasteHintTimer = setTimeout(endPasteHint, PASTE_HINT_MS);
+    announce(t('catat.pasteHint'));
+    if (!topSheet()) {
+      try { card.scrollIntoView({ block: 'nearest' }); } catch (_) { /* old browsers */ }
+      focusEl(btn);
+    }
+  }
+  function endPasteHint() {
+    clearTimeout(pasteHintTimer);
+    pasteHintTimer = 0;
+    const card = document.querySelector('#viewCatat .shot-card');
+    if (card) card.classList.remove('hinting');
+    const btn = document.querySelector('#viewCatat .paste-pill');
+    if (btn) btn.classList.remove('pulse');
+    const hint = $('pasteHint');
+    if (hint) hint.hidden = true;
+  }
+  const pasteHintShown = () => !!pasteHintTimer;
+  // the hint has done its job once Tempel is tapped
+  document.addEventListener('click', (e) => { if (pasteHintTimer && e.target.closest && e.target.closest('#viewCatat .paste-pill')) endPasteHint(); }, true);
+  function clearCatatHash() {
+    try { history.replaceState(history.state, '', location.pathname + location.search); } catch (_) { /* file:// */ }
+  }
+  const isCatatUrl = (u) => {
+    try { return new URL(String(u || ''), location.href).hash === '#catat'; } catch (_) { return false; }
+  };
+  window.addEventListener('hashchange', () => {
+    if (location.hash !== '#catat') return;
+    clearCatatHash();
+    openCatatFromNotification();
+  });
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', (e) => {
+      const d = e.data;
+      if (!d || typeof d !== 'object') return;
+      if (d.type === 'sangu-open' && isCatatUrl(d.url)) openCatatFromNotification();
+      else if (d.type === 'sangu-push-resync') pushAutoSync('sw');
+    });
+  }
+  // Back in the foreground (perhaps from a notification tap): a waiting update reload holds off for a moment, so the
+  // service worker's "open Catat" message is not lost to a reload. The section shows the current permission.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    setBusy('resume', 1500);
+    pushRender();
+    pushAutoSync('foreground');
+  });
+  window.addEventListener('online', () => { if (pushUi.retryOnline) pushAutoSync('online'); });
+  window.addEventListener('storage', (e) => { if (e.key === PUSH_KEY || e.key === null) pushRender(); });
+
+  // Boot (after the first render): a cold start from a notification (#catat), Catat kept across an update reload,
+  // then the start sync.
+  function pushBoot() {
+    let route = '';
+    try { route = sessionStorage.getItem(ROUTE_KEY) || ''; sessionStorage.removeItem(ROUTE_KEY); } catch (_) { route = ''; }
+    if (location.hash === '#catat') { clearCatatHash(); route = 'catat-hint'; }
+    if (route === 'catat-hint') openCatatFromNotification();
+    else if (route === 'catat' && state && S().onboarded && $('onboarding').hidden) switchTab('catat');
+    pushAutoSync('start');
+  }
+  // Before an update reload: stay on Catat (and keep pointing at Tempel) after it.
+  function rememberRoute() {
+    try {
+      if (pasteHintShown()) sessionStorage.setItem(ROUTE_KEY, 'catat-hint');
+      else if (ui.tab === 'catat') sessionStorage.setItem(ROUTE_KEY, 'catat');
+      else sessionStorage.removeItem(ROUTE_KEY);
+    } catch (_) { /* ignore */ }
+  }
+
   // ---------- Event delegation ----------
   const ACTIONS = {
     'tab': (el) => switchTab(el.dataset.tab),
@@ -9726,7 +10874,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       if (!Core.CURRENCIES || !Core.CURRENCIES[c]) return;
       saveObName();
       commit((s) => { s.settings.currency = c; });
-      $('obBudget').value = num(S().monthlyBudget) > 0 ? amountToField(num(S().monthlyBudget)) : '';
+      setAmountField($('obBudget'), num(S().monthlyBudget) > 0 ? num(S().monthlyBudget) : '');
     },
     'ob-next': () => obNext(),
     'ob-back': () => { if (obStep > 1) { obStep -= 1; renderOnboarding(); focusObHeading(); } },
@@ -9802,6 +10950,24 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     if (ACTIONS[action]) ACTIONS[action](el, e);
   });
 
+  // Amount fields are regrouped in the capture phase, before any listener of the field itself runs: those read
+  // the value for live labels ("Setor Rp …", the duplicate check), and "200.0000" (the keystroke before "2.000.000"
+  // is regrouped) reads as 200. The value before the edit tells a Backspace on a separator apart (liveFormat).
+  const amountBefore = new WeakMap();
+  const isAmountField = (el) => !!(el && el.hasAttribute && el.hasAttribute('data-amount-field'));
+  document.addEventListener('beforeinput', (e) => {
+    const el = e.target;
+    if (isAmountField(el)) amountBefore.set(el, { value: el.value, ranged: el.selectionStart !== el.selectionEnd });
+  }, true);
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (!isAmountField(el)) return;
+    const before = amountBefore.get(el);
+    amountBefore.delete(el);
+    liveFormat(el, e.inputType, before);
+    updateAmountHint(el);
+  }, true);
+
   document.addEventListener('input', (e) => {
     const el = e.target;
     if (!el || !el.getAttribute) return;
@@ -9811,7 +10977,6 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     const errEl = el.id ? document.getElementById(el.id + 'Err') : null;
     if (errEl && errEl.textContent) errEl.textContent = '';
     if ((el.id === 'obWName' || el.id === 'obWBal') && $('obWalletErr').textContent) $('obWalletErr').textContent = '';
-    if (el.hasAttribute('data-amount-field')) { liveFormat(el, e.inputType); updateAmountHint(el); }
   });
 
   document.addEventListener('change', (e) => {
@@ -10194,6 +11359,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       const cap = $('captionInput');
       if (cap && cap.value.trim()) sessionStorage.setItem(DRAFT_KEY, cap.value); else sessionStorage.removeItem(DRAFT_KEY);
     } catch (_) { /* ignore */ }
+    // and so does Catat (opened from a notification: with Tempel still pointed out)
+    rememberRoute();
     location.reload();
   }
   function retryUpdateSoon(ms) {
@@ -10299,6 +11466,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     }
   } catch (_) { /* ignore */ }
   setupPWA();
+  // opened from a notification (#catat), Catat kept across an update reload, notifications kept in sync
+  pushBoot();
 
   // Small debug handle for integration tests.
   window.__APP__ = {
@@ -10309,7 +11478,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     // what holds back an automatic update reload (tests)
     get updateState() { return { pending: upd.pending, manual: upd.manual, busyMs: busyLeft(), busy: Object.keys(busyUntil), sheets: sheets.length, sinceInput: Date.now() - ui.lastInput, canReload: canReloadNow() }; },
     // shell height fix and keyboard state (tests, screen info)
-    get viewport() { return { appH: shell.h, gap: shell.gap, kb: kbKey, panTries, log: kbLog.slice(), info: viewportInfo() }; }
+    get viewport() { return { appH: shell.h, gap: shell.gap, kb: kbKey, panTries, log: kbLog.slice(), info: viewportInfo() }; },
+    // notifications: what Settings shows and what runs (tests)
+    get push() { return { view: pushState(), busy: pushUi.busy, err: pushUi.err && pushUi.err.kind, saved: pushSaved(), lastSync: pushUi.lastSync, hint: pasteHintShown() }; }
   };
 })();
 </script>
