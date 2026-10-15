@@ -8,7 +8,7 @@ const BEZEL = 12;
 export const PHONE_W = SCREEN_W + BEZEL * 2;
 export const PHONE_H = SCREEN_H + BEZEL * 2;
 
-const StatusBar: React.FC = () => (
+export const StatusBar: React.FC = () => (
   <div
     style={{
       position: "absolute",

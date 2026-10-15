@@ -9,6 +9,17 @@ import { ScanScene } from "./scenes/ScanScene";
 import { RecapScene } from "./scenes/RecapScene";
 import { PrivacyScene } from "./scenes/PrivacyScene";
 import { CtaScene } from "./scenes/CtaScene";
+import { SanguFilm } from "./film/SanguFilm";
+import { F1Opening } from "./film/scenes/F1Opening";
+import { F2Logo } from "./film/scenes/F2Logo";
+import { F3Intro } from "./film/scenes/F3Intro";
+import { F4Wall } from "./film/scenes/F4Wall";
+import { F5Daily } from "./film/scenes/F5Daily";
+import { F6Neon } from "./film/scenes/F6Neon";
+import { F7Features } from "./film/scenes/F7Features";
+import { F8Privacy } from "./film/scenes/F8Privacy";
+import { F9Words } from "./film/scenes/F9Words";
+import { F10End } from "./film/scenes/F10End";
 
 const Hook = withBackdrop(HookScene);
 const Brand = withBackdrop(BrandScene);
@@ -32,6 +43,19 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="Recap" component={Recap} durationInFrames={150} fps={30} width={1080} height={1920} />
         <Composition id="Privacy" component={Privacy} durationInFrames={105} fps={30} width={1080} height={1920} />
         <Composition id="Cta" component={Cta} durationInFrames={120} fps={30} width={1080} height={1920} />
+      </Folder>
+      <Composition id="SanguFilm" component={SanguFilm} durationInFrames={1023} fps={30} width={1920} height={1080} />
+      <Folder name="SanguFilm-Scenes">
+        <Composition id="F1-Pembuka" component={F1Opening} durationInFrames={132} fps={30} width={1920} height={1080} />
+        <Composition id="F2-Logo" component={F2Logo} durationInFrames={84} fps={30} width={1920} height={1080} />
+        <Composition id="F3-Perkenalan" component={F3Intro} durationInFrames={120} fps={30} width={1920} height={1080} />
+        <Composition id="F4-Dinding" component={F4Wall} durationInFrames={96} fps={30} width={1920} height={1080} />
+        <Composition id="F5-Jatah" component={F5Daily} durationInFrames={120} fps={30} width={1920} height={1080} />
+        <Composition id="F6-Neon" component={F6Neon} durationInFrames={120} fps={30} width={1920} height={1080} />
+        <Composition id="F7-Fitur" component={F7Features} durationInFrames={120} fps={30} width={1920} height={1080} />
+        <Composition id="F8-Privasi" component={F8Privacy} durationInFrames={102} fps={30} width={1920} height={1080} />
+        <Composition id="F9-Kata" component={F9Words} durationInFrames={132} fps={30} width={1920} height={1080} />
+        <Composition id="F10-Penutup" component={F10End} durationInFrames={105} fps={30} width={1920} height={1080} />
       </Folder>
     </>
   );
