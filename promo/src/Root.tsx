@@ -20,6 +20,14 @@ import { F7Features } from "./film/scenes/F7Features";
 import { F8Privacy } from "./film/scenes/F8Privacy";
 import { F9Words } from "./film/scenes/F9Words";
 import { F10End } from "./film/scenes/F10End";
+import { SanguNight } from "./night/SanguNight";
+import { N1Hook } from "./night/scenes/N1Hook";
+import { N2Logo } from "./night/scenes/N2Logo";
+import { N3Daily } from "./night/scenes/N3Daily";
+import { N4Voice } from "./night/scenes/N4Voice";
+import { N5Neon } from "./night/scenes/N5Neon";
+import { N6Privacy } from "./night/scenes/N6Privacy";
+import { N7End } from "./night/scenes/N7End";
 
 const Hook = withBackdrop(HookScene);
 const Brand = withBackdrop(BrandScene);
@@ -33,6 +41,16 @@ const Cta = withBackdrop(CtaScene);
 export const RemotionRoot: React.FC = () => {
   return (
     <>
+      <Composition id="SanguNight" component={SanguNight} durationInFrames={1075} fps={30} width={1920} height={1080} />
+      <Folder name="SanguNight-Scenes">
+        <Composition id="N1-Hook" component={N1Hook} durationInFrames={210} fps={30} width={1920} height={1080} />
+        <Composition id="N2-Logo" component={N2Logo} durationInFrames={90} fps={30} width={1920} height={1080} />
+        <Composition id="N3-Jatah" component={N3Daily} durationInFrames={165} fps={30} width={1920} height={1080} />
+        <Composition id="N4-Catat" component={N4Voice} durationInFrames={180} fps={30} width={1920} height={1080} />
+        <Composition id="N5-Neon" component={N5Neon} durationInFrames={140} fps={30} width={1920} height={1080} />
+        <Composition id="N6-Privasi" component={N6Privacy} durationInFrames={160} fps={30} width={1920} height={1080} />
+        <Composition id="N7-Penutup" component={N7End} durationInFrames={130} fps={30} width={1920} height={1080} />
+      </Folder>
       <Composition id="SanguAd" component={SanguAd} durationInFrames={900} fps={30} width={1080} height={1920} />
       <Folder name="SanguAd-Scenes">
         <Composition id="Hook" component={Hook} durationInFrames={120} fps={30} width={1080} height={1920} />
