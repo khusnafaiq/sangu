@@ -1,11 +1,11 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import { C } from "../../theme";
 import { AppHeader, TabBar, Tx, TxRow } from "../../components/AppUI";
 import { Cursor } from "../../film/ui";
 import { RecapBody } from "../../film/screens";
 import { NotifCatat, PHONE_MID, SAVE_PIN, pinned } from "./N4cNotif";
-import { DarkScreen, GlowLine, NightBg, clamp, glide } from "../kit";
+import { DarkScreen, GlowLine, NightBg, clamp, glide, useT } from "../kit";
 
 // The activity list after saving: the new Kopi Senja on top, then older days.
 const DAYS: { label: string; total: string; txs: Tx[] }[] = [
@@ -251,9 +251,9 @@ const ActivityAndRecap: React.FC<{
 
 // Starts on the "Simpan" close-up where N4c ends, pulls back and lays the phone into a tilted hero shot.
 // The saved payment lands on top of a long activity list that scrolls, then a swipe opens the recap.
-// 225 frames.
+// 225 frames, played at 150.
 export const N5Neon: React.FC = () => {
-  const frame = useCurrentFrame();
+  const frame = useT();
   const back = interpolate(frame, [0, 40], [0, 1], { ...clamp, easing: glide });
   const t = interpolate(frame, [36, 86], [0, 1], { ...clamp, easing: glide });
   const catat = interpolate(frame, [50, 60], [1, 0], clamp);
@@ -366,8 +366,11 @@ export const N5Neon: React.FC = () => {
         </div>
       </div>
       <GlowLine
-        words={[{ t: "Rapi," }, { t: " otomatis." }]}
-        at={96}
+        words={[
+          { t: "Rapi,", at: 100 },
+          { t: " otomatis.", at: 122 },
+        ]}
+        at={100}
         out={204}
         stagger={8}
         size={96}

@@ -1,18 +1,23 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { GlowLine, Lockup, NightBg, clamp, slow } from "../kit";
+import { AbsoluteFill, interpolate } from "remotion";
+import { GlowLine, Lockup, NightBg, clamp, slow, useT } from "../kit";
 
-// 0:31 — "Tenang sampai gajian." dissolves into the icon + Sangu lockup on the same centre.
+// "Tenang sampai gajian." dissolves into the icon + Sangu lockup on the same centre, on the final
+// chord; the voice-over says "Sangu." as the wordmark appears. 120 frames.
 export const N7End: React.FC = () => {
-  const frame = useCurrentFrame();
+  const frame = useT();
   return (
     <AbsoluteFill>
       <NightBg />
       <GlowLine
-        words={[{ t: "Tenang" }, { t: " sampai" }, { t: " gajian." }]}
+        words={[
+          { t: "Tenang", at: 6 },
+          { t: " sampai", at: 17 },
+          { t: " gajian.", at: 29 },
+        ]}
         at={6}
-        out={56}
-        stagger={7}
+        out={44}
+        inDur={16}
         size={104}
         style={{
           position: "absolute",
@@ -31,11 +36,11 @@ export const N7End: React.FC = () => {
             borderRadius: "50%",
             background:
               "radial-gradient(ellipse, rgba(52,211,153,0.2), rgba(52,211,153,0) 65%)",
-            opacity: interpolate(frame, [60, 100], [0, 1], clamp),
+            opacity: interpolate(frame, [45, 75], [0, 1], clamp),
           }}
         />
         <Lockup
-          p={interpolate(frame, [62, 108], [0, 1], { ...clamp, easing: slow })}
+          p={interpolate(frame, [45, 81], [0, 1], { ...clamp, easing: slow })}
           size={150}
         />
       </AbsoluteFill>

@@ -1,11 +1,12 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { Lockup, NightBg, clamp, slow } from "../kit";
+import { AbsoluteFill, interpolate } from "remotion";
+import { Lockup, NightBg, clamp, slow, useT } from "../kit";
 
-// 0:07 — icon with "Sangu" beside it, soft green bloom.
+// On the music drop: icon with "Sangu" beside it, soft green bloom; the wordmark lands on
+// "Kenalin, Sangu." 75 frames.
 export const N2Logo: React.FC = () => {
-  const frame = useCurrentFrame();
-  const p = interpolate(frame, [4, 52], [0, 1], { ...clamp, easing: slow });
+  const frame = useT();
+  const p = interpolate(frame, [6, 46], [0, 1], { ...clamp, easing: slow });
   return (
     <AbsoluteFill>
       <NightBg />
@@ -18,12 +19,12 @@ export const N2Logo: React.FC = () => {
             borderRadius: "50%",
             background:
               "radial-gradient(ellipse, rgba(52,211,153,0.22), rgba(52,211,153,0) 65%)",
-            opacity: interpolate(frame, [0, 40], [0, 1], clamp),
+            opacity: interpolate(frame, [0, 30], [0, 1], clamp),
           }}
         />
         <div
           style={{
-            scale: String(interpolate(frame, [0, 90], [0.97, 1.02], clamp)),
+            scale: String(interpolate(frame, [0, 75], [0.96, 1.02], clamp)),
           }}
         >
           <Lockup p={p} size={150} />

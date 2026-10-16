@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import { FONT } from "../../theme";
 import { HomeScreen } from "../../components/AppUI";
 import {
@@ -9,6 +9,7 @@ import {
   NightBg,
   clamp,
   glide,
+  useT,
   veil,
 } from "../kit";
 
@@ -17,9 +18,10 @@ const PIN = { x: 130, y: 178 };
 const APP_SIZE = 42;
 const BIG = 100;
 
-// 0:10 — match cut: same slot as "Rp 87.000", now the calm number; pull back into the app.
+// The calm number as text only, then a pinned pull back into the app; the titles land with
+// "… tiap hari." in the voice-over. 165 frames, played at 120.
 export const N3Daily: React.FC = () => {
-  const frame = useCurrentFrame();
+  const frame = useT();
   const z = interpolate(frame, [52, 108], [0, 1], { ...clamp, easing: glide });
   const s = interpolate(z, [0, 1], [BIG / APP_SIZE, 1.55]);
   const px = interpolate(z, [0, 1], [960, 1150]);
@@ -90,13 +92,13 @@ export const N3Daily: React.FC = () => {
 
       <GlowLine
         words={[{ t: "Jatah aman," }]}
-        at={112}
+        at={100}
         size={96}
         style={{ position: "absolute", left: 230, top: 400 }}
       />
       <GlowLine
         words={[{ t: "tiap hari." }]}
-        at={120}
+        at={112}
         size={96}
         style={{ position: "absolute", left: 230, top: 512, color: "#9FE9C8" }}
       />

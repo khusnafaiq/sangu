@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import { C, FONT } from "../../theme";
 import { CatatScreen, TxRow } from "../../components/AppUI";
 import { Icon } from "../../components/Icon";
@@ -11,28 +11,30 @@ import {
   clamp,
   glide,
   slow,
+  useT,
   veil,
 } from "../kit";
 
-// What the person says, word by word, timed to the voice-over (vo07). "terus" is one of the
-// words the app splits transactions on, so this one sentence becomes two transactions.
+// What the person says, word by word, on the words of the voice-over (vo07, cues in timeline.ts:
+// "Ehem…" at 6, the rest at 27). "terus" is one of the words the app splits transactions on, so
+// this one sentence becomes two transactions.
 type W = { t: string; at: number; tone?: "muted" | "split" };
 const LINE1: W[] = [
-  { t: "Ehem…", at: 8, tone: "muted" },
-  { t: " beli", at: 30 },
-  { t: " kopi", at: 37 },
-  { t: " susu", at: 44 },
-  { t: " 28rb", at: 52 },
-  { t: " pakai", at: 62 },
-  { t: " GoPay,", at: 70 },
+  { t: "Ehem…", at: 5, tone: "muted" },
+  { t: " beli", at: 27 },
+  { t: " kopi", at: 36 },
+  { t: " susu", at: 45 },
+  { t: " 28rb", at: 55 },
+  { t: " pakai", at: 98 },
+  { t: " GoPay,", at: 106 },
 ];
 const LINE2: W[] = [
-  { t: "terus…", at: 84, tone: "split" },
-  { t: " bayar", at: 124 },
-  { t: " parkir", at: 132 },
-  { t: " 3rb", at: 142 },
-  { t: " pakai", at: 150 },
-  { t: " cash.", at: 158 },
+  { t: "terus…", at: 118, tone: "split" },
+  { t: " bayar", at: 169 },
+  { t: " parkir", at: 180 },
+  { t: " 3rb", at: 191 },
+  { t: " pakai", at: 211 },
+  { t: " cash.", at: 219 },
 ];
 
 // The transcript as the app shows it (speech-to-text drops the "ehem").
@@ -121,7 +123,7 @@ const Words: React.FC<{ words: W[]; frame: number }> = ({ words, frame }) => (
                 : INK,
           fontStyle: w.tone === "muted" ? "italic" : undefined,
           fontWeight: w.tone === "split" ? 700 : undefined,
-          ...veil(frame, w.at, 1e9, 18, 12, 6),
+          ...veil(frame, w.at, 1e9, 14, 12, 6),
         }}
       >
         {w.t}
@@ -130,21 +132,21 @@ const Words: React.FC<{ words: W[]; frame: number }> = ({ words, frame }) => (
   </>
 );
 
-// 0:18 — the spoken sentence as text-only, then pull back: it is the transcript in Catat, and
-// it turns into two transactions. 300 frames.
+// The spoken sentence as text only, then pull back: it is the transcript in Catat, and it turns
+// into two transactions. 285 frames.
 export const N4Voice: React.FC = () => {
-  const frame = useCurrentFrame();
-  const z = interpolate(frame, [178, 232], [0, 1], { ...clamp, easing: glide });
+  const frame = useT();
+  const z = interpolate(frame, [210, 248], [0, 1], { ...clamp, easing: glide });
   const s = interpolate(z, [0, 1], [BIG / APP_SIZE, 1.5]);
   const px = interpolate(z, [0, 1], [960, 690]);
   const py = interpolate(z, [0, 1], [536, 500]);
-  const saved = frame >= 236;
-  const row = interpolate(frame, [236, 256], [0, 1], {
+  const saved = frame >= 246;
+  const row = interpolate(frame, [246, 262], [0, 1], {
     ...clamp,
     easing: slow,
   });
-  // the sigh: the mic rings slow down and dim between "terus…" and "bayar"
-  const sigh = interpolate(frame, [92, 100, 116, 124], [0, 1, 1, 0], clamp);
+  // the sigh: the mic rings dim between "terus…" and "bayar"
+  const sigh = interpolate(frame, [126, 136, 160, 170], [0, 1, 1, 0], clamp);
 
   return (
     <AbsoluteFill>
@@ -156,7 +158,7 @@ export const N4Voice: React.FC = () => {
           top: 0,
           transformOrigin: "0 0",
           transform: `translate(${px - PIN.x * s}px, ${py - PIN.y * s}px) scale(${s})`,
-          opacity: interpolate(frame, [172, 186], [0, 1], clamp),
+          opacity: interpolate(frame, [204, 218], [0, 1], clamp),
         }}
       >
         <DarkScreen glow={z}>
@@ -164,7 +166,7 @@ export const N4Voice: React.FC = () => {
             transcript={<Transcript />}
             listening={interpolate(
               frame,
-              [172, 180, 226, 234],
+              [204, 210, 242, 250],
               [1, 1, 1, 0],
               clamp,
             )}
@@ -188,13 +190,13 @@ export const N4Voice: React.FC = () => {
           top: 290,
           width: 96,
           height: 96,
-          ...veil(frame, 0, 174, 20, 12, 0),
+          ...veil(frame, 0, 206, 16, 10, 0),
         }}
       >
         {[0, 1].map((i) => {
           const p =
             ((frame / 40 + i / 2) % 1) *
-            interpolate(frame, [6, 14], [0, 1], clamp);
+            interpolate(frame, [4, 12], [0, 1], clamp);
           return (
             <div
               key={i}
@@ -237,7 +239,7 @@ export const N4Voice: React.FC = () => {
           lineHeight: 1.3,
           color: INK,
           whiteSpace: "pre",
-          opacity: interpolate(frame, [176, 186], [1, 0], clamp),
+          opacity: interpolate(frame, [208, 218], [1, 0], clamp),
         }}
       >
         <div>
@@ -250,8 +252,9 @@ export const N4Voice: React.FC = () => {
 
       <GlowLine
         words={[{ t: "Cukup" }, { t: " ngomong." }]}
-        at={246}
+        at={254}
         stagger={8}
+        inDur={16}
         size={100}
         style={{ position: "absolute", left: 1050, top: 470 }}
       />

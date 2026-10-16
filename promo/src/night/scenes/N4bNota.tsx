@@ -1,9 +1,9 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import { C, FONT } from "../../theme";
 import { TxRow } from "../../components/AppUI";
 import { Icon } from "../../components/Icon";
-import { GLOW, GlowLine, NightBg, clamp, glide, slow } from "../kit";
+import { GLOW, GlowLine, NightBg, clamp, glide, slow, useT } from "../kit";
 
 const ITEMS: [string, string][] = [
   ["INDOMIE GRG x5", "17.500"],
@@ -181,7 +181,7 @@ const Proof: React.FC<{ found: number }> = ({ found }) => (
 
 // 0:21 — a receipt and a payment screenshot are scanned; their totals land as two transactions.
 export const N4bNota: React.FC = () => {
-  const frame = useCurrentFrame();
+  const frame = useT();
   const scan = interpolate(frame, [16, 62], [0, 1], {
     ...clamp,
     easing: glide,
@@ -200,10 +200,15 @@ export const N4bNota: React.FC = () => {
       <NightBg />
       <GlowLine
         words={[
-          { t: "Nota" },
-          { t: " atau" },
-          { t: " screenshot," },
-          { t: " kebaca sendiri.", color: "#9FE9C8", glow: GLOW.green },
+          { t: "Nota", at: 6 },
+          { t: " atau", at: 21 },
+          { t: " screenshot,", at: 42 },
+          {
+            t: " langsung kebaca.",
+            at: 66,
+            color: "#9FE9C8",
+            glow: GLOW.green,
+          },
         ]}
         at={6}
         stagger={6}

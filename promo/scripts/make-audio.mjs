@@ -447,15 +447,27 @@ sfx("sfx-pulse.wav", 1.4, (b) => {
   }
 }, 0.15);
 
-// ---------- music for SanguNight (16:9, ±58 s), 96 BPM, follows the cut ----------
-// 0–3.3 hopeful plucks ("Tanggal 25 gajian!") → 3.3–5.3 everything sags and goes quiet
-// ("Tapi tanggal 15 kok udah abis?") → dark pad for the reframe → 10 s logo opens the music →
-// soft pulse under the features → lift at 40 s (hero shot) → strip back for privacy, silence
-// just before the heartbeat (≈52 s) → final chord under the logo, tail to 58.2 s.
+// ---------- music for SanguNight (16:9, 47 s), 120 BPM, cut to the picture ----------
+// Times follow src/night/timeline.ts (global frame / 30). Bars start at 1.0 s, so every cut (a
+// multiple of 15 frames) lands on a beat, and the logo (9.0 s) and the ending (43.0 s) on a bar.
+//   0–2.4     bouncy intro under "Tanggal 25 gajian!"
+//   2.4       tape stop: the money runs out ("Tapi tanggal 15, kok udah abis?")
+//   5.0–9.0   build under the reframe: filtered kick and bass open up, snare roll, riser, a gap
+//   9.0       drop on the logo; full groove under the features
+//   20.0–21.0 stop-time for the sigh before "bayar parkir"
+//   33.5      lift on the hero shot ("Rapi, otomatis.")
+//   38.5      privacy: drums out, filtered pad, silence before the heartbeat (42.2 s)
+//   43.0      soft groove back under "Tenang sampai gajian.", final chord on the logo at 44.5
 {
-  const NLEN = 60;
-  const BAR = 2.5; // 4 beats at 96 BPM
-  const NB = BAR / 4;
+  const NLEN = 47.2;
+  const B = 0.5; // one beat
+  const GRID = 1.0; // first downbeat
+  const DROP = 9.0;
+  const STOP = [20.0, 21.0];
+  const LIFT = 33.5;
+  const BREAK = 38.5;
+  const OUTRO = 43.0;
+  const FINAL = 44.5;
   const nPad = buf(NLEN);
   const nBass = buf(NLEN);
   const nPluck = buf(NLEN);
@@ -465,65 +477,155 @@ sfx("sfx-pulse.wav", 1.4, (b) => {
 
   const CH = [
     { root: 41, pad: [57, 60, 64, 67] }, // Fmaj9
-    { root: 36, pad: [55, 60, 64, 69] }, // C6
-    { root: 45, pad: [59, 60, 64, 67] }, // Am9
-    { root: 43, pad: [57, 62, 64, 67] }, // G6sus
+    { root: 36, pad: [55, 60, 62, 64] }, // C6/9
+    { root: 38, pad: [57, 60, 64, 65] }, // Dm9
+    { root: 34, pad: [57, 60, 62, 65] }, // Bbmaj9
   ];
+  const barOf = (t) => Math.floor((t - GRID) / 2 + 1e-6);
+  const beatOf = (t) => (((Math.round((t - GRID) / B) % 4) + 4) % 4);
+  // the progression starts on the drop's bar
+  const chordAt = (t) => CH[(((barOf(t) - barOf(DROP)) % 4) + 4) % 4];
 
-  // intro: hopeful plucks over a soft Fmaj9
-  padChord(nPad, 0, 3.1, CH[0].pad, 0.8, 1300);
-  [65, 69, 72, 76, 77, 76, 72, 69, 72, 76].forEach((m, k) => pluck(nPluck, 0.25 + k * (NB / 2), m, 0.55, k % 2 ? 0.35 : -0.35));
-  bell(nPluck, 0.2, mtof(84), 0.12, 2.6);
-
-  // the sag: a detuned pad bending down and closing, then silence
-  for (const m of CH[0].pad) {
-    const lp = new Biquad("lp", 1300, 0.7);
-    let ph = rnd();
-    for (let i = 0; i < SR * 2.1; i++) {
-      const t = i / SR;
-      const bend = Math.pow(2, (-1.2 * Math.min(1, t / 1.7)) / 12);
-      ph += (mtof(m) * bend) / SR;
-      lp.set(1300 - 1050 * Math.min(1, t / 1.6));
-      const env = Math.min(1, t / 0.08) * Math.max(0, 1 - t / 2.0);
-      const v = lp.run(2 * (ph % 1) - 1) * env * 0.09;
-      add(nPad, 3.2, i, v);
+  /** One beat of the groove. `o` thins or lifts it. */
+  const grooveBeat = (t, ch, o = {}) => {
+    const { k = 0.9, clap: c = 0.5, hats = 1, bass = 1, plucks = 0.4, lift = false } = o;
+    const beat = beatOf(t);
+    if (k) {
+      kick(nDrums, t, k);
+      nKicks.push(t);
     }
-  }
-
-  // the reframe: dark Am9 swell with a low drone
-  padChord(nPad, 5.8, 4.0, CH[2].pad.map((m) => m - 12), 0.9, 650);
-  bassNote(nBass, 5.8, 4.1, 33, 0.12);
-
-  // 10 s: the logo opens it up
-  impact(nFx, 10.0, 0.45);
-  const LIFT = 40.0;
-  const STRIP = 47.5;
-  for (let bar = 0; 10 + bar * BAR < STRIP; bar++) {
-    const t0 = 10 + bar * BAR;
-    const ch = CH[bar % 4];
-    const lifted = t0 >= LIFT;
-    padChord(nPad, t0, BAR - 0.05, ch.pad, lifted ? 1.05 : 0.85, lifted ? 2600 : 1500);
-    for (let beat = 0; beat < 4; beat++) {
-      const t = t0 + beat * NB;
-      if (t0 >= 13 && (lifted || beat % 2 === 0)) {
-        kick(nDrums, t, lifted ? 0.8 : 0.55);
-        nKicks.push(t);
+    if (c && beat % 2 === 1) clap(nDrums, t, c);
+    if (hats) {
+      hat(nDrums, t + B / 2, 0.3 * hats, lift && beat === 3, 0.25);
+      hat(nDrums, t + B * 0.75, 0.12 * hats, false, -0.25);
+      if (lift) hat(nDrums, t + B * 0.25, 0.1 * hats, false, 0.4);
+    }
+    if (bass) {
+      bassNote(nBass, t + B / 2, B * 0.4, ch.root, 0.85 * bass);
+      if (beat % 2 === 1) bassNote(nBass, t + B * 0.75, B * 0.2, ch.root + 12, 0.45 * bass);
+    }
+    if (plucks) {
+      for (const h of [0, 0.5]) {
+        const m = ch.pad[(beat * 2 + (h ? 1 : 0) + barOf(t)) % 4] + (lift ? 24 : 12);
+        pluck(nPluck, t + h * B, m, plucks, h ? 0.4 : -0.4);
       }
-      if (lifted) hat(nDrums, t + NB / 2, 0.22, false, 0.2);
-      bassNote(nBass, t, NB * 0.8, ch.root, beat === 0 ? 0.7 : 0.45);
-      for (const h of [0, 0.5]) pluck(nPluck, t + h * NB, ch.pad[(beat * 2 + (h ? 1 : 0) + bar) % 4] + 12, lifted ? 0.5 : 0.32, h ? 0.4 : -0.4);
+    }
+  };
+
+  // --- intro (0–2.4 s), rendered on its own so it can be tape-stopped
+  const intro = [nPad, nBass, nPluck, nDrums].map(() => buf(3.2));
+  {
+    const [iPad, iBass, iPluck, iDrums] = intro;
+    const ch = CH[0];
+    padChord(iPad, 0, 3.1, ch.pad, 0.8, 1800);
+    for (let t = 0; t < 3.0; t += B) {
+      const beat = beatOf(t);
+      kick(iDrums, t, 0.7);
+      if (beat % 2 === 1) clap(iDrums, t, 0.4);
+      hat(iDrums, t + B / 2, 0.28, false, 0.25);
+      hat(iDrums, t + B * 0.75, 0.1, false, -0.25);
+      bassNote(iBass, t + B / 2, B * 0.4, ch.root, 0.8);
+    }
+    // a bright little motif in eighths
+    [72, 76, 79, 81, 79, 76, 72, 74, 76, 79, 81, 84].forEach((m, k) => pluck(iPluck, k * (B / 2), m, k % 4 === 0 ? 0.7 : 0.5, k % 2 ? 0.35 : -0.35));
+  }
+  const introMix = buf(3.2);
+  [0.55, 0.5, 0.45, 0.75].forEach((g, k) => mix(introMix, intro[k], g));
+  mix(introMix, reverb(introMix, 0.9, 0.4), 0.3);
+  // tape stop from 2.4 s: the playback slows to a halt over 0.5 s
+  const night = buf(NLEN);
+  {
+    const T0 = 2.4;
+    const D = 0.5;
+    let r = 0;
+    for (let n = 0; n < SR * (T0 + D); n++) {
+      const t = n / SR;
+      const u = Math.max(0, (t - T0) / D);
+      const v = t < T0 ? 1 : Math.pow(1 - u, 1.6);
+      const i0 = Math.floor(r);
+      const fr = r - i0;
+      const g = t < T0 ? 1 : Math.pow(1 - u, 0.6);
+      for (let ch = 0; ch < 2; ch++) {
+        const a = introMix[ch][i0] || 0;
+        const b = introMix[ch][i0 + 1] || 0;
+        night[ch][n] += (a + (b - a) * fr) * g;
+      }
+      r += v;
     }
   }
-  riser(nFx, LIFT - 1.5, 1.5, 0.35);
 
-  // privacy: pad only, then silence just before the heartbeat
-  padChord(nPad, STRIP, 51.6 - STRIP, CH[0].pad, 0.8, 900);
-  padChord(nPad, 52.6, 53.8 - 52.6, CH[0].pad, 0.7, 900);
+  // --- the count (2.4–5.0 s): a low, dark Dm under "kok udah abis?"
+  padChord(nPad, 2.9, 2.0, CH[2].pad.map((m) => m - 12), 0.7, 520);
+  bassNote(nBass, 2.9, 2.0, 26, 0.18);
 
-  // the end: final Fmaj9 under the logo, bell arpeggio, long tail
-  padChord(nPad, 53.8, 3.0, [...CH[0].pad, 72], 1.1, 2200);
-  bassNote(nBass, 53.8, 3.2, 41, 0.32);
-  [72, 76, 79, 84].forEach((m, k) => bell(nPluck, 55.9 + k * 0.12, mtof(m), 0.16, 2.2, k % 2 ? 0.4 : -0.4));
+  // --- build (5.0–9.0 s): kick and bass through a low-pass that opens, Dm9 → Bbmaj9
+  {
+    const bK = buf(NLEN);
+    const bB = buf(NLEN);
+    for (let t = 5.0; t < 8.75 - 1e-6; t += B) {
+      const ch = t < 7.0 ? CH[2] : CH[3];
+      const u = (t - 5.0) / 3.75; // grows into the drop
+      kick(bK, t, 0.35 + 0.45 * u);
+      nKicks.push(t);
+      bassNote(bB, t, B * 0.45, ch.root, 0.3 + 0.35 * u);
+      bassNote(bB, t + B / 2, B * 0.4, ch.root, 0.25 + 0.3 * u);
+    }
+    padChord(nPad, 5.0, 1.95, CH[2].pad, 0.55, 900);
+    padChord(nPad, 7.0, 1.7, CH[3].pad, 0.75, 1600);
+    for (const b of [bK, bB]) {
+      for (let ch = 0; ch < 2; ch++) {
+        const lp = new Biquad("lp", 200, 0.9);
+        for (let n = Math.floor(5.0 * SR); n < Math.floor(9.0 * SR); n++) {
+          const u = Math.min(1, (n / SR - 5.0) / 3.75);
+          lp.set(180 * Math.pow(30, u));
+          b[ch][n] = lp.run(b[ch][n]);
+        }
+      }
+    }
+    mix(nDrums, bK, 1);
+    mix(nBass, bB, 1);
+    // snare roll: eighths, then sixteenths, getting louder; then an eighth of silence
+    for (let t = 7.0; t < 8.75 - 1e-6; t += t < 8.0 ? B / 2 : B / 4) clap(nDrums, t, 0.18 + 0.4 * ((t - 7.0) / 1.75));
+    riser(nFx, 7.0, 1.75, 0.5);
+  }
+
+  // --- drop (9.0 s) to the privacy break, with a stop for the sigh and a lift on the hero shot
+  impact(nFx, DROP, 0.7);
+  hat(nFx, DROP, 0.5, true);
+  for (let t0 = DROP; t0 < BREAK - 1e-6; t0 += 2) {
+    const ch = chordAt(t0);
+    // the pad stops with the stop-time
+    const padEnd = t0 < STOP[0] && t0 + 2 > STOP[0] ? STOP[0] - t0 - 0.03 : 1.95;
+    const lifted = t0 + 2 > LIFT;
+    padChord(nPad, t0, Math.min(padEnd, BREAK - t0 - 0.05), ch.pad, lifted ? 1.05 : 0.9, lifted ? 2800 : 2000);
+  }
+  for (let t = DROP; t < BREAK - 1e-6; t += B) {
+    if (t >= STOP[0] - 1e-6 && t < STOP[1] - 1e-6) continue;
+    grooveBeat(t, chordAt(t), { lift: t >= LIFT - 1e-6, plucks: t >= LIFT - 1e-6 ? 0.45 : 0.38 });
+  }
+  // back in after the sigh with a tight fill
+  clap(nDrums, STOP[1] - B / 2, 0.35);
+  clap(nDrums, STOP[1] - B / 4, 0.45);
+  riser(nFx, LIFT - 1.5, 1.5, 0.4);
+  impact(nFx, LIFT, 0.45);
+
+  // --- privacy (38.5 s): drums out, a filtered pad and soft bass, then silence before the heartbeat
+  {
+    const ch = chordAt(BREAK);
+    padChord(nPad, BREAK, 41.5 - BREAK, ch.pad, 0.8, 1000);
+    for (let t = BREAK; t < 41.0; t += B * 2) bassNote(nBass, t, B * 0.6, ch.root, 0.35);
+  }
+
+  // --- outro (43.0 s): a soft groove under "Tenang sampai gajian.", final chord on the logo
+  for (let t = OUTRO; t < FINAL - 1e-6; t += B) grooveBeat(t, CH[3], { k: 0.6, clap: 0.3, hats: 0.7, bass: 0.7, plucks: 0.3 });
+  padChord(nPad, OUTRO, FINAL - OUTRO - 0.05, CH[3].pad, 0.8, 1600);
+  riser(nFx, OUTRO + 0.5, FINAL - OUTRO - 0.5, 0.3);
+  kick(nDrums, FINAL, 1);
+  nKicks.push(FINAL);
+  impact(nFx, FINAL, 0.6);
+  padChord(nPad, FINAL, 2.0, [...CH[0].pad, 72], 1.1, 2400);
+  bassNote(nBass, FINAL, 2.2, 41, 0.4);
+  [72, 76, 79, 84].forEach((m, k) => bell(nPluck, FINAL + 0.1 + k * 0.09, mtof(m), 0.16, 2.2, k % 2 ? 0.4 : -0.4));
 
   // sidechain pads & bass to the kicks
   for (const b of [nPad, nBass]) {
@@ -532,7 +634,7 @@ sfx("sfx-pulse.wav", 1.4, (b) => {
       let g = 1;
       for (let k = nKicks.length - 1; k >= 0; k--) {
         if (nKicks[k] <= t) {
-          g = 1 - 0.4 * Math.exp(-(t - nKicks[k]) * 8);
+          g = 1 - 0.5 * Math.exp(-(t - nKicks[k]) * 8);
           break;
         }
       }
@@ -541,22 +643,26 @@ sfx("sfx-pulse.wav", 1.4, (b) => {
     }
   }
 
-  const night = buf(NLEN);
-  mix(night, nPad, 0.55);
-  mix(night, nBass, 0.45);
-  mix(night, nPluck, 0.4);
-  mix(night, nDrums, 0.7);
+  mix(night, nPad, 0.5);
+  mix(night, nBass, 0.5);
+  mix(night, nPluck, 0.42);
+  mix(night, nDrums, 0.8);
   mix(night, nFx, 0.5);
   const nSend = buf(NLEN);
   mix(nSend, nPad, 0.5);
   mix(nSend, nPluck, 0.7);
-  mix(night, reverb(nSend, 1.2, 0.45), 0.6);
-  for (const ch of night) for (let n = 0; n < ch.length; n++) ch[n] = Math.tanh(ch[n] * 1.1);
+  mix(nSend, nDrums, 0.08);
+  mix(night, reverb(nSend, 1.1, 0.4), 0.5);
+  for (const ch of night) for (let n = 0; n < ch.length; n++) ch[n] = Math.tanh(ch[n] * 1.15);
   writeWav("music-night.wav", night, 0.9);
 }
 
 // Soft, airy swish for blur cuts in SanguNight.
 sfx("sfx-swish.wav", 0.9, (b) => whoosh(b, 0, 0.85, 0.6, 900, 5200), 0.3);
+// The day counting 25 → 15 in the hook: ten falling ticks over ~0.9 s.
+sfx("sfx-drain.wav", 1.2, (b) => {
+  for (let k = 0; k < 10; k++) tick(b, k * 0.093, 0.8, 2000 - 110 * k, k % 2 ? 0.2 : -0.2);
+});
 // Notification chime: two soft bell notes.
 sfx("sfx-notif.wav", 1.4, (b) => {
   bell(b, 0, mtof(88), 0.6, 5, -0.2);

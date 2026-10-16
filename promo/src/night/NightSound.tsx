@@ -2,52 +2,33 @@ import React from "react";
 import { getStaticFiles, interpolate, staticFile } from "remotion";
 import { Audio } from "@remotion/media";
 import script from "./voiceover.json";
+import { FPS, SFX_CUES, VO_CUES, at } from "./timeline";
 
-// Sound for SanguNight on its own timeline (global frames): the music bed, ducked under the
-// voice-over lines that exist, plus small effects on cuts and UI moments.
+// Sound for SanguNight on the global timeline: the music bed, ducked under the voice-over cues
+// that have a file, plus small effects on cuts and UI moments (see timeline.ts).
 
-const SFX: { file: string; at: number; vol: number }[] = [
-  // soft swishes on the blur cuts
-  ...[300, 390, 555, 855, 1005, 1425, 1615].map((at) => ({
-    file: "sfx-swish.wav",
-    at,
-    vol: 0.22,
-  })),
-  { file: "sfx-shimmer.wav", at: 304, vol: 0.3 }, // logo
-  { file: "sfx-pop.wav", at: 506, vol: 0.25 }, // the daily number is highlighted
-  { file: "sfx-pop.wav", at: 793, vol: 0.3 }, // two transactions appear
-  { file: "sfx-pop.wav", at: 799, vol: 0.3 },
-  { file: "sfx-ding.wav", at: 806, vol: 0.28 },
-  { file: "sfx-scan.wav", at: 869, vol: 0.2 }, // receipt + screenshot scan
-  { file: "sfx-ding.wav", at: 909, vol: 0.25 },
-  { file: "sfx-pop.wav", at: 943, vol: 0.3 },
-  { file: "sfx-pop.wav", at: 949, vol: 0.3 },
-  { file: "sfx-notif.wav", at: 1047, vol: 0.4 }, // notification drops in
-  { file: "sfx-tap.wav", at: 1082, vol: 0.45 }, // tap the notification
-  { file: "sfx-tap.wav", at: 1188, vol: 0.45 }, // tap Simpan
-  { file: "sfx-ding.wav", at: 1193, vol: 0.4 },
-  { file: "sfx-swish.wav", at: 1356, vol: 0.28 }, // swipe to Rekapan
-  { file: "sfx-shimmer.wav", at: 1676, vol: 0.3 }, // final logo
-];
-
-const FPS = script.fps;
-const MUSIC = 0.6;
+const MUSIC = 0.53;
+const SFX = 0.9;
 
 export const NightSound: React.FC<{ total: number }> = ({ total }) => {
   const have = new Set(getStaticFiles().map((f) => f.name));
-  // speech windows of the generated lines (length estimated from the text)
-  const windows = script.lines
-    .filter((l) => have.has(`audio/vo/${l.id}.wav`))
-    .map((l) => [
-      l.from - 4,
-      l.from + Math.round((l.text.length / 13) * FPS) + 8,
-    ]);
+  const dur = Object.fromEntries(
+    script.lines.map((l) => [l.id, (l as { dur?: number }).dur ?? 2]),
+  );
+  // speech windows of the cues that play
+  const windows = VO_CUES.filter((c) => have.has(`audio/vo/${c.line}.wav`)).map(
+    (c) => {
+      const a = at(c.scene, c.t);
+      const len = (c.to ?? dur[c.line]) - (c.from ?? 0);
+      return [a, a + Math.round(len * FPS)];
+    },
+  );
   const duck = (f: number) =>
     windows.reduce(
       (g, [a, b]) =>
         Math.min(
           g,
-          interpolate(f, [a - 6, a, b, b + 10], [1, 0.42, 0.42, 1], {
+          interpolate(f, [a - 5, a, b, b + 8], [1, 0.45, 0.45, 1], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
           }),
@@ -63,19 +44,19 @@ export const NightSound: React.FC<{ total: number }> = ({ total }) => {
         volume={(f) =>
           MUSIC *
           duck(f) *
-          interpolate(f, [0, 4, total - 30, total], [0, 1, 1, 0], {
+          interpolate(f, [0, 2, total - 20, total], [0, 1, 1, 0], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
           })
         }
       />
-      {SFX.map((s, i) => (
+      {SFX_CUES.map((s, i) => (
         <Audio
           key={i}
           name={s.file.replace(".wav", "")}
           src={staticFile(`audio/${s.file}`)}
-          from={s.at}
-          volume={s.vol}
+          from={at(s.scene, s.t)}
+          volume={s.vol * SFX}
         />
       ))}
     </>

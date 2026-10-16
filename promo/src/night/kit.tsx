@@ -11,7 +11,21 @@ import { C, FONT } from "../theme";
 import { SCREEN_H, SCREEN_W, StatusBar } from "../components/Phone";
 
 // "Night" cut: near-black stage lit by a soft SaaS-style background glow, crisp type,
-// slow blur reveals, match cuts.
+// blur reveals, match cuts.
+
+const Pace = React.createContext(1);
+
+/**
+ * Plays a scene `rate` times faster than it was authored: with rate 1.5, 150 frames of film show
+ * the first 225 frames of the scene's own timeline. Read that timeline with `useT`.
+ */
+export const Paced: React.FC<{ rate: number; children: React.ReactNode }> = ({
+  rate,
+  children,
+}) => <Pace.Provider value={rate}>{children}</Pace.Provider>;
+
+/** The current frame on the scene's own timeline (see Paced). */
+export const useT = () => useCurrentFrame() * React.useContext(Pace);
 
 export const clamp = {
   extrapolateLeft: "clamp",
@@ -116,16 +130,26 @@ export const veil = (
   };
 };
 
-/** One line of glowing type, words revealed one after another. */
+/**
+ * One line of type, words revealed one after another (`stagger` apart, or at a word's own `at`,
+ * e.g. to follow the voice-over).
+ */
 export const GlowLine: React.FC<{
-  words: { t: string; color?: string; glow?: string; bold?: boolean }[];
+  words: {
+    t: string;
+    color?: string;
+    glow?: string;
+    bold?: boolean;
+    at?: number;
+  }[];
   at: number;
   out?: number;
   stagger?: number;
   size?: number;
+  inDur?: number;
   style?: React.CSSProperties;
-}> = ({ words, at, out = 1e9, stagger = 5, size = 100, style }) => {
-  const frame = useCurrentFrame();
+}> = ({ words, at, out = 1e9, stagger = 5, size = 100, inDur = 22, style }) => {
+  const frame = useT();
   return (
     <div
       style={{
@@ -147,7 +171,7 @@ export const GlowLine: React.FC<{
             color: w.color,
             textShadow: w.glow,
             fontWeight: w.bold ? 700 : undefined,
-            ...veil(frame, at + i * stagger, out, 22, 16, 10),
+            ...veil(frame, w.at ?? at + i * stagger, out, inDur, 16, 10),
           }}
         >
           {w.t}

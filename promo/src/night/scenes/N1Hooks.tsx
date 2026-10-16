@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import { FONT } from "../../theme";
-import { GLOW, GlowLine, INK, NightBg, clamp, glide, veil } from "../kit";
+import { GLOW, GlowLine, INK, NightBg, clamp, glide, useT, veil } from "../kit";
 
 // Alternative hooks (same length as N1Hook: 210 frames), all text-only on the dark stage.
 
@@ -266,35 +266,34 @@ export const N1HookD: React.FC = () => {
 };
 
 /**
- * E (chosen) — B + D.
- * "Tanggal 25 gajian!" shrinks while the day counts down in place, then the words around the number
- * swap: "Tapi tanggal 15 kok udah abis?" (the number is the match-cut slot). Then the reframe:
- * "Bukan gajinya yang kurang." → "Kamu cuma belum tahu jatahnya."
- * 300 frames.
+ * E (chosen) — B + D, cut to the voice-over (vo01–vo04).
+ * "Tanggal 25 gajian!" → on "Tapi" the words around the number swap and it shrinks while the day
+ * counts down to 15 in place → "… kok udah abis?" (the number is the match-cut slot). Then the
+ * reframe: "Bukan gajinya yang kurang." → "Kamu cuma belum tahu jatahnya." 270 frames.
  */
 export const N1HookE: React.FC = () => {
-  const frame = useCurrentFrame();
+  const frame = useT();
   const b = base(104);
-  const day = Math.round(interpolate(frame, [46, 94], [25, 15], clamp));
-  const hot = interpolate(frame, [46, 94], [0, 1], clamp);
-  const shrink = interpolate(frame, [40, 96, 102, 132], [1, 0.62, 0.62, 1], {
+  const day = Math.round(interpolate(frame, [76, 104], [25, 15], clamp));
+  const hot = interpolate(frame, [76, 104], [0, 1], clamp);
+  const shrink = interpolate(frame, [68, 104, 110, 128], [1, 0.62, 0.62, 1], {
     ...clamp,
     easing: glide,
   });
-  const x = interpolate(frame, [100, 132], [972, 902], {
+  const x = interpolate(frame, [110, 128], [972, 902], {
     ...clamp,
     easing: glide,
   });
   const side: React.CSSProperties = { position: "absolute", top: 0, ...b };
-  const lineOut = veil(frame, -30, 150, 1, 16, 0);
+  const lineOut = veil(frame, -30, 142, 1, 12, 0);
 
   return (
     <AbsoluteFill>
       <NightBg
         light={interpolate(
           frame,
-          [0, 60, 100, 160],
-          [0.55, 0.7, 0.35, 0.5],
+          [0, 60, 100, 160, 266],
+          [0.55, 0.7, 0.35, 0.45, 0.85],
           clamp,
         )}
       />
@@ -307,7 +306,7 @@ export const N1HookE: React.FC = () => {
           ...lineOut,
           opacity:
             (lineOut.opacity as number) *
-            interpolate(frame, [40, 96, 132], [1, 0.82, 1], clamp),
+            interpolate(frame, [68, 104, 128], [1, 0.82, 1], clamp),
           translate: "-50% 0px",
         }}
       >
@@ -318,18 +317,18 @@ export const N1HookE: React.FC = () => {
             fontWeight: 700,
             fontVariantNumeric: "tabular-nums",
             color: hot < 0.5 ? GREEN_TXT : RED_TXT,
-            ...veil(frame, 4, 1e9, 24, 16, 0),
+            ...veil(frame, 12, 1e9, 18, 16, 0),
           }}
         >
           {day}
         </span>
         <span
-          style={{ ...side, right: "100%", ...veil(frame, 8, 100, 22, 14, 6) }}
+          style={{ ...side, right: "100%", ...veil(frame, 3, 72, 16, 10, 6) }}
         >
           Tanggal{" "}
         </span>
         <span
-          style={{ ...side, left: "100%", ...veil(frame, 14, 100, 22, 14, 6) }}
+          style={{ ...side, left: "100%", ...veil(frame, 41, 72, 16, 10, 6) }}
         >
           {" "}
           gajian!
@@ -338,13 +337,13 @@ export const N1HookE: React.FC = () => {
           style={{
             ...side,
             right: "100%",
-            ...veil(frame, 106, 1e9, 24, 16, 6),
+            ...veil(frame, 72, 1e9, 18, 16, 6),
           }}
         >
           Tapi tanggal{" "}
         </span>
         <span
-          style={{ ...side, left: "100%", ...veil(frame, 112, 1e9, 24, 16, 6) }}
+          style={{ ...side, left: "100%", ...veil(frame, 112, 1e9, 18, 16, 6) }}
         >
           {" "}
           kok udah abis?
@@ -353,14 +352,14 @@ export const N1HookE: React.FC = () => {
 
       <GlowLine
         words={[
-          { t: "Bukan" },
-          { t: " gajinya" },
-          { t: " yang" },
-          { t: " kurang." },
+          { t: "Bukan", at: 150 },
+          { t: " gajinya", at: 161 },
+          { t: " yang", at: 177 },
+          { t: " kurang.", at: 183 },
         ]}
-        at={168}
-        out={226}
-        stagger={7}
+        at={150}
+        out={202}
+        inDur={16}
         size={100}
         style={{
           position: "absolute",
@@ -378,9 +377,10 @@ export const N1HookE: React.FC = () => {
           { t: " tahu" },
           { t: " jatahnya.", color: GREEN_TXT, bold: true },
         ]}
-        at={236}
-        out={290}
-        stagger={7}
+        at={208}
+        out={256}
+        stagger={10}
+        inDur={16}
         size={100}
         style={{
           position: "absolute",

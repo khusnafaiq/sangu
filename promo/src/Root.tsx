@@ -20,17 +20,10 @@ import { F7Features } from "./film/scenes/F7Features";
 import { F8Privacy } from "./film/scenes/F8Privacy";
 import { F9Words } from "./film/scenes/F9Words";
 import { F10End } from "./film/scenes/F10End";
-import { SanguNight } from "./night/SanguNight";
+import { NightScene, SanguNight } from "./night/SanguNight";
+import { SCENES as NIGHT_SCENES, TOTAL as NIGHT_TOTAL } from "./night/timeline";
 import { N1Hook } from "./night/scenes/N1Hook";
-import { N2Logo } from "./night/scenes/N2Logo";
-import { N1HookB, N1HookC, N1HookD, N1HookE } from "./night/scenes/N1Hooks";
-import { N3Daily } from "./night/scenes/N3Daily";
-import { N4bNota } from "./night/scenes/N4bNota";
-import { N4cNotif } from "./night/scenes/N4cNotif";
-import { N4Voice } from "./night/scenes/N4Voice";
-import { N5Neon } from "./night/scenes/N5Neon";
-import { N6Privacy } from "./night/scenes/N6Privacy";
-import { N7End } from "./night/scenes/N7End";
+import { N1HookB, N1HookC, N1HookD } from "./night/scenes/N1Hooks";
 
 const Hook = withBackdrop(HookScene);
 const Brand = withBackdrop(BrandScene);
@@ -44,21 +37,26 @@ const Cta = withBackdrop(CtaScene);
 export const RemotionRoot: React.FC = () => {
   return (
     <>
-      <Composition id="SanguNight" component={SanguNight} durationInFrames={1745} fps={30} width={1920} height={1080} />
+      <Composition id="SanguNight" component={SanguNight} durationInFrames={NIGHT_TOTAL} fps={30} width={1920} height={1080} />
       <Folder name="SanguNight-Scenes">
-        <Composition id="N1-HookE" component={N1HookE} durationInFrames={300} fps={30} width={1920} height={1080} />
+        {NIGHT_SCENES.map((s, i) => (
+          <Composition
+            key={s.id}
+            id={`N${i + 1}-${s.id}`}
+            component={NightScene}
+            defaultProps={{ id: s.id }}
+            durationInFrames={s.dur}
+            fps={30}
+            width={1920}
+            height={1080}
+          />
+        ))}
+      </Folder>
+      <Folder name="SanguNight-HookOptions">
         <Composition id="N1-Hook" component={N1Hook} durationInFrames={210} fps={30} width={1920} height={1080} />
         <Composition id="N1-HookB" component={N1HookB} durationInFrames={210} fps={30} width={1920} height={1080} />
         <Composition id="N1-HookC" component={N1HookC} durationInFrames={210} fps={30} width={1920} height={1080} />
         <Composition id="N1-HookD" component={N1HookD} durationInFrames={210} fps={30} width={1920} height={1080} />
-        <Composition id="N2-Logo" component={N2Logo} durationInFrames={90} fps={30} width={1920} height={1080} />
-        <Composition id="N3-Jatah" component={N3Daily} durationInFrames={165} fps={30} width={1920} height={1080} />
-        <Composition id="N4-Catat" component={N4Voice} durationInFrames={300} fps={30} width={1920} height={1080} />
-        <Composition id="N4b-Nota" component={N4bNota} durationInFrames={150} fps={30} width={1920} height={1080} />
-        <Composition id="N4c-Notif" component={N4cNotif} durationInFrames={195} fps={30} width={1920} height={1080} />
-        <Composition id="N5-Neon" component={N5Neon} durationInFrames={225} fps={30} width={1920} height={1080} />
-        <Composition id="N6-Privasi" component={N6Privacy} durationInFrames={190} fps={30} width={1920} height={1080} />
-        <Composition id="N7-Penutup" component={N7End} durationInFrames={130} fps={30} width={1920} height={1080} />
       </Folder>
       <Composition id="SanguAd" component={SanguAd} durationInFrames={900} fps={30} width={1080} height={1920} />
       <Folder name="SanguAd-Scenes">

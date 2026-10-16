@@ -3,94 +3,94 @@
   "lines": [
     {
       "id": "vo01",
-      "from": 8,
       "voice": "narrator",
-      "text": "Tanggal dua lima. Gajian!"
+      "text": "Tanggal dua lima. Gajian!",
+      "dur": 2.1
     },
     {
       "id": "vo02",
-      "from": 104,
       "voice": "narrator",
-      "text": "Tapi tanggal lima belas, kok udah abis?"
+      "text": "Tapi tanggal lima belas, kok udah abis?",
+      "dur": 2.35
     },
     {
       "id": "vo03",
-      "from": 178,
       "voice": "narrator",
-      "text": "Bukan gajinya yang kurang."
+      "text": "Bukan gajinya yang kurang.",
+      "dur": 1.63
     },
     {
       "id": "vo04",
-      "from": 238,
       "voice": "narrator",
-      "text": "Kamu cuma belum tahu jatahnya."
+      "text": "Kamu cuma belum tahu jatahnya.",
+      "dur": 2
     },
     {
       "id": "vo05",
-      "from": 318,
       "voice": "narrator",
-      "text": "Kenalin, Sangu."
+      "text": "Kenalin, Sangu.",
+      "dur": 1.88
     },
     {
       "id": "vo06",
-      "from": 400,
       "voice": "narrator",
-      "text": "Sangu ngitung jatah aman kamu, tiap hari."
+      "text": "Sangu ngitung jatah aman kamu, tiap hari.",
+      "dur": 2.82
     },
     {
       "id": "vo07",
-      "from": 563,
       "voice": "user",
       "text": "Ehem… beli kopi susu dua puluh delapan ribu pakai GoPay, terus… bayar parkir tiga ribu pakai cash.",
-      "style": "Say this in casual Indonesian at a quick, natural pace, like someone dictating expenses to their phone. Start with a short throat clear. After \"terus\", let out one short, annoyed sigh (nobody likes paying for parking), then finish the sentence a bit resigned. Do not add any words:"
+      "style": "Say this in casual Indonesian at a quick, natural pace, like someone dictating expenses to their phone. Start with a short throat clear. After \"terus\", let out one short, annoyed sigh (nobody likes paying for parking), then finish the sentence a bit resigned. Do not add any words:",
+      "dur": 8.12
     },
     {
       "id": "vo08",
-      "from": 801,
       "voice": "narrator",
-      "text": "Cukup ngomong."
+      "text": "Cukup ngomong.",
+      "dur": 0.96
     },
     {
       "id": "vo09",
-      "from": 865,
       "voice": "narrator",
-      "text": "Nota atau screenshot, langsung kebaca."
+      "text": "Nota atau screenshot, langsung kebaca.",
+      "dur": 2.54
     },
     {
       "id": "vo10",
-      "from": 1010,
       "voice": "narrator",
-      "text": "Bayar seperti biasa."
+      "text": "Bayar seperti biasa.",
+      "dur": 1.46
     },
     {
       "id": "vo11",
-      "from": 1130,
       "voice": "narrator",
-      "text": "Notif masuk, tinggal simpan."
+      "text": "Notif masuk, tinggal simpan.",
+      "dur": 2.08
     },
     {
       "id": "vo12",
-      "from": 1305,
       "voice": "narrator",
-      "text": "Semua rapi, otomatis."
+      "text": "Semua rapi, otomatis.",
+      "dur": 1.62
     },
     {
       "id": "vo13",
-      "from": 1433,
       "voice": "narrator",
-      "text": "Tanpa login. Tanpa akun."
+      "text": "Tanpa login. Tanpa akun.",
+      "dur": 2.21
     },
     {
       "id": "vo14",
-      "from": 1523,
       "voice": "narrator",
-      "text": "Datamu cuma di HP kamu."
+      "text": "Datamu cuma di HP kamu.",
+      "dur": 1.64
     },
     {
       "id": "vo15",
-      "from": 1623,
       "voice": "narrator",
-      "text": "Sangu. Tenang sampai gajian."
+      "text": "Sangu. Tenang sampai gajian.",
+      "dur": 2.43
     }
   ]
 }

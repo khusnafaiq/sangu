@@ -1,23 +1,18 @@
 import React from "react";
-import {
-  AbsoluteFill,
-  interpolate,
-  staticFile,
-  useCurrentFrame,
-} from "remotion";
-import { Audio } from "@remotion/media";
+import { AbsoluteFill, interpolate } from "remotion";
 import { FONT } from "../../theme";
-import { GLOW, GlowLine, INK, NightBg, clamp, veil } from "../kit";
+import { GLOW, GlowLine, INK, NightBg, clamp, useT, veil } from "../kit";
 
 const SIZE = 112;
 
-// Text only. "Tanpa" stays, the word after it changes; then one calm line that lands with a
-// heartbeat (two pulses of the line, the background light and a ring). 190 frames.
+// Text only, on the voice-over. "Tanpa" stays, the word after it changes; then one calm line that
+// lands with a heartbeat (two pulses of the line, the background light and a ring) right after
+// "… HP kamu." The thumps are sfx-pulse in timeline.ts. 135 frames.
 export const N6Privacy: React.FC = () => {
-  const frame = useCurrentFrame();
+  const frame = useT();
   const beat = Math.max(
-    interpolate(frame, [138, 141, 156], [0, 1, 0], clamp),
-    interpolate(frame, [150, 153, 170], [0, 0.7, 0], clamp),
+    interpolate(frame, [112, 115, 130], [0, 1, 0], clamp),
+    interpolate(frame, [124, 127, 144], [0, 0.7, 0], clamp),
   );
   const ring = (at: number, peak: number) => {
     const p = interpolate(frame, [at, at + 26], [0, 1], clamp);
@@ -50,20 +45,14 @@ export const N6Privacy: React.FC = () => {
   return (
     <AbsoluteFill>
       <NightBg light={0.8 + 1.6 * beat} />
-      <Audio
-        name="Heartbeat"
-        src={staticFile("audio/sfx-pulse.wav")}
-        from={136}
-        volume={0.9}
-      />
-      {ring(138, 1)}
-      {ring(150, 0.7)}
+      {ring(112, 1)}
+      {ring(124, 0.7)}
       <div style={{ position: "absolute", left: 600, top: 470, ...base }}>
         <span
           style={{
             display: "inline-block",
             fontWeight: 700,
-            ...veil(frame, 6, 92, 24, 16, 8),
+            ...veil(frame, 4, 60, 16, 12, 8),
           }}
         >
           Tanpa
@@ -73,7 +62,7 @@ export const N6Privacy: React.FC = () => {
             position: "absolute",
             left: "100%",
             top: 0,
-            ...veil(frame, 14, 52, 24, 16, 8),
+            ...veil(frame, 14, 34, 16, 10, 8),
           }}
         >
           {" "}
@@ -86,7 +75,7 @@ export const N6Privacy: React.FC = () => {
             top: 0,
             color: "#9FE9C8",
             textShadow: GLOW.green,
-            ...veil(frame, 60, 92, 24, 16, 8),
+            ...veil(frame, 42, 60, 16, 12, 8),
           }}
         >
           {" "}
@@ -102,14 +91,14 @@ export const N6Privacy: React.FC = () => {
       >
         <GlowLine
           words={[
-            { t: "Datamu" },
-            { t: " cuma" },
-            { t: " di" },
-            { t: " HP" },
-            { t: " kamu." },
+            { t: "Datamu", at: 66 },
+            { t: " cuma", at: 87 },
+            { t: " di", at: 94 },
+            { t: " HP", at: 97 },
+            { t: " kamu.", at: 104 },
           ]}
-          at={96}
-          stagger={5}
+          at={66}
+          inDur={14}
           size={96}
           style={{
             position: "absolute",

@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { AbsoluteFill, interpolate } from "remotion";
 import { C, FONT } from "../../theme";
 import { CatatScreen, TxRow } from "../../components/AppUI";
 import { Cursor } from "../../film/ui";
@@ -11,6 +11,7 @@ import {
   clamp,
   glide,
   slow,
+  useT,
 } from "../kit";
 
 /** Catat after tapping the notification: the payment is already filled in (shared with N5 for a seamless cut). */
@@ -117,21 +118,21 @@ const Banner: React.FC = () => (
   </div>
 );
 
-// Pay as usual → a notification drops in → tap → Catat opens filled in → close-up on "Simpan" and a tap.
-// Ends on the close-up that N5 starts from. 195 frames.
+// Pay as usual → a notification drops in → tap → Catat opens filled in → close-up on "Simpan" and a tap
+// on "… tinggal simpan." Ends on the close-up that N5 starts from. 195 frames, played at 150.
 export const N4cNotif: React.FC = () => {
-  const frame = useCurrentFrame();
-  const drop = interpolate(frame, [40, 64], [0, 1], { ...clamp, easing: slow });
-  const tap = interpolate(frame, [76, 88], [0, 1], clamp);
-  const morph = interpolate(frame, [88, 112], [0, 1], {
+  const frame = useT();
+  const drop = interpolate(frame, [50, 72], [0, 1], { ...clamp, easing: slow });
+  const tap = interpolate(frame, [82, 94], [0, 1], clamp);
+  const morph = interpolate(frame, [94, 116], [0, 1], {
     ...clamp,
     easing: glide,
   });
-  const settle = interpolate(frame, [104, 130], [0, 1], {
+  const settle = interpolate(frame, [108, 132], [0, 1], {
     ...clamp,
     easing: glide,
   });
-  const push = interpolate(frame, [152, 184], [0, 1], {
+  const push = interpolate(frame, [156, 188], [0, 1], {
     ...clamp,
     easing: glide,
   });
@@ -152,13 +153,13 @@ export const N4cNotif: React.FC = () => {
   return (
     <AbsoluteFill>
       <NightBg
-        x={interpolate(frame, [104, 130, 152, 184], [50, 36, 36, 50], clamp)}
-        light={interpolate(frame, [0, 40], [0.6, 1], clamp)}
+        x={interpolate(frame, [108, 132, 156, 188], [50, 36, 36, 50], clamp)}
+        light={interpolate(frame, [0, 50], [0.6, 1], clamp)}
       />
       <GlowLine
         words={[{ t: "Bayar" }, { t: " seperti" }, { t: " biasa." }]}
         at={4}
-        out={40}
+        out={48}
         stagger={6}
         size={96}
         style={{
@@ -216,32 +217,32 @@ export const N4cNotif: React.FC = () => {
 
       <GlowLine
         words={[{ t: "Notif" }, { t: " masuk," }]}
-        at={124}
-        out={150}
+        at={120}
+        out={160}
         stagger={7}
         size={100}
         style={{ position: "absolute", left: 1060, top: 410 }}
       />
       <GlowLine
         words={[{ t: "tinggal" }, { t: " simpan." }]}
-        at={134}
-        out={150}
+        at={150}
+        out={160}
         stagger={7}
         size={100}
         style={{ position: "absolute", left: 1060, top: 530, color: "#9FE9C8" }}
       />
 
       <Cursor
-        x={interpolate(frame, [168, 182], [1180, 980], {
+        x={interpolate(frame, [172, 186], [1180, 980], {
           ...clamp,
           easing: glide,
         })}
-        y={interpolate(frame, [168, 182], [820, 612], {
+        y={interpolate(frame, [172, 186], [820, 612], {
           ...clamp,
           easing: glide,
         })}
-        press={interpolate(frame, [183, 193], [0, 1], clamp)}
-        opacity={interpolate(frame, [166, 172], [0, 1], clamp)}
+        press={interpolate(frame, [187, 195], [0, 1], clamp)}
+        opacity={interpolate(frame, [170, 176], [0, 1], clamp)}
         size={46}
       />
     </AbsoluteFill>
