@@ -3,6 +3,7 @@ import { AbsoluteFill, Series, interpolate, useCurrentFrame } from "remotion";
 import { FONT } from "../theme";
 import { N1HookE } from "./scenes/N1Hooks";
 import { Voiceover } from "./Voiceover";
+import { NightSound } from "./NightSound";
 import { N2Logo } from "./scenes/N2Logo";
 import { N3Daily } from "./scenes/N3Daily";
 import { N4Voice } from "./scenes/N4Voice";
@@ -39,6 +40,7 @@ const BlurOut: React.FC<{ at: number; children: React.ReactNode }> = ({
 export const SanguNight: React.FC = () => {
   return (
     <AbsoluteFill style={{ background: "#040506", fontFamily: FONT }}>
+      <NightSound total={1745} />
       <Voiceover />
       <Series>
         <Series.Sequence name="Hook" durationInFrames={300}>

@@ -446,3 +446,119 @@ sfx("sfx-pulse.wav", 1.4, (b) => {
     }
   }
 }, 0.15);
+
+// ---------- music for SanguNight (16:9, ±58 s), 96 BPM, follows the cut ----------
+// 0–3.3 hopeful plucks ("Tanggal 25 gajian!") → 3.3–5.3 everything sags and goes quiet
+// ("Tapi tanggal 15 kok udah abis?") → dark pad for the reframe → 10 s logo opens the music →
+// soft pulse under the features → lift at 40 s (hero shot) → strip back for privacy, silence
+// just before the heartbeat (≈52 s) → final chord under the logo, tail to 58.2 s.
+{
+  const NLEN = 60;
+  const BAR = 2.5; // 4 beats at 96 BPM
+  const NB = BAR / 4;
+  const nPad = buf(NLEN);
+  const nBass = buf(NLEN);
+  const nPluck = buf(NLEN);
+  const nDrums = buf(NLEN);
+  const nFx = buf(NLEN);
+  const nKicks = [];
+
+  const CH = [
+    { root: 41, pad: [57, 60, 64, 67] }, // Fmaj9
+    { root: 36, pad: [55, 60, 64, 69] }, // C6
+    { root: 45, pad: [59, 60, 64, 67] }, // Am9
+    { root: 43, pad: [57, 62, 64, 67] }, // G6sus
+  ];
+
+  // intro: hopeful plucks over a soft Fmaj9
+  padChord(nPad, 0, 3.1, CH[0].pad, 0.8, 1300);
+  [65, 69, 72, 76, 77, 76, 72, 69, 72, 76].forEach((m, k) => pluck(nPluck, 0.25 + k * (NB / 2), m, 0.55, k % 2 ? 0.35 : -0.35));
+  bell(nPluck, 0.2, mtof(84), 0.12, 2.6);
+
+  // the sag: a detuned pad bending down and closing, then silence
+  for (const m of CH[0].pad) {
+    const lp = new Biquad("lp", 1300, 0.7);
+    let ph = rnd();
+    for (let i = 0; i < SR * 2.1; i++) {
+      const t = i / SR;
+      const bend = Math.pow(2, (-1.2 * Math.min(1, t / 1.7)) / 12);
+      ph += (mtof(m) * bend) / SR;
+      lp.set(1300 - 1050 * Math.min(1, t / 1.6));
+      const env = Math.min(1, t / 0.08) * Math.max(0, 1 - t / 2.0);
+      const v = lp.run(2 * (ph % 1) - 1) * env * 0.09;
+      add(nPad, 3.2, i, v);
+    }
+  }
+
+  // the reframe: dark Am9 swell with a low drone
+  padChord(nPad, 5.8, 4.0, CH[2].pad.map((m) => m - 12), 0.9, 650);
+  bassNote(nBass, 5.8, 4.1, 33, 0.12);
+
+  // 10 s: the logo opens it up
+  impact(nFx, 10.0, 0.45);
+  const LIFT = 40.0;
+  const STRIP = 47.5;
+  for (let bar = 0; 10 + bar * BAR < STRIP; bar++) {
+    const t0 = 10 + bar * BAR;
+    const ch = CH[bar % 4];
+    const lifted = t0 >= LIFT;
+    padChord(nPad, t0, BAR - 0.05, ch.pad, lifted ? 1.05 : 0.85, lifted ? 2600 : 1500);
+    for (let beat = 0; beat < 4; beat++) {
+      const t = t0 + beat * NB;
+      if (t0 >= 13 && (lifted || beat % 2 === 0)) {
+        kick(nDrums, t, lifted ? 0.8 : 0.55);
+        nKicks.push(t);
+      }
+      if (lifted) hat(nDrums, t + NB / 2, 0.22, false, 0.2);
+      bassNote(nBass, t, NB * 0.8, ch.root, beat === 0 ? 0.7 : 0.45);
+      for (const h of [0, 0.5]) pluck(nPluck, t + h * NB, ch.pad[(beat * 2 + (h ? 1 : 0) + bar) % 4] + 12, lifted ? 0.5 : 0.32, h ? 0.4 : -0.4);
+    }
+  }
+  riser(nFx, LIFT - 1.5, 1.5, 0.35);
+
+  // privacy: pad only, then silence just before the heartbeat
+  padChord(nPad, STRIP, 51.6 - STRIP, CH[0].pad, 0.8, 900);
+  padChord(nPad, 52.6, 53.8 - 52.6, CH[0].pad, 0.7, 900);
+
+  // the end: final Fmaj9 under the logo, bell arpeggio, long tail
+  padChord(nPad, 53.8, 3.0, [...CH[0].pad, 72], 1.1, 2200);
+  bassNote(nBass, 53.8, 3.2, 41, 0.32);
+  [72, 76, 79, 84].forEach((m, k) => bell(nPluck, 55.9 + k * 0.12, mtof(m), 0.16, 2.2, k % 2 ? 0.4 : -0.4));
+
+  // sidechain pads & bass to the kicks
+  for (const b of [nPad, nBass]) {
+    for (let n = 0; n < b[0].length; n++) {
+      const t = n / SR;
+      let g = 1;
+      for (let k = nKicks.length - 1; k >= 0; k--) {
+        if (nKicks[k] <= t) {
+          g = 1 - 0.4 * Math.exp(-(t - nKicks[k]) * 8);
+          break;
+        }
+      }
+      b[0][n] *= g;
+      b[1][n] *= g;
+    }
+  }
+
+  const night = buf(NLEN);
+  mix(night, nPad, 0.55);
+  mix(night, nBass, 0.45);
+  mix(night, nPluck, 0.4);
+  mix(night, nDrums, 0.7);
+  mix(night, nFx, 0.5);
+  const nSend = buf(NLEN);
+  mix(nSend, nPad, 0.5);
+  mix(nSend, nPluck, 0.7);
+  mix(night, reverb(nSend, 1.2, 0.45), 0.6);
+  for (const ch of night) for (let n = 0; n < ch.length; n++) ch[n] = Math.tanh(ch[n] * 1.1);
+  writeWav("music-night.wav", night, 0.9);
+}
+
+// Soft, airy swish for blur cuts in SanguNight.
+sfx("sfx-swish.wav", 0.9, (b) => whoosh(b, 0, 0.85, 0.6, 900, 5200), 0.3);
+// Notification chime: two soft bell notes.
+sfx("sfx-notif.wav", 1.4, (b) => {
+  bell(b, 0, mtof(88), 0.6, 5, -0.2);
+  bell(b, 0.11, mtof(93), 0.5, 5, 0.2);
+}, 0.3);
