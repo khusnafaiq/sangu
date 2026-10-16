@@ -6,7 +6,8 @@
 //
 // A line may carry its own "style" (delivery notes such as a sigh), used instead of the default.
 // Optional: GEMINI_TTS_MODEL, GEMINI_TTS_VOICE (narrator), GEMINI_TTS_USER_VOICE (the person talking to the app).
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+// Any of these can also live in promo/.env (gitignored); variables already set in the shell win.
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -14,9 +15,19 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "public", "audio", "vo");
 const { fps, lines } = JSON.parse(readFileSync(join(ROOT, "src", "night", "voiceover.json"), "utf8"));
 
+const ENV = join(ROOT, ".env");
+if (existsSync(ENV)) {
+  for (const line of readFileSync(ENV, "utf8").split(/\r?\n/)) {
+    const m = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(line);
+    if (m && !line.trimStart().startsWith("#") && process.env[m[1]] === undefined) {
+      process.env[m[1]] = m[2].replace(/^(["'])(.*)\1$/, "$2");
+    }
+  }
+}
+
 const KEY = process.env.GEMINI_API_KEY;
 if (!KEY) {
-  console.error("Set GEMINI_API_KEY first, e.g. GEMINI_API_KEY=xxxx npm run voiceover");
+  console.error("Set GEMINI_API_KEY first: put GEMINI_API_KEY=xxxx in promo/.env, or run GEMINI_API_KEY=xxxx npm run voiceover");
   process.exit(1);
 }
 const MODELS = process.env.GEMINI_TTS_MODEL

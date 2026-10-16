@@ -19,12 +19,21 @@ npm run dev            # buka Remotion Studio untuk preview & edit
 
 ## Voice-over (Gemini TTS)
 
-Naskah dan waktunya ada di `src/night/voiceover.json`. Buat file suaranya dengan API key Gemini kamu:
+Naskah dan waktunya ada di `src/night/voiceover.json`. Simpan API key Gemini kamu sekali di file `promo/.env`
+(sudah di-ignore Git, jadi tidak ikut ter-commit):
 
 ```console
-GEMINI_API_KEY=xxxx npm run voiceover               # semua kalimat
-GEMINI_API_KEY=xxxx npm run voiceover -- vo02 vo07  # hanya kalimat tertentu
+GEMINI_API_KEY=xxxx
 ```
+
+Lalu buat file suaranya:
+
+```console
+npm run voiceover               # semua kalimat
+npm run voiceover -- vo02 vo07  # hanya kalimat tertentu
+```
+
+Bisa juga tanpa `.env`: `GEMINI_API_KEY=xxxx npm run voiceover`.
 
 Hasilnya masuk ke `public/audio/vo/` dan otomatis diputar di detik yang tepat (kalimat yang belum dibuat dilewati).
 Script mencetak durasi tiap kalimat dan memberi tanda `!` kalau lebih panjang dari jarak ke kalimat berikutnya.
