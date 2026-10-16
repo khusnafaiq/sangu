@@ -34,14 +34,18 @@ const MODELS = process.env.GEMINI_TTS_MODEL
   ? [process.env.GEMINI_TTS_MODEL]
   : ["gemini-3.1-flash-tts-preview", "gemini-2.5-flash-preview-tts"];
 const VOICES = {
-  narrator: process.env.GEMINI_TTS_VOICE || "Sulafat",
+  narrator: process.env.GEMINI_TTS_VOICE || "Laomedeia",
   user: process.env.GEMINI_TTS_USER_VOICE || "Leda",
 };
+// Short English directives: long ones are sometimes read out loud as part of the line.
 const STYLE = {
-  narrator:
-    "Bacakan dalam bahasa Indonesia dengan suara hangat, tenang, dan percaya diri, tempo agak pelan, seperti narator iklan aplikasi premium. Jangan tambahkan kata apa pun:",
-  user: "Ucapkan dalam bahasa Indonesia dengan santai dan natural, seperti orang yang sedang bicara ke HP untuk mencatat pengeluaran. Jangan tambahkan kata apa pun:",
+  narrator: "Say in Indonesian, upbeat and energetic, at a fast, punchy pace like a modern app ad:",
+  user: "Say in casual Indonesian at a quick, natural pace, like someone dictating an expense to their phone:",
 };
+
+// Rough length of a line spoken briskly (~5 syllables a second), used to catch takes where the
+// model read the directive aloud or rambled.
+const expected = (text) => (text.match(/[aiueo]+/gi) || []).length / 5;
 
 const only = process.argv.slice(2);
 const todo = only.length ? lines.filter((l) => only.includes(l.id)) : lines;
@@ -73,7 +77,11 @@ async function tts(text, voice) {
       }
       const body = await res.text();
       lastError = `${model}: HTTP ${res.status} ${body.slice(0, 300)}`;
-      if (res.status === 404 || res.status === 400) break; // try the next model
+      if (res.status === 404) break; // try the next model
+      if (res.status === 400) {
+        if (attempt >= 1) break; // the preview model sometimes refuses a line once; then fall back
+        continue;
+      }
       if (res.status === 429 || res.status >= 500) {
         await sleep(2000 * 2 ** attempt);
         continue;
@@ -114,10 +122,18 @@ function wav(pcm, rate) {
 }
 
 for (const l of todo) {
-  const { pcm, rate, model } = await tts(`${l.style || STYLE[l.voice]} ${l.text}`, VOICES[l.voice]);
-  const clip = trim(pcm, rate);
+  // Up to 3 takes when a take is far longer than the line should be; keep the shortest.
+  let best;
+  for (let take = 0; take < 3; take++) {
+    const { pcm, rate, model } = await tts(`${l.style || STYLE[l.voice]} ${l.text}`, VOICES[l.voice]);
+    const clip = trim(pcm, rate);
+    const secs = clip.length / 2 / rate;
+    if (!best || secs < best.secs) best = { clip, rate, model, secs };
+    if (secs <= expected(l.text) * 2 + 1) break;
+    console.log(`${l.id} take ${take + 1} is ${secs.toFixed(2)}s, too long for the line; trying again`);
+  }
+  const { clip, rate, model, secs } = best;
   writeFileSync(join(OUT, `${l.id}.wav`), wav(clip, rate));
-  const secs = clip.length / 2 / rate;
   const next = lines[lines.indexOf(l) + 1];
   const room = next ? (next.from - l.from) / fps : Infinity;
   console.log(

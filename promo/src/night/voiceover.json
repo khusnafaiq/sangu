@@ -5,13 +5,13 @@
       "id": "vo01",
       "from": 8,
       "voice": "narrator",
-      "text": "Tanggal dua puluh lima. Gajian!"
+      "text": "Tanggal dua lima. Gajian!"
     },
     {
       "id": "vo02",
       "from": 104,
       "voice": "narrator",
-      "text": "Tapi, tanggal lima belas... kok udah abis?"
+      "text": "Tapi tanggal lima belas, kok udah abis?"
     },
     {
       "id": "vo03",
@@ -42,7 +42,7 @@
       "from": 563,
       "voice": "user",
       "text": "Ehem… beli kopi susu dua puluh delapan ribu pakai GoPay, terus… bayar parkir tiga ribu pakai cash.",
-      "style": "Ucapkan dalam bahasa Indonesia, santai dan natural seperti orang yang sedang bicara ke HP untuk mencatat pengeluaran. Awali dengan berdeham pelan (\"ehem\"). Setelah kata \"terus\", berhenti sebentar dan hela napas panjang dengan sedikit kesal (semua orang malas bayar parkir), lalu lanjutkan dengan nada pasrah. Jangan tambahkan kata apa pun:"
+      "style": "Say this in casual Indonesian at a quick, natural pace, like someone dictating expenses to their phone. Start with a short throat clear. After \"terus\", let out one short, annoyed sigh (nobody likes paying for parking), then finish the sentence a bit resigned. Do not add any words:"
     },
     {
       "id": "vo08",
@@ -54,7 +54,7 @@
       "id": "vo09",
       "from": 865,
       "voice": "narrator",
-      "text": "Foto nota, atau screenshot bukti bayar. Langsung kebaca."
+      "text": "Nota atau screenshot, langsung kebaca."
     },
     {
       "id": "vo10",

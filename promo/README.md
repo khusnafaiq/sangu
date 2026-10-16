@@ -37,7 +37,7 @@ Bisa juga tanpa `.env`: `GEMINI_API_KEY=xxxx npm run voiceover`.
 
 Hasilnya masuk ke `public/audio/vo/` dan otomatis diputar di detik yang tepat (kalimat yang belum dibuat dilewati).
 Script mencetak durasi tiap kalimat dan memberi tanda `!` kalau lebih panjang dari jarak ke kalimat berikutnya.
-Ganti suara dengan `GEMINI_TTS_VOICE` (narator, default `Sulafat`) dan `GEMINI_TTS_USER_VOICE` (suara pengguna, default `Leda`);
+Ganti suara dengan `GEMINI_TTS_VOICE` (narator, default `Laomedeia`) dan `GEMINI_TTS_USER_VOICE` (suara pengguna, default `Leda`);
 ganti model dengan `GEMINI_TTS_MODEL`. Jangan commit API key.
 
 ## Render
