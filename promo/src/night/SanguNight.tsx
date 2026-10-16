@@ -1,6 +1,8 @@
 import React from "react";
 import { AbsoluteFill, Series, interpolate, useCurrentFrame } from "remotion";
+import { FONT } from "../theme";
 import { N1HookE } from "./scenes/N1Hooks";
+import { Voiceover } from "./Voiceover";
 import { N2Logo } from "./scenes/N2Logo";
 import { N3Daily } from "./scenes/N3Daily";
 import { N4Voice } from "./scenes/N4Voice";
@@ -33,10 +35,11 @@ const BlurOut: React.FC<{ at: number; children: React.ReactNode }> = ({
 };
 
 // Dark, minimal cut: glowing type, slow blur reveals, match cuts between scenes.
-// 9 scenes back to back = 1480 frames ≈ 49 s.
+// 9 scenes back to back = 1510 frames ≈ 50 s.
 export const SanguNight: React.FC = () => {
   return (
-    <AbsoluteFill style={{ background: "#040506" }}>
+    <AbsoluteFill style={{ background: "#040506", fontFamily: FONT }}>
+      <Voiceover />
       <Series>
         <Series.Sequence name="Hook" durationInFrames={300}>
           <N1HookE />
@@ -61,7 +64,7 @@ export const SanguNight: React.FC = () => {
             <N4bNota />
           </BlurOut>
         </Series.Sequence>
-        <Series.Sequence name="Notifikasi" durationInFrames={165}>
+        <Series.Sequence name="Notifikasi" durationInFrames={195}>
           <N4cNotif />
         </Series.Sequence>
         <Series.Sequence name="Neon" durationInFrames={140}>

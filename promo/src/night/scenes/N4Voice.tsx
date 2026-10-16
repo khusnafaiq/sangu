@@ -72,9 +72,9 @@ export const VoiceResult: React.FC<{ style?: React.CSSProperties }> = ({
 export const N4Voice: React.FC = () => {
   const frame = useCurrentFrame();
   const z = interpolate(frame, [64, 122], [0, 1], { ...clamp, easing: glide });
-  const s = interpolate(z, [0, 1], [BIG / APP_SIZE, 1]);
-  const px = interpolate(z, [0, 1], [960, 700]);
-  const py = interpolate(z, [0, 1], [530, 326]);
+  const s = interpolate(z, [0, 1], [BIG / APP_SIZE, 1.5]);
+  const px = interpolate(z, [0, 1], [960, 690]);
+  const py = interpolate(z, [0, 1], [530, 560]);
   const saved = frame >= 128;
   const row = interpolate(frame, [128, 148], [0, 1], {
     ...clamp,
@@ -193,7 +193,7 @@ export const N4Voice: React.FC = () => {
         at={132}
         stagger={8}
         size={100}
-        style={{ position: "absolute", left: 1060, top: 470 }}
+        style={{ position: "absolute", left: 1050, top: 470 }}
       />
     </AbsoluteFill>
   );

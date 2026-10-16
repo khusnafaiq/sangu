@@ -1,38 +1,50 @@
 # Iklan motion Sangu
 
-Video iklan vertikal 9:16 (1080×1920, 30 fps, 30 detik) untuk Reels / TikTok / Shorts / Story,
-dibuat dengan [Remotion](https://www.remotion.dev). UI di video dibangun ulang dari tampilan asli
-Sangu (warna, font Plus Jakarta Sans, logo dari `brand/`), jadi tetap tajam di resolusi penuh.
+Video iklan Sangu, dibuat dengan [Remotion](https://www.remotion.dev).
+UI di video dibangun ulang dari tampilan asli Sangu (warna, font Plus Jakarta Sans, logo di `brand/`).
 
-Hasil render: [`export/sangu-ad-9x16.mp4`](export/sangu-ad-9x16.mp4)
-
-## Alur iklan
-
-| Detik | Scene | Isi |
+| Komposisi | Format | Isi |
 | --- | --- | --- |
-| 0–4 | Hook | "Baru tanggal 15," saldo Rp 4,5 jt meleleh jadi Rp 87.000, gajian masih 10 hari lagi |
-| 3,5–6,5 | Brand | Logo Sangu + "Sangu hari ini, tenang sampai gajian." (musik drop di sini) |
-| 6–11 | Jatah harian | "Aman dipakai hari ini" Rp 316.350 = sisa budget ÷ hari ke gajian |
-| 10,5–15,5 | Catat suara | "Kopi susu 28rb pakai GoPay **dan** parkir 5rb" jadi 2 transaksi |
-| 15–19 | Foto nota | Nota Indomaret dipindai, total terbaca; 4 cara catat |
-| 18,5–23,5 | Rekapan | Rekapan per kategori + streak disiplin 28 hari |
-| 23–26,5 | Privasi | Tanpa login, tanpa akun, data di HP sendiri |
-| 26–30 | CTA | Mulai catat sekarang · khusnafaiq.github.io/sangu |
+| `SanguNight` | 16:9, 1920×1080, ±50 dtk | Versi utama: gelap, minimal, match cut, glow latar, voice-over |
+| `SanguAd` | 9:16, 1080×1920, 30 dtk | Versi pertama untuk Reels/TikTok ([`export/sangu-ad-9x16.mp4`](export/sangu-ad-9x16.mp4)) |
+| `SanguFilm` | 16:9 | Draf gaya terang (storyboard v2), tidak dipakai |
 
-## Perintah
+## Mulai
 
 ```console
+cd promo
 npm i
-npm run dev      # buka Remotion Studio untuk preview & edit
-npm run render   # render ke out/sangu-ad-9x16.mp4
+npm run dev            # buka Remotion Studio untuk preview & edit
 ```
 
-Musik dan efek suara disintesis dari nol oleh `scripts/make-audio.mjs` (tanpa sampel, bebas lisensi).
-`npm run dev` dan `npm run render` menjalankannya otomatis; hasilnya di `public/audio/` (tidak di-commit).
+## Voice-over (Gemini TTS)
+
+Naskah dan waktunya ada di `src/night/voiceover.json`. Buat file suaranya dengan API key Gemini kamu:
+
+```console
+GEMINI_API_KEY=xxxx npm run voiceover               # semua kalimat
+GEMINI_API_KEY=xxxx npm run voiceover -- vo02 vo07  # hanya kalimat tertentu
+```
+
+Hasilnya masuk ke `public/audio/vo/` dan otomatis diputar di detik yang tepat (kalimat yang belum dibuat dilewati).
+Script mencetak durasi tiap kalimat dan memberi tanda `!` kalau lebih panjang dari jarak ke kalimat berikutnya.
+Ganti suara dengan `GEMINI_TTS_VOICE` (narator, default `Sulafat`) dan `GEMINI_TTS_USER_VOICE` (suara pengguna, default `Leda`);
+ganti model dengan `GEMINI_TTS_MODEL`. Jangan commit API key.
+
+## Render
+
+```console
+npm run render:film    # SanguNight → out/sangu-film-16x9.mp4
+npm run render         # SanguAd   → out/sangu-ad-9x16.mp4
+```
+
+Musik dan efek suara disintesis dari nol oleh `scripts/make-audio.mjs` (tanpa sampel, bebas lisensi), dijalankan otomatis
+oleh `dev` dan `render`.
 
 ## Struktur
 
-- `src/SanguAd.tsx` — urutan scene, transisi, musik
-- `src/scenes/` — satu file per scene (masing-masing juga bisa dibuka sendiri di Studio, folder *SanguAd-Scenes*)
-- `src/components/` — mockup iPhone, layar app (Ringkasan & Catat), ikon, background
+- `src/night/` — versi utama: `SanguNight.tsx` (urutan scene), `scenes/`, `kit.tsx` (latar glow, teks, lockup, HP), `Voiceover.tsx`
+- `src/components/` — mockup iPhone, layar app (Ringkasan, Catat), ikon
+- `src/film/` — draf gaya terang dan layar tambahan (Wallet, Rekapan, Selamat datang)
+- `src/scenes/`, `src/SanguAd.tsx` — versi 9:16 pertama
 - `src/theme.ts` — token warna & font yang sama dengan `index.html`

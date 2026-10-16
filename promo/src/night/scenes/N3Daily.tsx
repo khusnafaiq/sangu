@@ -21,13 +21,13 @@ const BIG = 100;
 export const N3Daily: React.FC = () => {
   const frame = useCurrentFrame();
   const z = interpolate(frame, [52, 108], [0, 1], { ...clamp, easing: glide });
-  const s = interpolate(z, [0, 1], [BIG / APP_SIZE, 1]);
-  const px = interpolate(z, [0, 1], [960, 1177]);
-  const py = interpolate(z, [0, 1], [526, 286]);
+  const s = interpolate(z, [0, 1], [BIG / APP_SIZE, 1.55]);
+  const px = interpolate(z, [0, 1], [960, 1150]);
+  const py = interpolate(z, [0, 1], [526, 610]);
 
   return (
     <AbsoluteFill>
-      <NightBg x={interpolate(z, [0, 1], [50, 65])} />
+      <NightBg x={interpolate(z, [0, 1], [50, 66])} />
       {/* the phone, pinned on the number while it pulls back */}
       <div
         style={{

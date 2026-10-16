@@ -30,18 +30,17 @@ export const GLOW = {
 } as const;
 
 /**
- * Premium dark stage: soft aurora glow (emerald, teal, a touch of indigo) around a focus point,
- * a faint grid that fades out from it, and a vignette. `x`/`y` (in %) put the light behind the subject.
+ * Premium dark stage: a soft aurora glow (emerald, teal, a touch of indigo) rising from the bottom
+ * edge of the frame, a faint grid that fades out above it, and a vignette.
+ * `x` (in %) slides the glow under the subject.
  */
-export const NightBg: React.FC<{ light?: number; x?: number; y?: number }> = ({
+export const NightBg: React.FC<{ light?: number; x?: number }> = ({
   light = 1,
   x = 50,
-  y = 46,
 }) => {
   const frame = useCurrentFrame();
   const t = frame / 30;
   const cx = (x / 100) * 1920;
-  const cy = (y / 100) * 1080;
   const blob = (
     w: number,
     h: number,
@@ -50,15 +49,16 @@ export const NightBg: React.FC<{ light?: number; x?: number; y?: number }> = ({
     color: string,
     o: number,
     phase: number,
+    blur = 130,
   ): React.CSSProperties => ({
     position: "absolute",
     width: w,
     height: h,
-    left: cx - w / 2 + dx + Math.sin(t * 0.3 + phase) * 50,
-    top: cy - h / 2 + dy + Math.cos(t * 0.24 + phase) * 34,
+    left: cx - w / 2 + dx + Math.sin(t * 0.3 + phase) * 60,
+    top: 1080 - h / 2 + dy + Math.cos(t * 0.25 + phase) * 20,
     borderRadius: "50%",
     background: color,
-    filter: "blur(120px)",
+    filter: `blur(${blur}px)`,
     opacity: o * light,
   });
   return (
@@ -66,25 +66,21 @@ export const NightBg: React.FC<{ light?: number; x?: number; y?: number }> = ({
       <AbsoluteFill
         style={{
           backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+            "linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px)",
           backgroundSize: "96px 96px",
-          backgroundPosition: `${cx % 96}px ${cy % 96}px`,
-          maskImage: `radial-gradient(ellipse 42% 48% at ${x}% ${y}%, rgba(0,0,0,${0.9 * light}), transparent 78%)`,
-          WebkitMaskImage: `radial-gradient(ellipse 42% 48% at ${x}% ${y}%, rgba(0,0,0,${0.9 * light}), transparent 78%)`,
+          backgroundPosition: `${cx % 96}px 0px`,
+          maskImage: `radial-gradient(ellipse 48% 62% at ${x}% 100%, rgba(0,0,0,${0.9 * light}), transparent 80%)`,
+          WebkitMaskImage: `radial-gradient(ellipse 48% 62% at ${x}% 100%, rgba(0,0,0,${0.9 * light}), transparent 80%)`,
         }}
       />
-      <div style={blob(980, 560, -60, -40, "#10B981", 0.42, 0)} />
-      <div style={blob(760, 460, 260, 120, "#0EA5E9", 0.26, 2)} />
-      <div style={blob(620, 400, -320, 160, "#6366F1", 0.16, 4)} />
-      <AbsoluteFill
-        style={{
-          background: `radial-gradient(ellipse 34% 55% at ${x}% -12%, rgba(167,243,208,${0.16 * light}), rgba(167,243,208,0) 70%)`,
-        }}
-      />
+      <div style={blob(1600, 640, 0, 150, "#10B981", 0.55, 0)} />
+      <div style={blob(1000, 460, 380, 140, "#0EA5E9", 0.34, 2)} />
+      <div style={blob(900, 420, -420, 150, "#6366F1", 0.22, 4)} />
+      <div style={blob(1000, 200, 0, 70, "#6EE7B7", 0.32, 1, 80)} />
       <AbsoluteFill
         style={{
           background:
-            "radial-gradient(ellipse 75% 75% at 50% 50%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.65) 100%)",
+            "linear-gradient(180deg, rgba(5,6,7,0.65) 0%, rgba(5,6,7,0) 45%), radial-gradient(ellipse 80% 80% at 50% 60%, rgba(0,0,0,0) 50%, rgba(0,0,0,0.5) 100%)",
         }}
       />
     </AbsoluteFill>

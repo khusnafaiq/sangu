@@ -44,7 +44,7 @@ const Cta = withBackdrop(CtaScene);
 export const RemotionRoot: React.FC = () => {
   return (
     <>
-      <Composition id="SanguNight" component={SanguNight} durationInFrames={1480} fps={30} width={1920} height={1080} />
+      <Composition id="SanguNight" component={SanguNight} durationInFrames={1510} fps={30} width={1920} height={1080} />
       <Folder name="SanguNight-Scenes">
         <Composition id="N1-HookE" component={N1HookE} durationInFrames={300} fps={30} width={1920} height={1080} />
         <Composition id="N1-Hook" component={N1Hook} durationInFrames={210} fps={30} width={1920} height={1080} />
@@ -55,7 +55,7 @@ export const RemotionRoot: React.FC = () => {
         <Composition id="N3-Jatah" component={N3Daily} durationInFrames={165} fps={30} width={1920} height={1080} />
         <Composition id="N4-Catat" component={N4Voice} durationInFrames={180} fps={30} width={1920} height={1080} />
         <Composition id="N4b-Nota" component={N4bNota} durationInFrames={150} fps={30} width={1920} height={1080} />
-        <Composition id="N4c-Notif" component={N4cNotif} durationInFrames={165} fps={30} width={1920} height={1080} />
+        <Composition id="N4c-Notif" component={N4cNotif} durationInFrames={195} fps={30} width={1920} height={1080} />
         <Composition id="N5-Neon" component={N5Neon} durationInFrames={140} fps={30} width={1920} height={1080} />
         <Composition id="N6-Privasi" component={N6Privacy} durationInFrames={160} fps={30} width={1920} height={1080} />
         <Composition id="N7-Penutup" component={N7End} durationInFrames={130} fps={30} width={1920} height={1080} />

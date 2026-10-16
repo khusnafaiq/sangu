@@ -1,6 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
-import { C, FONT, MONO } from "../../theme";
+import { C, FONT } from "../../theme";
 import { TxRow } from "../../components/AppUI";
 import { Icon } from "../../components/Icon";
 import { GLOW, GlowLine, NightBg, clamp, glide, slow } from "../kit";
@@ -20,7 +20,8 @@ const Receipt: React.FC<{ found: number }> = ({ found }) => (
       padding: "34px 36px 56px",
       background: "linear-gradient(170deg, #F1EFE8 0%, #D9D6CC 100%)",
       color: "#26262B",
-      fontFamily: MONO,
+      fontFamily: FONT,
+      fontVariantNumeric: "tabular-nums",
       fontSize: 22,
       lineHeight: 1.55,
       clipPath:

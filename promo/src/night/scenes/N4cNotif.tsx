@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import { C, FONT } from "../../theme";
 import { CatatScreen, TxRow } from "../../components/AppUI";
+import { Cursor } from "../../film/ui";
 import {
   AppIcon,
   DarkScreen,
@@ -58,6 +59,23 @@ export const NotifResult: React.FC<{ style?: React.CSSProperties }> = ({
   </div>
 );
 
+export const NotifCatat: React.FC<{ frame: number }> = ({ frame }) => (
+  <CatatScreen
+    transcript={<span style={{ color: C.muted }}>Kopi 28rb pakai BCA</span>}
+    listening={0}
+    frame={frame}
+    composer={<NotifResult />}
+  />
+);
+
+/** The "Simpan" button inside DarkScreen (local px) and the phone's centre. */
+export const SAVE_PIN = { x: 202.5, y: 426 };
+export const PHONE_MID = { x: 208.5, y: 438 };
+
+/** Outer transform that puts DarkScreen point SAVE_PIN at (px, py) at scale s. */
+export const pinned = (s: number, px: number, py: number) =>
+  `translate(${px - SAVE_PIN.x * s}px, ${py - SAVE_PIN.y * s}px) scale(${s})`;
+
 const Banner: React.FC = () => (
   <div
     style={{
@@ -67,7 +85,7 @@ const Banner: React.FC = () => (
       background: "rgba(40,44,48,0.72)",
       border: "1.5px solid rgba(255,255,255,0.12)",
       backdropFilter: "blur(30px)",
-      boxShadow: "0 30px 90px rgba(0,0,0,0.6), 0 0 80px rgba(52,211,153,0.12)",
+      boxShadow: "0 30px 90px rgba(0,0,0,0.6)",
       display: "flex",
       gap: 24,
       alignItems: "center",
@@ -75,7 +93,7 @@ const Banner: React.FC = () => (
       color: C.text,
     }}
   >
-    <AppIcon size={86} style={{ boxShadow: "none" }} />
+    <AppIcon size={86} />
     <div style={{ flex: 1 }}>
       <div
         style={{
@@ -99,7 +117,8 @@ const Banner: React.FC = () => (
   </div>
 );
 
-// 0:26 — pay as usual, a notification arrives, tap: Catat opens with the payment filled in.
+// Pay as usual → a notification drops in → tap → Catat opens filled in → close-up on "Simpan" and a tap.
+// Ends on the close-up that N5 starts from. 195 frames.
 export const N4cNotif: React.FC = () => {
   const frame = useCurrentFrame();
   const drop = interpolate(frame, [40, 64], [0, 1], { ...clamp, easing: slow });
@@ -108,15 +127,32 @@ export const N4cNotif: React.FC = () => {
     ...clamp,
     easing: glide,
   });
-  const settle = interpolate(frame, [104, 140], [0, 1], {
+  const settle = interpolate(frame, [104, 130], [0, 1], {
+    ...clamp,
+    easing: glide,
+  });
+  const push = interpolate(frame, [152, 184], [0, 1], {
     ...clamp,
     easing: glide,
   });
 
+  // phone centre while it is whole on screen, then the push-in onto the button
+  const midX = interpolate(settle, [0, 1], [960, 700]);
+  const s =
+    morph < 1
+      ? interpolate(morph, [0, 1], [1.25, 1])
+      : interpolate(push, [0, 1], [1, 3]);
+  const px = interpolate(
+    push,
+    [0, 1],
+    [midX - (PHONE_MID.x - SAVE_PIN.x), 960],
+  );
+  const py = interpolate(push, [0, 1], [540 - (PHONE_MID.y - SAVE_PIN.y), 600]);
+
   return (
     <AbsoluteFill>
       <NightBg
-        x={interpolate(settle, [0, 1], [50, 36])}
+        x={interpolate(frame, [104, 130, 152, 184], [50, 36, 36, 50], clamp)}
         light={interpolate(frame, [0, 40], [0.6, 1], clamp)}
       />
       <GlowLine
@@ -165,28 +201,23 @@ export const N4cNotif: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          left: interpolate(settle, [0, 1], [960, 700]),
-          top: 546,
-          transform: `translate(-50%, -50%) scale(${interpolate(morph, [0, 1], [1.25, 1])})`,
+          left: 0,
+          top: 0,
+          transformOrigin: "0 0",
+          transform: pinned(s, px, py),
           opacity: morph,
           filter: morph < 1 ? `blur(${(1 - morph) * 16}px)` : undefined,
         }}
       >
-        <DarkScreen glow={morph}>
-          <CatatScreen
-            transcript={
-              <span style={{ color: C.muted }}>Kopi 28rb pakai BCA</span>
-            }
-            listening={0}
-            frame={frame}
-            composer={<NotifResult />}
-          />
+        <DarkScreen glow={morph * (1 - push)}>
+          <NotifCatat frame={frame} />
         </DarkScreen>
       </div>
 
       <GlowLine
         words={[{ t: "Notif" }, { t: " masuk," }]}
         at={124}
+        out={150}
         stagger={7}
         size={100}
         style={{ position: "absolute", left: 1060, top: 410 }}
@@ -194,9 +225,24 @@ export const N4cNotif: React.FC = () => {
       <GlowLine
         words={[{ t: "tinggal" }, { t: " simpan." }]}
         at={134}
+        out={150}
         stagger={7}
         size={100}
         style={{ position: "absolute", left: 1060, top: 530, color: "#9FE9C8" }}
+      />
+
+      <Cursor
+        x={interpolate(frame, [168, 182], [1180, 980], {
+          ...clamp,
+          easing: glide,
+        })}
+        y={interpolate(frame, [168, 182], [820, 612], {
+          ...clamp,
+          easing: glide,
+        })}
+        press={interpolate(frame, [183, 193], [0, 1], clamp)}
+        opacity={interpolate(frame, [166, 172], [0, 1], clamp)}
+        size={46}
       />
     </AbsoluteFill>
   );

@@ -1,0 +1,95 @@
+{
+  "fps": 30,
+  "lines": [
+    {
+      "id": "vo01",
+      "from": 8,
+      "voice": "narrator",
+      "text": "Tanggal dua puluh lima. Gajian!"
+    },
+    {
+      "id": "vo02",
+      "from": 104,
+      "voice": "narrator",
+      "text": "Tapi, tanggal lima belas... kok udah abis?"
+    },
+    {
+      "id": "vo03",
+      "from": 178,
+      "voice": "narrator",
+      "text": "Bukan gajinya yang kurang."
+    },
+    {
+      "id": "vo04",
+      "from": 238,
+      "voice": "narrator",
+      "text": "Kamu cuma belum tahu jatahnya."
+    },
+    {
+      "id": "vo05",
+      "from": 318,
+      "voice": "narrator",
+      "text": "Kenalin, Sangu."
+    },
+    {
+      "id": "vo06",
+      "from": 400,
+      "voice": "narrator",
+      "text": "Sangu ngitung jatah aman kamu, tiap hari."
+    },
+    {
+      "id": "vo07",
+      "from": 569,
+      "voice": "user",
+      "text": "Kopi susu dua puluh delapan ribu, pakai GoPay."
+    },
+    {
+      "id": "vo08",
+      "from": 688,
+      "voice": "narrator",
+      "text": "Cukup ngomong."
+    },
+    {
+      "id": "vo09",
+      "from": 745,
+      "voice": "narrator",
+      "text": "Foto nota, atau screenshot bukti bayar. Langsung kebaca."
+    },
+    {
+      "id": "vo10",
+      "from": 890,
+      "voice": "narrator",
+      "text": "Bayar seperti biasa."
+    },
+    {
+      "id": "vo11",
+      "from": 1010,
+      "voice": "narrator",
+      "text": "Notif masuk, tinggal simpan."
+    },
+    {
+      "id": "vo12",
+      "from": 1172,
+      "voice": "narrator",
+      "text": "Semua rapi, otomatis."
+    },
+    {
+      "id": "vo13",
+      "from": 1228,
+      "voice": "narrator",
+      "text": "Tanpa login. Tanpa akun."
+    },
+    {
+      "id": "vo14",
+      "from": 1318,
+      "voice": "narrator",
+      "text": "Datamu cuma di HP kamu."
+    },
+    {
+      "id": "vo15",
+      "from": 1388,
+      "voice": "narrator",
+      "text": "Sangu. Tenang sampai gajian."
+    }
+  ]
+}

@@ -28,6 +28,8 @@
     "render": "node scripts/make-audio.mjs && remotion render SanguAd out/sangu-ad-9x16.mp4 --codec=h264 --crf=18",
     "build": "remotion bundle",
     "upgrade": "remotion upgrade",
-    "lint": "eslint src && tsc"
+    "lint": "eslint src && tsc",
+    "voiceover": "node scripts/make-voiceover.mjs",
+    "render:film": "node scripts/make-audio.mjs && remotion render SanguNight out/sangu-film-16x9.mp4 --codec=h264 --crf=18"
   }
 }
