@@ -75,63 +75,86 @@ const Receipt: React.FC<{ found: number }> = ({ found }) => (
   </div>
 );
 
-// A generic payment-proof screenshot (no real e-wallet branding).
+// A generic payment-proof screenshot, light like most e-wallet receipts so it never reads as Sangu's own UI.
 const Proof: React.FC<{ found: number }> = ({ found }) => (
   <div
     style={{
       width: 360,
       height: 640,
       borderRadius: 44,
-      background: "linear-gradient(180deg, #16191C 0%, #0E1012 100%)",
-      border: "2px solid rgba(255,255,255,0.08)",
+      background: "#FFFFFF",
+      boxShadow: "0 30px 80px rgba(0,0,0,0.5)",
       fontFamily: FONT,
-      color: C.text,
+      color: "#15181B",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      padding: "70px 30px 0",
-      gap: 14,
+      padding: "26px 30px 0",
+      gap: 12,
     }}
   >
+    <div
+      style={{
+        width: "100%",
+        display: "flex",
+        justifyContent: "space-between",
+        fontSize: 15,
+        fontWeight: 600,
+        color: "#15181B",
+      }}
+    >
+      <span>08.12</span>
+      <span style={{ letterSpacing: 2 }}>●●●</span>
+    </div>
+    <div
+      style={{
+        width: "100%",
+        fontSize: 18,
+        fontWeight: 700,
+        textAlign: "center",
+        marginTop: 6,
+        color: "#3B4048",
+      }}
+    >
+      Bukti Pembayaran
+    </div>
     <div
       style={{
         width: 84,
         height: 84,
         borderRadius: 42,
-        background: "rgba(52,211,153,0.15)",
+        background: "#12B76A",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        marginTop: 22,
       }}
     >
-      <Icon name="check" size={44} color={C.green} strokeWidth={2.6} />
+      <Icon name="check" size={46} color="#FFFFFF" strokeWidth={3} />
     </div>
-    <div style={{ fontSize: 24, color: C.text2, marginTop: 6 }}>
+    <div style={{ fontSize: 22, color: "#5B6270", marginTop: 6 }}>
       Pembayaran berhasil
     </div>
     <div
       style={{
-        fontSize: 52,
+        fontSize: 50,
         fontWeight: 800,
         letterSpacing: -1.5,
         padding: "2px 14px",
         borderRadius: 14,
-        textShadow:
-          found > 0
-            ? `0 0 ${24 * found}px rgba(52,211,153,${0.8 * found})`
-            : undefined,
-        boxShadow: `0 0 0 3px rgba(52,211,153,${found})`,
+        background: `rgba(52,211,153,${0.22 * found})`,
+        boxShadow: `0 0 0 3px rgba(16,185,129,${found})`,
       }}
     >
       Rp 45.000
     </div>
-    <div style={{ fontSize: 24, fontWeight: 600 }}>Kopi Senja</div>
+    <div style={{ fontSize: 23, fontWeight: 600 }}>Kopi Senja</div>
     <div
       style={{
         width: "100%",
         height: 1,
-        background: "rgba(255,255,255,0.08)",
-        margin: "18px 0 6px",
+        background: "#E7E9EE",
+        margin: "16px 0 4px",
       }}
     />
     {[
@@ -145,12 +168,12 @@ const Proof: React.FC<{ found: number }> = ({ found }) => (
           width: "100%",
           display: "flex",
           justifyContent: "space-between",
-          fontSize: 19,
-          color: C.text2,
+          fontSize: 18,
+          color: "#7A808C",
         }}
       >
         <span>{k}</span>
-        <span style={{ color: C.text }}>{v}</span>
+        <span style={{ color: "#15181B", fontWeight: 600 }}>{v}</span>
       </div>
     ))}
   </div>

@@ -5,7 +5,7 @@ UI di video dibangun ulang dari tampilan asli Sangu (warna, font Plus Jakarta Sa
 
 | Komposisi | Format | Isi |
 | --- | --- | --- |
-| `SanguNight` | 16:9, 1920×1080, ±50 dtk | Versi utama: gelap, minimal, match cut, glow latar, voice-over |
+| `SanguNight` | 16:9, 1920×1080, ±58 dtk | Versi utama: gelap, minimal, match cut, glow latar, voice-over |
 | `SanguAd` | 9:16, 1080×1920, 30 dtk | Versi pertama untuk Reels/TikTok ([`export/sangu-ad-9x16.mp4`](export/sangu-ad-9x16.mp4)) |
 | `SanguFilm` | 16:9 | Draf gaya terang (storyboard v2), tidak dipakai |
 

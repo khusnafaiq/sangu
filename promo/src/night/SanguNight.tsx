@@ -35,7 +35,7 @@ const BlurOut: React.FC<{ at: number; children: React.ReactNode }> = ({
 };
 
 // Dark, minimal cut: glowing type, slow blur reveals, match cuts between scenes.
-// 9 scenes back to back = 1510 frames ≈ 50 s.
+// 9 scenes back to back = 1745 frames ≈ 58 s.
 export const SanguNight: React.FC = () => {
   return (
     <AbsoluteFill style={{ background: "#040506", fontFamily: FONT }}>
@@ -54,8 +54,8 @@ export const SanguNight: React.FC = () => {
             <N3Daily />
           </BlurOut>
         </Series.Sequence>
-        <Series.Sequence name="Catat suara" durationInFrames={180}>
-          <BlurOut at={166}>
+        <Series.Sequence name="Catat suara" durationInFrames={300}>
+          <BlurOut at={286}>
             <N4Voice />
           </BlurOut>
         </Series.Sequence>
@@ -67,11 +67,11 @@ export const SanguNight: React.FC = () => {
         <Series.Sequence name="Notifikasi" durationInFrames={195}>
           <N4cNotif />
         </Series.Sequence>
-        <Series.Sequence name="Neon" durationInFrames={140}>
+        <Series.Sequence name="Neon" durationInFrames={225}>
           <N5Neon />
         </Series.Sequence>
-        <Series.Sequence name="Privasi" durationInFrames={160}>
-          <BlurOut at={146}>
+        <Series.Sequence name="Privasi" durationInFrames={190}>
+          <BlurOut at={176}>
             <N6Privacy />
           </BlurOut>
         </Series.Sequence>

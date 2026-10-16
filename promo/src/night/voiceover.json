@@ -39,55 +39,56 @@
     },
     {
       "id": "vo07",
-      "from": 569,
+      "from": 563,
       "voice": "user",
-      "text": "Kopi susu dua puluh delapan ribu, pakai GoPay."
+      "text": "Ehem… beli kopi susu dua puluh delapan ribu pakai GoPay, terus… bayar parkir tiga ribu pakai cash.",
+      "style": "Ucapkan dalam bahasa Indonesia, santai dan natural seperti orang yang sedang bicara ke HP untuk mencatat pengeluaran. Awali dengan berdeham pelan (\"ehem\"). Setelah kata \"terus\", berhenti sebentar dan hela napas panjang dengan sedikit kesal (semua orang malas bayar parkir), lalu lanjutkan dengan nada pasrah. Jangan tambahkan kata apa pun:"
     },
     {
       "id": "vo08",
-      "from": 688,
+      "from": 801,
       "voice": "narrator",
       "text": "Cukup ngomong."
     },
     {
       "id": "vo09",
-      "from": 745,
+      "from": 865,
       "voice": "narrator",
       "text": "Foto nota, atau screenshot bukti bayar. Langsung kebaca."
     },
     {
       "id": "vo10",
-      "from": 890,
+      "from": 1010,
       "voice": "narrator",
       "text": "Bayar seperti biasa."
     },
     {
       "id": "vo11",
-      "from": 1010,
+      "from": 1130,
       "voice": "narrator",
       "text": "Notif masuk, tinggal simpan."
     },
     {
       "id": "vo12",
-      "from": 1172,
+      "from": 1305,
       "voice": "narrator",
       "text": "Semua rapi, otomatis."
     },
     {
       "id": "vo13",
-      "from": 1228,
+      "from": 1433,
       "voice": "narrator",
       "text": "Tanpa login. Tanpa akun."
     },
     {
       "id": "vo14",
-      "from": 1318,
+      "from": 1523,
       "voice": "narrator",
       "text": "Datamu cuma di HP kamu."
     },
     {
       "id": "vo15",
-      "from": 1388,
+      "from": 1623,
       "voice": "narrator",
       "text": "Sangu. Tenang sampai gajian."
     }

@@ -432,3 +432,17 @@ sfx("sfx-lock.wav", 0.6, (b) => {
     add(b, 0.07, i, Math.sin(ph) * Math.exp(-t * 14) * 0.7);
   }
 }, 0.2);
+// Heartbeat under "Datamu cuma di HP kamu.": two soft sub thumps ("dug-dug").
+sfx("sfx-pulse.wav", 1.4, (b) => {
+  for (const [at, g] of [
+    [0.06, 1],
+    [0.46, 0.7],
+  ]) {
+    let ph = 0;
+    for (let i = 0; i < SR * 0.5; i++) {
+      const t = i / SR;
+      ph += (2 * Math.PI * (48 + 40 * Math.exp(-t * 18))) / SR;
+      add(b, at, i, Math.sin(ph) * Math.exp(-t * 9) * Math.min(1, t / 0.004) * g);
+    }
+  }
+}, 0.15);

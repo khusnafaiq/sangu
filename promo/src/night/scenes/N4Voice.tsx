@@ -5,7 +5,6 @@ import { CatatScreen, TxRow } from "../../components/AppUI";
 import { Icon } from "../../components/Icon";
 import {
   DarkScreen,
-  GLOW,
   GlowLine,
   INK,
   NightBg,
@@ -15,14 +14,42 @@ import {
   veil,
 } from "../kit";
 
-const WORDS = ["“Kopi", " susu", " 28rb", " pakai", " GoPay”"];
-const SPOKEN = "Kopi susu 28rb pakai GoPay";
-// Transcript centre inside the Catat screen (DarkScreen-local px) and its font size there.
-const PIN = { x: 202.5, y: 218 };
-const APP_SIZE = 19;
-const BIG = 80;
+// What the person says, word by word, timed to the voice-over (vo07). "terus" is one of the
+// words the app splits transactions on, so this one sentence becomes two transactions.
+type W = { t: string; at: number; tone?: "muted" | "split" };
+const LINE1: W[] = [
+  { t: "Ehem…", at: 8, tone: "muted" },
+  { t: " beli", at: 30 },
+  { t: " kopi", at: 37 },
+  { t: " susu", at: 44 },
+  { t: " 28rb", at: 52 },
+  { t: " pakai", at: 62 },
+  { t: " GoPay,", at: 70 },
+];
+const LINE2: W[] = [
+  { t: "terus…", at: 84, tone: "split" },
+  { t: " bayar", at: 124 },
+  { t: " parkir", at: 132 },
+  { t: " 3rb", at: 142 },
+  { t: " pakai", at: 150 },
+  { t: " cash.", at: 158 },
+];
 
-/** Parsed result shown in the Catat composer (shared with N5 so the cut is seamless). */
+// The transcript as the app shows it (speech-to-text drops the "ehem").
+const Transcript: React.FC = () => (
+  <>
+    Beli kopi susu 28rb pakai GoPay{" "}
+    <span style={{ color: C.green, fontWeight: 700 }}>terus</span> bayar parkir
+    3rb pakai cash
+  </>
+);
+
+// Transcript centre inside the Catat screen (DarkScreen-local px) and its font size there.
+const PIN = { x: 202.5, y: 246 };
+const APP_SIZE = 19;
+const BIG = 64;
+
+/** Parsed result in the Catat composer: two transactions from one sentence. */
 export const VoiceResult: React.FC<{ style?: React.CSSProperties }> = ({
   style,
 }) => (
@@ -31,12 +58,12 @@ export const VoiceResult: React.FC<{ style?: React.CSSProperties }> = ({
       marginTop: 18,
       display: "flex",
       flexDirection: "column",
-      gap: 10,
+      gap: 8,
       ...style,
     }}
   >
     <div style={{ fontSize: 12.5, color: C.text2 }}>
-      1 transaksi terbaca · cek lalu simpan
+      2 transaksi terbaca · cek lalu simpan
     </div>
     <TxRow
       style={{ margin: "0 -6px" }}
@@ -47,6 +74,17 @@ export const VoiceResult: React.FC<{ style?: React.CSSProperties }> = ({
         wallet: "GoPay",
         cat: "Makan & Minum",
         amount: 28000,
+      }}
+    />
+    <TxRow
+      style={{ margin: "0 -6px" }}
+      highlight={1}
+      tx={{
+        icon: "mic",
+        title: "Parkir",
+        wallet: "Cash",
+        cat: "Transportasi",
+        amount: 3000,
       }}
     />
     <div
@@ -63,29 +101,50 @@ export const VoiceResult: React.FC<{ style?: React.CSSProperties }> = ({
         justifyContent: "center",
       }}
     >
-      Simpan 1 transaksi · Rp 28.000
+      Simpan 2 transaksi · Rp 31.000
     </div>
   </div>
 );
 
-// 0:15 — the spoken sentence as text-only, then pull back: it is the transcript in Catat.
+const Words: React.FC<{ words: W[]; frame: number }> = ({ words, frame }) => (
+  <>
+    {words.map((w, i) => (
+      <span
+        key={i}
+        style={{
+          display: "inline-block",
+          color:
+            w.tone === "muted"
+              ? "#7F8784"
+              : w.tone === "split"
+                ? "#9FE9C8"
+                : INK,
+          fontStyle: w.tone === "muted" ? "italic" : undefined,
+          fontWeight: w.tone === "split" ? 700 : undefined,
+          ...veil(frame, w.at, 1e9, 18, 12, 6),
+        }}
+      >
+        {w.t}
+      </span>
+    ))}
+  </>
+);
+
+// 0:18 — the spoken sentence as text-only, then pull back: it is the transcript in Catat, and
+// it turns into two transactions. 300 frames.
 export const N4Voice: React.FC = () => {
   const frame = useCurrentFrame();
-  const z = interpolate(frame, [64, 122], [0, 1], { ...clamp, easing: glide });
+  const z = interpolate(frame, [178, 232], [0, 1], { ...clamp, easing: glide });
   const s = interpolate(z, [0, 1], [BIG / APP_SIZE, 1.5]);
   const px = interpolate(z, [0, 1], [960, 690]);
-  const py = interpolate(z, [0, 1], [530, 560]);
-  const saved = frame >= 128;
-  const row = interpolate(frame, [128, 148], [0, 1], {
+  const py = interpolate(z, [0, 1], [536, 500]);
+  const saved = frame >= 236;
+  const row = interpolate(frame, [236, 256], [0, 1], {
     ...clamp,
     easing: slow,
   });
-
-  const composer = saved ? (
-    <VoiceResult
-      style={{ opacity: row, translate: `0px ${(1 - row) * 16}px` }}
-    />
-  ) : undefined;
+  // the sigh: the mic rings slow down and dim between "terus…" and "bayar"
+  const sigh = interpolate(frame, [92, 100, 116, 124], [0, 1, 1, 0], clamp);
 
   return (
     <AbsoluteFill>
@@ -97,20 +156,26 @@ export const N4Voice: React.FC = () => {
           top: 0,
           transformOrigin: "0 0",
           transform: `translate(${px - PIN.x * s}px, ${py - PIN.y * s}px) scale(${s})`,
-          opacity: interpolate(frame, [58, 72], [0, 1], clamp),
+          opacity: interpolate(frame, [172, 186], [0, 1], clamp),
         }}
       >
         <DarkScreen glow={z}>
           <CatatScreen
-            transcript={SPOKEN}
+            transcript={<Transcript />}
             listening={interpolate(
               frame,
-              [60, 70, 118, 126],
+              [172, 180, 226, 234],
               [1, 1, 1, 0],
               clamp,
             )}
             frame={frame}
-            composer={composer}
+            composer={
+              saved ? (
+                <VoiceResult
+                  style={{ opacity: row, translate: `0px ${(1 - row) * 16}px` }}
+                />
+              ) : undefined
+            }
           />
         </DarkScreen>
       </div>
@@ -120,10 +185,10 @@ export const N4Voice: React.FC = () => {
         style={{
           position: "absolute",
           left: 912,
-          top: 330,
+          top: 290,
           width: 96,
           height: 96,
-          ...veil(frame, 0, 60, 20, 12, 0),
+          ...veil(frame, 0, 174, 20, 12, 0),
         }}
       >
         {[0, 1].map((i) => {
@@ -137,7 +202,7 @@ export const N4Voice: React.FC = () => {
                 position: "absolute",
                 inset: 0,
                 borderRadius: "50%",
-                border: `2px solid rgba(52,211,153,${0.6 * (1 - p)})`,
+                border: `2px solid rgba(52,211,153,${0.6 * (1 - p) * (1 - 0.6 * sigh)})`,
                 scale: String(1 + p * 0.9),
               }}
             />
@@ -149,7 +214,7 @@ export const N4Voice: React.FC = () => {
             inset: 0,
             borderRadius: "50%",
             background: C.green,
-            boxShadow: "0 0 40px rgba(52,211,153,0.6)",
+            opacity: 1 - 0.35 * sigh,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -161,36 +226,31 @@ export const N4Voice: React.FC = () => {
       <div
         style={{
           position: "absolute",
-          left: 960,
-          top: 490,
-          translate: "-50% 0px",
+          left: 0,
+          right: 0,
+          top: 450,
+          textAlign: "center",
           fontFamily: FONT,
           fontSize: BIG,
           fontWeight: 500,
           letterSpacing: -BIG * 0.025,
-          lineHeight: 1,
+          lineHeight: 1.3,
           color: INK,
-          textShadow: GLOW.white,
           whiteSpace: "pre",
-          opacity: interpolate(frame, [62, 72], [1, 0], clamp),
+          opacity: interpolate(frame, [176, 186], [1, 0], clamp),
         }}
       >
-        {WORDS.map((w, i) => (
-          <span
-            key={i}
-            style={{
-              display: "inline-block",
-              ...veil(frame, 14 + i * 8, 1e9, 18, 12, 6),
-            }}
-          >
-            {w}
-          </span>
-        ))}
+        <div>
+          <Words words={LINE1} frame={frame} />
+        </div>
+        <div>
+          <Words words={LINE2} frame={frame} />
+        </div>
       </div>
 
       <GlowLine
         words={[{ t: "Cukup" }, { t: " ngomong." }]}
-        at={132}
+        at={246}
         stagger={8}
         size={100}
         style={{ position: "absolute", left: 1050, top: 470 }}

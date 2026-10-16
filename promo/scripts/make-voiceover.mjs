@@ -4,6 +4,7 @@
 //   GEMINI_API_KEY=... npm run voiceover            # all lines
 //   GEMINI_API_KEY=... npm run voiceover -- vo02 vo07   # only these
 //
+// A line may carry its own "style" (delivery notes such as a sigh), used instead of the default.
 // Optional: GEMINI_TTS_MODEL, GEMINI_TTS_VOICE (narrator), GEMINI_TTS_USER_VOICE (the person talking to the app).
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -102,7 +103,7 @@ function wav(pcm, rate) {
 }
 
 for (const l of todo) {
-  const { pcm, rate, model } = await tts(`${STYLE[l.voice]} ${l.text}`, VOICES[l.voice]);
+  const { pcm, rate, model } = await tts(`${l.style || STYLE[l.voice]} ${l.text}`, VOICES[l.voice]);
   const clip = trim(pcm, rate);
   writeFileSync(join(OUT, `${l.id}.wav`), wav(clip, rate));
   const secs = clip.length / 2 / rate;
