@@ -23,7 +23,10 @@ import { F10End } from "./film/scenes/F10End";
 import { SanguNight } from "./night/SanguNight";
 import { N1Hook } from "./night/scenes/N1Hook";
 import { N2Logo } from "./night/scenes/N2Logo";
+import { N1HookB, N1HookC, N1HookD } from "./night/scenes/N1Hooks";
 import { N3Daily } from "./night/scenes/N3Daily";
+import { N4bNota } from "./night/scenes/N4bNota";
+import { N4cNotif } from "./night/scenes/N4cNotif";
 import { N4Voice } from "./night/scenes/N4Voice";
 import { N5Neon } from "./night/scenes/N5Neon";
 import { N6Privacy } from "./night/scenes/N6Privacy";
@@ -41,12 +44,17 @@ const Cta = withBackdrop(CtaScene);
 export const RemotionRoot: React.FC = () => {
   return (
     <>
-      <Composition id="SanguNight" component={SanguNight} durationInFrames={1075} fps={30} width={1920} height={1080} />
+      <Composition id="SanguNight" component={SanguNight} durationInFrames={1390} fps={30} width={1920} height={1080} defaultProps={{ hook: "A" }} />
       <Folder name="SanguNight-Scenes">
         <Composition id="N1-Hook" component={N1Hook} durationInFrames={210} fps={30} width={1920} height={1080} />
+        <Composition id="N1-HookB" component={N1HookB} durationInFrames={210} fps={30} width={1920} height={1080} />
+        <Composition id="N1-HookC" component={N1HookC} durationInFrames={210} fps={30} width={1920} height={1080} />
+        <Composition id="N1-HookD" component={N1HookD} durationInFrames={210} fps={30} width={1920} height={1080} />
         <Composition id="N2-Logo" component={N2Logo} durationInFrames={90} fps={30} width={1920} height={1080} />
         <Composition id="N3-Jatah" component={N3Daily} durationInFrames={165} fps={30} width={1920} height={1080} />
         <Composition id="N4-Catat" component={N4Voice} durationInFrames={180} fps={30} width={1920} height={1080} />
+        <Composition id="N4b-Nota" component={N4bNota} durationInFrames={150} fps={30} width={1920} height={1080} />
+        <Composition id="N4c-Notif" component={N4cNotif} durationInFrames={165} fps={30} width={1920} height={1080} />
         <Composition id="N5-Neon" component={N5Neon} durationInFrames={140} fps={30} width={1920} height={1080} />
         <Composition id="N6-Privasi" component={N6Privacy} durationInFrames={160} fps={30} width={1920} height={1080} />
         <Composition id="N7-Penutup" component={N7End} durationInFrames={130} fps={30} width={1920} height={1080} />

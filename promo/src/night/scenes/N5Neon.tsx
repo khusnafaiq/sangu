@@ -1,12 +1,13 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
+import { C } from "../../theme";
 import { CatatScreen } from "../../components/AppUI";
-import { VoiceResult } from "./N4Voice";
+import { NotifResult } from "./N4cNotif";
 import { NeonRibbons } from "../../film/ui";
 import { RecapScreen } from "../../film/screens";
 import { DarkScreen, GlowLine, clamp, glide } from "../kit";
 
-// 0:21 — continuous move from the flat phone (end of N4) into a tilted hero shot with neon light.
+// Continuous move from the flat phone (end of N4c) into a tilted hero shot with neon light.
 export const N5Neon: React.FC = () => {
   const frame = useCurrentFrame();
   const t = interpolate(frame, [0, 46], [0, 1], { ...clamp, easing: glide });
@@ -46,10 +47,10 @@ export const N5Neon: React.FC = () => {
                 }}
               >
                 <CatatScreen
-                  transcript="Kopi susu 28rb pakai GoPay"
+                  transcript={<span style={{ color: C.muted }}>Kopi 28rb pakai BCA</span>}
                   listening={0}
                   frame={frame}
-                  composer={<VoiceResult />}
+                  composer={<NotifResult />}
                 />
               </div>
               <div
