@@ -89,7 +89,7 @@ export const N4Voice: React.FC = () => {
 
   return (
     <AbsoluteFill>
-      <NightBg />
+      <NightBg x={interpolate(z, [0, 1], [50, 36])} />
       <div
         style={{
           position: "absolute",

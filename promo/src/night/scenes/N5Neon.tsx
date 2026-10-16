@@ -3,11 +3,10 @@ import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import { C } from "../../theme";
 import { CatatScreen } from "../../components/AppUI";
 import { NotifResult } from "./N4cNotif";
-import { NeonRibbons } from "../../film/ui";
 import { RecapScreen } from "../../film/screens";
-import { DarkScreen, GlowLine, clamp, glide } from "../kit";
+import { DarkScreen, GlowLine, NightBg, clamp, glide } from "../kit";
 
-// Continuous move from the flat phone (end of N4c) into a tilted hero shot with neon light.
+// Continuous move from the flat phone (end of N4c) into a tilted hero shot, lit by the background glow.
 export const N5Neon: React.FC = () => {
   const frame = useCurrentFrame();
   const t = interpolate(frame, [0, 46], [0, 1], { ...clamp, easing: glide });
@@ -16,9 +15,28 @@ export const N5Neon: React.FC = () => {
   const out = interpolate(frame, [122, 140], [1, 0], clamp);
 
   return (
-    <AbsoluteFill style={{ background: "#030405", overflow: "hidden" }}>
+    <AbsoluteFill style={{ background: "#050607", overflow: "hidden" }}>
       <AbsoluteFill style={{ opacity: out }}>
-        <NeonRibbons t={interpolate(frame, [10, 120], [0, 1], clamp)} />
+        <NightBg
+          light={interpolate(t, [0, 1], [1, 1.35])}
+          x={interpolate(t, [0, 1], [36, 69])}
+          y={48}
+        />
+        {/* a soft pool of light under the phone */}
+        <div
+          style={{
+            position: "absolute",
+            left: interpolate(t, [0, 1], [700, 1320]) - 420,
+            top: 760,
+            width: 840,
+            height: 220,
+            borderRadius: "50%",
+            background:
+              "radial-gradient(ellipse, rgba(52,211,153,0.28), rgba(52,211,153,0) 70%)",
+            filter: "blur(30px)",
+            opacity: t,
+          }}
+        />
       </AbsoluteFill>
       <AbsoluteFill style={{ perspective: 2200 }}>
         <div
@@ -34,7 +52,7 @@ export const N5Neon: React.FC = () => {
           <div
             style={{
               borderRadius: 64,
-              boxShadow: `0 0 0 ${3 * t}px rgba(56,189,248,0.55), 0 0 70px rgba(52,211,153,${0.25 * t})`,
+              boxShadow: `0 0 0 ${1.5 * t}px rgba(167,243,208,0.35)`,
             }}
           >
             <DarkScreen glow={1}>
@@ -47,7 +65,9 @@ export const N5Neon: React.FC = () => {
                 }}
               >
                 <CatatScreen
-                  transcript={<span style={{ color: C.muted }}>Kopi 28rb pakai BCA</span>}
+                  transcript={
+                    <span style={{ color: C.muted }}>Kopi 28rb pakai BCA</span>
+                  }
                   listening={0}
                   frame={frame}
                   composer={<NotifResult />}

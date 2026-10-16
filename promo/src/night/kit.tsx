@@ -10,7 +10,8 @@ import {
 import { C, FONT } from "../theme";
 import { SCREEN_H, SCREEN_W, StatusBar } from "../components/Phone";
 
-// "Night" cut: near-black stage, glowing type, slow blur reveals, match cuts.
+// "Night" cut: near-black stage lit by a soft SaaS-style background glow, crisp type,
+// slow blur reveals, match cuts.
 
 export const clamp = {
   extrapolateLeft: "clamp",
@@ -20,49 +21,70 @@ export const slow = Easing.bezier(0.22, 1, 0.36, 1);
 export const glide = Easing.bezier(0.65, 0, 0.35, 1);
 
 export const INK = "#F2F5F3";
+// Type stays crisp (no text glow); the light lives in the background instead.
 export const GLOW = {
-  white: "0 0 12px rgba(255,255,255,0.32), 0 0 46px rgba(52,211,153,0.28)",
-  red: "0 0 14px rgba(251,93,120,0.75), 0 0 64px rgba(251,93,120,0.45)",
-  green: "0 0 14px rgba(52,211,153,0.75), 0 0 64px rgba(52,211,153,0.45)",
-  soft: "0 0 10px rgba(255,255,255,0.18), 0 0 36px rgba(52,211,153,0.16)",
+  white: "none",
+  red: "none",
+  green: "none",
+  soft: "none",
 } as const;
 
-/** Near-black stage with a faint, slowly breathing green light. */
-export const NightBg: React.FC<{ light?: number }> = ({ light = 1 }) => {
+/**
+ * Premium dark stage: soft aurora glow (emerald, teal, a touch of indigo) around a focus point,
+ * a faint grid that fades out from it, and a vignette. `x`/`y` (in %) put the light behind the subject.
+ */
+export const NightBg: React.FC<{ light?: number; x?: number; y?: number }> = ({
+  light = 1,
+  x = 50,
+  y = 46,
+}) => {
   const frame = useCurrentFrame();
   const t = frame / 30;
+  const cx = (x / 100) * 1920;
+  const cy = (y / 100) * 1080;
+  const blob = (
+    w: number,
+    h: number,
+    dx: number,
+    dy: number,
+    color: string,
+    o: number,
+    phase: number,
+  ): React.CSSProperties => ({
+    position: "absolute",
+    width: w,
+    height: h,
+    left: cx - w / 2 + dx + Math.sin(t * 0.3 + phase) * 50,
+    top: cy - h / 2 + dy + Math.cos(t * 0.24 + phase) * 34,
+    borderRadius: "50%",
+    background: color,
+    filter: "blur(120px)",
+    opacity: o * light,
+  });
   return (
-    <AbsoluteFill style={{ background: "#040506", overflow: "hidden" }}>
-      <div
+    <AbsoluteFill style={{ background: "#050607", overflow: "hidden" }}>
+      <AbsoluteFill
         style={{
-          position: "absolute",
-          width: 1400,
-          height: 1000,
-          left: -300 + Math.sin(t * 0.25) * 60,
-          top: -520 + Math.cos(t * 0.2) * 40,
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(52,211,153,0.16), rgba(52,211,153,0) 65%)",
-          opacity: light,
+          backgroundImage:
+            "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+          backgroundSize: "96px 96px",
+          backgroundPosition: `${cx % 96}px ${cy % 96}px`,
+          maskImage: `radial-gradient(ellipse 42% 48% at ${x}% ${y}%, rgba(0,0,0,${0.9 * light}), transparent 78%)`,
+          WebkitMaskImage: `radial-gradient(ellipse 42% 48% at ${x}% ${y}%, rgba(0,0,0,${0.9 * light}), transparent 78%)`,
         }}
       />
-      <div
+      <div style={blob(980, 560, -60, -40, "#10B981", 0.42, 0)} />
+      <div style={blob(760, 460, 260, 120, "#0EA5E9", 0.26, 2)} />
+      <div style={blob(620, 400, -320, 160, "#6366F1", 0.16, 4)} />
+      <AbsoluteFill
         style={{
-          position: "absolute",
-          width: 1300,
-          height: 900,
-          right: -360 + Math.cos(t * 0.22) * 50,
-          bottom: -480 + Math.sin(t * 0.27) * 40,
-          borderRadius: "50%",
-          background:
-            "radial-gradient(circle, rgba(56,189,248,0.10), rgba(56,189,248,0) 65%)",
-          opacity: light,
+          background: `radial-gradient(ellipse 34% 55% at ${x}% -12%, rgba(167,243,208,${0.16 * light}), rgba(167,243,208,0) 70%)`,
         }}
       />
       <AbsoluteFill
         style={{
           background:
-            "radial-gradient(ellipse 70% 70% at 50% 50%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.6) 100%)",
+            "radial-gradient(ellipse 75% 75% at 50% 50%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.65) 100%)",
         }}
       />
     </AbsoluteFill>
@@ -153,7 +175,7 @@ export const AppIcon: React.FC<{
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      boxShadow: `0 0 ${size * 0.5}px rgba(52,211,153,0.35), 0 ${size * 0.12}px ${size * 0.4}px rgba(0,0,0,0.5)`,
+      boxShadow: `0 ${size * 0.12}px ${size * 0.4}px rgba(0,0,0,0.55)`,
       flexShrink: 0,
       ...style,
     }}

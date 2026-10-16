@@ -27,7 +27,7 @@ export const N3Daily: React.FC = () => {
 
   return (
     <AbsoluteFill>
-      <NightBg />
+      <NightBg x={interpolate(z, [0, 1], [50, 65])} />
       {/* the phone, pinned on the number while it pulls back */}
       <div
         style={{
