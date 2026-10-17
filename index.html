@@ -1446,7 +1446,15 @@
     .parsed-tag .pt-meta { display: flex; min-width: 0; font-size: 11px; font-weight: 500; line-height: 15px; color: var(--text-secondary); white-space: nowrap; }
     .parsed-tag .pt-wallet { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     /* with a category after it the wallet keeps its name (up to half the line) and the category gives way; the day never */
-    .parsed-tag .pt-wallet:has(+ .pt-cat) { flex-shrink: 0; max-width: 50%; }
+    .parsed-tag .pt-wallet:has(+ .pt-cat), .parsed-tag .pt-wallet:has(+ .pt-missing) { flex-shrink: 0; max-width: 50%; }
+    /* "BCA belum ada": the wallet named in the words is not a wallet here (it goes on the one before it) */
+    .parsed-tag .pt-missing { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--warning); }
+    .parsed-tag .pt-wallet:has(+ .pt-missing) { max-width: 40%; }
+    .parsed-tag .pt-meta:has(.pt-missing) { overflow: hidden; }
+    .parsed-tag .pt-missing::before { content: '\00a0\00b7\00a0'; color: var(--text-muted); }
+    /* under the rows, the wallet they name and that is not there: the "+ Wallet" pill; not while typing (no room) */
+    .missing-add { flex: none; align-self: center; margin-top: 8px; min-height: 40px; }
+    .app.kb-open .missing-add { display: none; }
     .parsed-tag .pt-cat { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     .parsed-tag .pt-meta:has(.pt-cat) { overflow: hidden; }
     .parsed-tag .pt-cat::before { content: '\00a0\00b7\00a0'; color: var(--text-muted); }
@@ -2593,6 +2601,9 @@
     .read-card.failed .read-meta strong { color: var(--warning); }
     .read-meta small { font-size: 11.5px; line-height: 1.4; color: var(--text-muted); overflow-wrap: anywhere; }
     .read-meta .read-warn { color: var(--warning); }
+    /* Hapus on an item from "Menunggu dicatat": secondary, beside what the card says */
+    .read-card .read-discard { min-height: 40px; padding: 0 12px; font-size: 12.5px; gap: 6px; flex-shrink: 0; color: var(--text-secondary); }
+    .read-card .read-discard svg { width: 14px; height: 14px; }
     .dup-note { display: flex; flex-direction: column; gap: 2px; }
     .dup-note strong { font-weight: 700; }
     .dup-note span { color: var(--text-secondary); overflow-wrap: anywhere; }
@@ -3039,6 +3050,8 @@
             </div>
             <p id="parsedMore" class="parsed-more" aria-hidden="true" hidden></p>
             <div id="parsedPreview" class="live-parsed-preview" aria-live="polite"></div>
+            <!-- "pakai BCA" with no BCA wallet: add it in one tap (04_render.js updatePreview) -->
+            <button type="button" id="missingAdd" class="w-pill add missing-add" data-action="add-missing-wallet" hidden></button>
             <label class="caption-rest" for="captionInput" aria-hidden="true"></label>
             <div id="orbWrap" class="orb-center-wrap">
               <div id="waveLeft" class="wave-bars" aria-hidden="true">
@@ -3990,6 +4003,12 @@ const Core = (() => {
     seabank: ['seabankid'],
     ovo: [], dana: [], linkaja: [], jenius: [], blu: [], cimb: ['octo'], permata: [], btn: [], flip: [], isaku: []
   };
+  // A bank or e-wallet as its wallet would be named (the wallet sheet's presets), by any key of its brand: "pakai BCA"
+  // with no BCA wallet names the wallet the user meant, so it stays out of the title and is reported as missing.
+  const BRAND_DISPLAY = { bca: 'BCA', mandiri: 'Mandiri', bri: 'BRI', bni: 'BNI', bsi: 'BSI', gopay: 'GoPay', shopeepay: 'ShopeePay', jago: 'Jago', seabank: 'SeaBank', ovo: 'OVO', dana: 'DANA', linkaja: 'LinkAja', jenius: 'Jenius', blu: 'blu', cimb: 'CIMB Niaga', permata: 'Permata', btn: 'BTN', flip: 'Flip', isaku: 'i.saku', ocbc: 'OCBC', danamon: 'Danamon', maybank: 'Maybank', superbank: 'Superbank' };
+  const BRAND_BY_KEY = new Map([['nyala', 'OCBC']]);
+  Object.keys(BRAND_DISPLAY).forEach(b => { BRAND_BY_KEY.set(b, BRAND_DISPLAY[b]); (BRAND_ALIASES[b] || []).forEach(a => BRAND_BY_KEY.set(a, BRAND_DISPLAY[b])); });
+  const MISSING_CASH = new Set(['tunai', 'cash', 'kontan', 'uangtunai']);
   const CASH_ALIASES = ['tunai', 'cash', 'uangtunai', 'uangcash', 'duittunai', 'duitcash', 'kas', 'uangkas', 'dompet', 'kontan'];
   const CASH_NAME_WORDS = new Set(['tunai', 'cash', 'dompet', 'kas', 'kontan']);
   const BANK_WORDS = new Set(['bank', 'rek', 'rekening', 'akun', 'saldo', 'kartu', 'ewallet', 'e-wallet', 'aplikasi', 'app', 'mbanking', 'm-banking']);
@@ -4068,6 +4087,36 @@ const Core = (() => {
       i = hit.end - 1;
     }
     return out;
+  }
+
+  // "pakai BCA" (role 'src': paid with) or "masuk BCA" (role 'dst': money into) where no wallet is BCA: the brand's
+  // wallet name, its words marked used (out of the title). Cash words count only when there is no cash wallet. Names
+  // that are also ordinary words ("dana darurat", "pakai dana tabungan") count only right after pakai/via/lewat.
+  function findMissingWallet(toks, env, role) {
+    for (let i = 0; i < toks.length; i++) {
+      let name = null, len = 0;
+      for (let l = Math.min(2, toks.length - i); l >= 1 && !name; l--) {
+        let key = '', ok = true;
+        for (let j = i; j < i + l; j++) { if (toks[j].used || !toks[j].compact) { ok = false; break; } key += toks[j].compact; }
+        if (!ok) continue;
+        if (BRAND_BY_KEY.has(key)) { name = BRAND_BY_KEY.get(key); len = l; }
+        else if (!env.cashId && MISSING_CASH.has(key)) { name = env.lang === 'en' ? 'Cash' : 'Tunai'; len = l; }
+      }
+      if (!name) continue;
+      let p = i - 1;
+      const bankWords = [];
+      while (p >= 0 && !toks[p].used && BANK_WORDS.has(toks[p].low)) { bankWords.push(p); p--; }
+      const prev = p >= 0 ? toks[p].low : '';
+      const r = SRC_PREP.has(prev) || PAY_PREP.has(prev) ? 'src' : DST_PREP.has(prev) ? 'dst' : null;
+      if (r !== role) continue;
+      const next = toks[i + len];
+      if (len === 1 && AMBIG_WALLET_WORDS.has(toks[i].compact) && (!PAY_PREP.has(prev) ||
+        (next && !next.used && /^[a-z]{2,}$/.test(next.low) && !FILLERS.has(next.low) && !TIME_WORDS.has(next.low)))) continue;
+      for (let j = i; j < i + len; j++) toks[j].used = 'walletx';
+      bankWords.forEach(j => { toks[j].used = 'walletx'; });
+      return name;
+    }
+    return null;
   }
 
   const STRONG_INCOME = ['gaji', 'gajian', 'salary', 'payroll', 'thr', 'bonus', 'cashback', 'refund', 'reimburse', 'reimbursement', 'kiriman', 'dikasih', 'dikasi', 'dikirimin', 'angpao', 'angpau', 'uang masuk', 'income', 'received', 'pemasukan', 'dibayar', 'hasil jualan', 'hasil jual', 'honor', 'komisi',
@@ -4255,6 +4304,8 @@ const Core = (() => {
         explicitWallet = !!pref;
       }
     }
+    // no wallet found for the side that decides it, but a bank or e-wallet the user has no wallet for was named
+    const missingWallet = type !== 'TRANSFER' && !explicitWallet ? findMissingWallet(toks, env, type === 'INCOME' ? 'dst' : 'src') : null;
     const catText = toks.filter(t => t.used !== 'wallet' && t.used !== 'walletx' && t.used !== 'amount' && t.used !== 'date').map(t => t.core).join(' ');
     const category = categorize(catText, type);
     let title = buildTitle(toks, type);
@@ -4265,7 +4316,7 @@ const Core = (() => {
     }
     if (!title) title = categoryById(category).label[env.lang];
     const dk = env.today ? addDays(env.today, date.offset) : null;
-    return { type, amount, title, category, walletId, toWalletId, dayKey: dk, explicitWallet, dateFound: date.found, offset: date.offset };
+    return { type, amount, title, category, walletId, toWalletId, dayKey: dk, explicitWallet, missingWallet, dateFound: date.found, offset: date.offset };
   }
 
   const SPLIT_RE = /(\s+(?:dan|terus|trus|trs|lalu|kemudian|and|then|sama|ama|sm|plus)\s+|\s+[+&]\s+|\s*;\s*|\s*\n+\s*|\s*,(?!\d)\s*|\.\s+|\s+(?=(?:(?:dapat|dapet|dpt)\s+)?(?:cashback|cb)\s+\S*\d))/i;
@@ -4327,13 +4378,13 @@ const Core = (() => {
       if (!r.cashback || !p || p.type === 'TRANSFER') return;
       if (r.explicitWallet && !p.explicitWallet) { p.walletId = r.walletId; p.explicitWallet = true; } else if (!r.explicitWallet && p.explicitWallet) { r.walletId = p.walletId; r.explicitWallet = true; }
     });
-    // a trailing "pakai X" applies to earlier entries of the same type that named no wallet
+    // a trailing "pakai X" applies to earlier entries of the same type that named no wallet (a missing X too)
     const next = {};
     for (let i = results.length - 1; i >= 0; i--) {
       const r = results[i];
       if (r.type === 'TRANSFER') continue;
-      if (r.explicitWallet) next[r.type] = r.walletId;
-      else if (next[r.type]) r.walletId = next[r.type];
+      if (r.explicitWallet || r.missingWallet) next[r.type] = r;
+      else if (next[r.type]) { r.walletId = next[r.type].walletId; r.missingWallet = next[r.type].missingWallet; }
     }
     // "kemarin kopi 25rb dan makan 30rb": a date word carries over to later entries without their own
     let carry = null;
@@ -4341,7 +4392,9 @@ const Core = (() => {
       if (r.dateFound) carry = r.offset;
       else if (carry !== null && env.today) r.dayKey = addDays(env.today, carry);
     });
-    return results.map(r => ({ type: r.type, amount: r.amount, title: r.title, category: r.category, walletId: r.walletId, toWalletId: r.toWalletId, dayKey: r.dayKey }));
+    // missingWallet only when one was named: { ..., missingWallet: 'BCA' } (the default wallet is walletId)
+    return results.map(r => Object.assign({ type: r.type, amount: r.amount, title: r.title, category: r.category, walletId: r.walletId, toWalletId: r.toWalletId, dayKey: r.dayKey },
+      r.missingWallet ? { missingWallet: r.missingWallet } : {}));
   }
 
   // ---------- dates inside free text (statements, receipts) ----------
@@ -6829,6 +6882,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'catat.saveShort': 'Simpan {n} · {total}',
     'catat.dropAria': 'Buang "{title}" dari daftar',
     'catat.editHint': 'Ubah',
+    'catat.missingWallet': '{name} belum ada',
+    'catat.addMissing': '+ Tambah wallet {name}',
+    'catat.unarchiveMissing': 'Aktifkan lagi {name}',
     'catat.hintAmount': 'Sebut nominalnya, mis. 25rb',
     'catat.moreRows': '+{n} lainnya',
     'catat.needWallet': 'Tambah wallet dulu untuk mulai mencatat',
@@ -7275,6 +7331,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'inbox.checkAria': 'Cek {title}',
     'inbox.removeAria': 'Hapus {title} dari daftar',
     'inbox.removed': 'Dihapus dari daftar.',
+    'inbox.discard': 'Hapus',
+    'inbox.discardAria': 'Hapus dari daftar Menunggu dicatat',
     'inbox.removedLast': 'Dihapus. Daftarnya sudah kosong.',
     'inbox.noAmount': 'Nominal belum kebaca',
     'inbox.unknownTitle': 'Bukti bayar',
@@ -7378,6 +7436,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'catat.saveShort': 'Save {n} · {total}',
     'catat.dropAria': 'Remove "{title}" from the list',
     'catat.editHint': 'Edit',
+    'catat.missingWallet': 'no {name} wallet',
+    'catat.addMissing': '+ Add {name} wallet',
+    'catat.unarchiveMissing': 'Unarchive {name}',
     'catat.hintAmount': 'Say the amount, e.g. 25k',
     'catat.moreRows': '+{n} more',
     'catat.needWallet': 'Add a wallet first to start recording',
@@ -7827,6 +7888,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     'inbox.checkAria': 'Check {title}',
     'inbox.removeAria': 'Delete {title} from the list',
     'inbox.removed': 'Deleted from the list.',
+    'inbox.discard': 'Delete',
+    'inbox.discardAria': 'Delete from the Waiting to be saved list',
     'inbox.removedLast': 'Deleted. The list is empty now.',
     'inbox.noAmount': 'Amount not read',
     'inbox.unknownTitle': 'Payment proof',
@@ -8585,7 +8648,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     return catValid(p.category, p.type) ? p.category : catFor(p.title, p.type);
   }
   // what a parsed row is, to know it again after the text around it changed (a row saved from the sheet)
-  const parsedKey = (p) => [p.type, num(p.amount), String(p.title || '').toLowerCase(), p.walletId, p.toWalletId || '', p.dayKey || ''].join('|');
+  // (not by wallet: the same words find another wallet once one is added or the default changes)
+  const parsedKey = (p) => [p.type, num(p.amount), String(p.title || '').toLowerCase(), p.dayKey || ''].join('|');
   // signed as in the rows on Ringkasan (txAmountHtml): spending with its minus, income with its plus, a transfer bare
   const previewAmt = (type, amount) => type === 'EXPENSE' ? fmt(-num(amount)) : (type === 'INCOME' ? fmtSigned(amount) : fmt(amount));
   function parsedChipHtml(p, i) {
@@ -8593,14 +8657,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     const cls = p.type === 'INCOME' ? '' : (p.type === 'TRANSFER' ? ' mute' : ' exp');
     const amt = previewAmt(p.type, p.amount);
     const title = clampStr(p.title, 80) || (p.type === 'TRANSFER' ? t('type.TRANSFER') : catLabel(p.category));
-    const cat = p.type === 'TRANSFER' ? '' : '<span class="pt-cat">' + esc(catLabel(parsedCategory(p))) + '</span>';
+    // "pakai BCA" with no BCA wallet: it goes on the wallet shown, and the row says the named one is not there (in the
+    // category's place: the warning matters more; the sheet shows the category)
+    const cat = p.type === 'TRANSFER' || p.missingWallet ? '' : '<span class="pt-cat">' + esc(catLabel(parsedCategory(p))) + '</span>';
+    const missing = p.missingWallet ? '<span class="pt-missing">' + T('catat.missingWallet', { name: p.missingWallet }) + '</span>' : '';
     const day = isDayKey(p.dayKey) && p.dayKey !== today ? '<span class="pt-day">' + esc(dayLabel(p.dayKey)) + '</span>' : '';
     // what was bought keeps the full width; wallet · category · day share the line under it (the category gives way
     // first, the day never). Tapping the row opens it in the transaction sheet (another wallet, category, day); × drops it.
     return '<span class="parsed-tag"><button type="button" class="pt-edit" data-action="edit-parsed" data-idx="' + i + '">' +
       '<span class="visually-hidden">' + T('catat.editHint') + ' </span>' +
       '<span class="pt-text"><span class="pt-title">' + esc(title) + '</span>' +
-      '<span class="pt-meta"><span class="pt-wallet">' + esc(who) + '</span>' + cat + day + '</span></span>' +
+      '<span class="pt-meta"><span class="pt-wallet">' + esc(who) + '</span>' + missing + cat + day + '</span></span>' +
       '<span class="pt-amt' + cls + '">' + esc(amt) + '</span></button>' +
       '<button type="button" class="chip-x" data-action="drop-parsed" data-idx="' + i + '" aria-label="' + T('catat.dropAria', { title }) + '">' + ICON.close + '</button></span>';
   }
@@ -8758,6 +8825,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     else if (typed && !items.length) note = 'catat.hintAmount';
     else parts = items.map((p, i) => ui.dropped.has(i) ? '' : parsedChipHtml(p, i)).filter(Boolean);
     if (note) parts = ['<p class="parsed-note">' + T(note) + '</p>'];
+    syncMissingAdd(shot || ui.recording ? null : (kept.find((p) => p.missingWallet) || {}).missingWallet);
     setPreviewParts(parts);
     const commitBtn = $('commitBtn');
     // while listening the foot row says so (red dot); Save comes back once the words are in
@@ -8791,6 +8859,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     $('waveLeft').classList.toggle('active', ui.recording);
     $('waveRight').classList.toggle('active', ui.recording);
     $('captionClear').hidden = !typed;
+  }
+
+  // "pakai BCA" and no BCA wallet: "+ Tambah wallet BCA" under the rows (an archived BCA: "Aktifkan lagi BCA"). Set before
+  // the rows are laid out (fitRows measures the room it leaves).
+  const archivedNamed = (name) => state.wallets.find((w) => w.archived && normName(w.name) === normName(name)) || null;
+  function syncMissingAdd(name) {
+    const btn = $('missingAdd');
+    if (!btn) return;
+    btn.hidden = !name;
+    if (!name) return;
+    const arch = archivedNamed(name);
+    const k = name + ':' + lang() + ':' + (arch ? arch.id : '');
+    if (btn.dataset.k === k) return;
+    btn.dataset.k = k;
+    btn.dataset.name = name;
+    btn.textContent = t(arch ? 'catat.unarchiveMissing' : 'catat.addMissing', { name });
   }
 
   // Save label in two parts: on a narrow screen the words may end in an ellipsis, the amount (with the " · " before it)
@@ -9191,7 +9275,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       (rd.sub ? '<small>' + esc(rd.sub) + '</small>' : '') +
       (rd.unsure && rd.unsure.length ? '<small class="read-warn"></small>' : '') +
       (rd.onScreen ? '<small class="read-warn read-amt">' + esc(rd.onScreen) + '</small>' : '') +
-      (rd.extra ? '<small>' + esc(rd.extra) + '</small>' : '') + '</div></div>';
+      (rd.extra ? '<small>' + esc(rd.extra) + '</small>' : '') + '</div>' +
+      // an item waiting in "Menunggu dicatat" can be dropped from here, without saving it
+      (rd.discard ? '<button type="button" class="btn-secondary read-discard" data-action="read-discard" aria-label="' + T('inbox.discardAria') + '">' + ICON.trash + '<span>' + T('inbox.discard') + '</span></button>' : '') +
+      '</div>';
 
     const body =
       readHtml +
@@ -9254,6 +9341,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
           closeSheet(entry);
           deleteTxWithUndo(editing.id);
         },
+        'read-discard': () => { const fn = rd && rd.discard; closeSheet(entry); if (fn) fn(); },
         'toggle-preview': (el) => {
           const card = el.closest('.read-card');
           if (!card) { el.classList.toggle('expanded'); return; }
@@ -9479,7 +9567,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
   }
   const nextSwatch = () => SWATCHES[state.wallets.length % SWATCHES.length];
 
-  function openWalletSheet(walletId) {
+  // opts.name (a new wallet): its name filled in, with its preset's colour; the starting balance is asked first
+  function openWalletSheet(walletId, opts) {
     const w = walletId ? walletById(walletId) : null;
     if (walletId && !w) { toast(t('err.generic'), { type: 'error' }); return null; }
     const editing = !!w;
@@ -9487,7 +9576,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     const curBal = editing ? num(balances()[w.id]) : 0;
     const afterScheduled = editing ? num(balancesAll()[w.id]) : 0;
     const nTx = editing ? txCountForWallet(w.id) : 0;
-    const f = { color: editing ? safeColor(w.color) : nextSwatch(), armed: false, armTimer: 0 };
+    const named = !editing && opts && opts.name ? clampStr(opts.name, 24) : '';
+    const preset = named ? presetList().find((p) => normName(p.name) === normName(named)) : null;
+    const f = { color: editing ? safeColor(w.color) : (preset ? safeColor(preset.color) : nextSwatch()), armed: false, armTimer: 0 };
 
     let manage = '';
     if (editing) {
@@ -9515,7 +9606,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
 
     const entry = openSheet({
       id: 'wallet', title: editing ? w.name : t('wallet.addTitle'), body, foot,
-      focus: editing ? null : '#wName',
+      focus: editing ? null : (named ? '#wBal' : '#wName'),
       onClose: () => clearTimeout(f.armTimer),
       actions: {
         'w-preset': (el) => { entry.q('#wName').value = el.dataset.name; f.color = safeColor(el.dataset.color); drawSwatches(); focusEl(entry.q('#wBal')); },
@@ -9599,7 +9690,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       toast(t('wallet.updated'));
     }
 
-    entry.q('#wName').value = editing ? w.name : '';
+    entry.q('#wName').value = editing ? w.name : named;
     entry.q('#wBal').value = editing ? signedToField(curBal) : '';
     drawSwatches();
     return entry;
@@ -10425,6 +10516,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       unsure.push('amount');
       if (arrived) { prefill.day = arrived.day; prefill.time = arrived.time; unsure.push('date', 'time'); }
     }
+    if (typeof o.discard === 'function') read.discard = o.discard;
     return openTxSheet({
       prefill, previewUrl: o.previewUrl || null, read, dupCheck: true,
       focus: prefill.amount ? null : '#txAmount', onSaved: o.onSaved
@@ -11876,6 +11968,18 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       '<div class="inbox-btns"><button type="button" class="btn-secondary sm" data-action="inbox-check" data-n="' + esc(v.item.n) + '" aria-label="' + T('inbox.checkAria', { title }) + '">' + T('inbox.check') + '</button>' +
       '<button type="button" class="icon-btn sm" data-action="inbox-remove" data-n="' + esc(v.item.n) + '" aria-label="' + T('inbox.removeAria', { title }) + '">' + ICON.trash + '</button></div></div>';
   }
+  // Hapus (the list's trash, or Hapus on the item's own sheet): the item leaves the list. Like a deleted transaction,
+  // Urungkan puts it back (its notification does not come back)
+  function inboxDiscard(n) {
+    const item = inbox.items.find((x) => x.n === n);
+    if (!item) return false;
+    markHandled(n, null, 'removed');
+    closeNotifsFor(n);
+    inboxDelete(n);
+    toast(inbox.items.length ? t('inbox.removed') : t('inbox.removedLast'), { duration: 5000, action: { label: t('undo'), fn: () => inboxRestore(item) } });
+    announce(t('inbox.removed'));
+    return true;
+  }
   function openInboxList() {
     if (!inbox.items.length) return null;
     const entry = openSheet({
@@ -11884,17 +11988,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
       update: () => entry.draw(),
       actions: {
         'inbox-check': (el) => { const n = el.dataset.n; closeSheet(entry, true); inboxOpenItem(n, { fromList: true }); },
-        'inbox-remove': (el) => {
-          const n = el.dataset.n;
-          const item = inbox.items.find((x) => x.n === n);
-          if (!item) return;
-          markHandled(n, null, 'removed');
-          closeNotifsFor(n);
-          inboxDelete(n);
-          // like a deleted transaction: Urungkan puts it back
-          toast(inbox.items.length ? t('inbox.removed') : t('inbox.removedLast'), { duration: 5000, action: { label: t('undo'), fn: () => inboxRestore(item) } });
-          announce(t('inbox.removed'));
-        }
+        'inbox-remove': (el) => { inboxDiscard(el.dataset.n); }
       }
     });
     entry.draw = () => {
@@ -11916,14 +12010,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
     if (!item) return null;
     markSeen(n);
     const done = (rec) => { markHandled(n, rec && rec.id, 'saved'); closeNotifsFor(n); inboxDelete(n); };
+    // the list it came from opens again for the rest (after a save: after the check mark)
+    const backToList = (ms) => {
+      if (opts.fromList && inbox.items.length) {
+        setTimeout(() => { if (!topSheet() && $('onboarding').hidden && inbox.items.length) { switchTab('catat'); openInboxList(); } }, ms);
+      }
+    };
     const entry = openFromRead({
       text: '', result: readingOf(item), origin: 'notif', receivedAt: item.receivedAt,
+      // not to be recorded: Hapus on the sheet takes it off the list, as the list's trash does
+      discard: () => { if (inboxDiscard(n)) backToList(350); },
       onSaved: (rec) => {
         done(rec);
-        // the next one, after the check mark
-        if (opts.fromList && inbox.items.length) {
-          setTimeout(() => { if (!topSheet() && $('onboarding').hidden && inbox.items.length) { switchTab('catat'); openInboxList(); } }, 1150);
-        }
+        backToList(1150);
       }
     });
     inbox.entry = entry;
@@ -12066,6 +12165,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = Core;
           if (ui.parsed.some((_, j) => !ui.dropped.has(j))) updatePreview(); else resetCaption();
         }
       });
+    },
+    // the wallet the words named is added (name and colour of its preset filled in) or, archived, opened to bring back
+    'add-missing-wallet': (el) => {
+      const arch = archivedNamed(el.dataset.name);
+      if (arch) openWalletSheet(arch.id); else openWalletSheet(null, { name: el.dataset.name });
     },
     'drop-parsed': (el, e) => { const keep = captionHadFocus(e); ui.dropped.add(Number(el.dataset.idx)); updatePreview(); if (keep) focusEl($('captionInput')); },
     'voice-toggle': () => toggleVoice(),
